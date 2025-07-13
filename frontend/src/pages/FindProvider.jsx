@@ -157,7 +157,7 @@ const FindProvider = () => {
 
    return (
       <>
-      <NavbarSection/>
+         <NavbarSection />
          <section className="max-w-7xl mx-auto p-6 space-y-8">
             <div className="bg-white p-6 rounded-xl shadow-md border">
                <h2 className="text-xl font-semibold mb-4">
@@ -263,7 +263,7 @@ const FindProvider = () => {
                                  className="w-20 h-20 rounded-md object-cover border mb-2"
                               />
                            )}
-                           <CardTitle className="text-blue-600">
+                           <CardTitle className="text-[#004aad]">
                               {profile.companyName}
                            </CardTitle>
                            <p className="text-sm text-gray-500">

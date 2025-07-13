@@ -98,7 +98,7 @@ export default function Register() {
             className="w-full max-w-2xl bg-white p-8 rounded-lg shadow space-y-6 my-8"
             noValidate
          >
-            <h2 className="text-3xl font-bold text-center text-blue-600">
+            <h2 className="text-3xl font-bold text-center text-[#004aad]">
                Register
             </h2>
 
@@ -154,7 +154,7 @@ export default function Register() {
                         setForm((prev) => ({ ...prev, role: value }))
                      }
                   >
-                     <SelectTrigger className="h-11 px-3 py-1 text-base md:text-sm w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                     <SelectTrigger className="h-11 px-3 py-1 text-base md:text-sm w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004aad]">
                         <SelectValue placeholder="Select Role" />
                      </SelectTrigger>
                      <SelectContent>
@@ -185,7 +185,7 @@ export default function Register() {
                         </span>
                      )}
                   </div>
-                  <label className="cursor-pointer inline-block text-sm text-blue-600 hover:underline">
+                  <label className="cursor-pointer inline-block text-sm text-[#004aad] hover:underline">
                      Choose Image
                      <input
                         type="file"

@@ -83,7 +83,7 @@ const ServiceProviderProfile = () => {
                               className="w-20 h-20 rounded-md object-cover border mb-2"
                            />
                         )}
-                        <CardTitle className="text-blue-600">
+                        <CardTitle className="text-[#004aad]">
                            {profile.companyName}
                         </CardTitle>
                         <p className="text-sm text-gray-500">

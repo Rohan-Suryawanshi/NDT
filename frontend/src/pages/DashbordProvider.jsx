@@ -15,7 +15,7 @@ export default function DashboardProvider() {
       {
          title: "Service Requests",
          description: "View and manage incoming service requests from clients.",
-         icon: <ClipboardList className="w-8 h-8 text-blue-600" />,
+         icon: <ClipboardList className="w-8 h-8 text-[#004aad]" />,
          route: "/provider/service-requests",
       },
       {

@@ -16,7 +16,7 @@ export default function DashboardClient() {
          title: "Find Providers",
          description:
             "Search for NDT service providers based on location and expertise.",
-         icon: <Search className="w-8 h-8 text-blue-600" />,
+         icon: <Search className="w-8 h-8 text-[#004aad]" />,
          route: "/find-providers",
       },
       {
@@ -43,7 +43,7 @@ export default function DashboardClient() {
 
    return (
       <>
-         <NavbarSection/>
+         <NavbarSection />
          <div className="min-h-screen bg-gray-50 px-4 py-10">
             <div className="max-w-7xl mx-auto space-y-12">
                {/* Header */}
@@ -74,7 +74,7 @@ export default function DashboardClient() {
                         className="group border border-gray-200 hover:shadow-xl transition duration-300"
                      >
                         <CardHeader className="flex items-center gap-4">
-                           <div className="bg-blue-50 p-3 rounded-md group-hover:bg-blue-100 transition">
+                           <div className="bg-[#004aad] p-3 rounded-md group-hover:bg-[#004aad] transition">
                               {feature.icon}
                            </div>
                            <CardTitle className="text-xl font-semibold text-gray-800">

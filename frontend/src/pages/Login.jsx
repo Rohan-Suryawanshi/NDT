@@ -43,10 +43,11 @@ export default function Login() {
          const data = await res.json();
 
          if (!res.ok) {
-            toast.error(data.message || "Login failed");         } else {
+            toast.error(data.message || "Login failed");
+         } else {
             toast.success("Login successful!");
             console.log(data);
-            
+
             // Use the login function from useAuth hook
             login(data.data.user, data.data.accessToken);
 
@@ -74,7 +75,7 @@ export default function Login() {
             onSubmit={handleLogin}
             className="w-full max-w-md bg-white p-8 rounded-lg shadow space-y-6"
          >
-            <h2 className="text-3xl font-bold text-center text-blue-600">
+            <h2 className="text-3xl font-bold text-center text-[#004aad]">
                Login
             </h2>
 
@@ -114,7 +115,7 @@ export default function Login() {
                Don’t have an account?{" "}
                <span
                   onClick={() => navigate("/register")}
-                  className="text-blue-600 hover:underline cursor-pointer"
+                  className="text-[#004aad] hover:underline cursor-pointer"
                >
                   Register
                </span>

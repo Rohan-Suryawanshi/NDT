@@ -45,9 +45,9 @@ const NavbarSection = () => {
 
    const navLinkClasses = (path) =>
       cn(
-         "text-sm font-medium transition-colors hover:text-blue-600",
+         "text-sm font-medium transition-colors hover:text-[#004aad]-600",
          location.pathname === path
-            ? "text-blue-600 font-semibold"
+            ? "text-[#004aad]-600 font-semibold"
             : "text-gray-700"
       );
 
