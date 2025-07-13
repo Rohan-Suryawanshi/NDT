@@ -1,7 +1,7 @@
 import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { ClientProfile } from "../models/clientprofile.model.js";
+import { ClientProfile } from "../models/ClientProfile.model.js"
 
 // ✅ Create or Update Client Profile
 const upsertClientProfile = AsyncHandler(async (req, res) => {
