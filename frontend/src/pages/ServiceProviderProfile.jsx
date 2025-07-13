@@ -1,252 +1,151 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { BACKEND_URL } from "@/constant/Global";
 
 const ServiceProviderProfile = () => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+   const [profiles, setProfiles] = useState([]);
+   const [filteredProfiles, setFilteredProfiles] = useState([]);
+   const [loading, setLoading] = useState(true);
+   const [filter, setFilter] = useState("");
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const accessToken = localStorage.getItem("accessToken");
-        const res = await axios.get(
-           `${BACKEND_URL}/api/v1/service-provider/profile`,
-           {
-              headers: {
-                 Authorization: `Bearer ${accessToken}`,
-              },
-           }
-        );
-        setProfile(res.data?.data);
-      } catch (err) {
-        console.error("Failed to fetch profile:", err);
-      } finally {
-        setLoading(false);
+   useEffect(() => {
+      const fetchProfiles = async () => {
+         try {
+            const accessToken = localStorage.getItem("accessToken");
+            const res = await axios.get(
+               `${BACKEND_URL}/api/v1/service-provider/all`,
+               {
+                  headers: { Authorization: `Bearer ${accessToken}` },
+               }
+            );
+            setProfiles(res.data?.data || []);
+            setFilteredProfiles(res.data?.data || []);
+         } catch (err) {
+            console.error("Failed to fetch profiles:", err);
+         } finally {
+            setLoading(false);
+         }
+      };
+      fetchProfiles();
+   }, []);
+
+   useEffect(() => {
+      if (!filter.trim()) {
+         setFilteredProfiles(profiles);
+         return;
       }
-    };
-    fetchProfile();
-  }, []);
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
-  if (!profile) return <p className="text-center mt-10 text-red-500">No profile data found.</p>;
+      const search = filter.toLowerCase();
+      const filtered = profiles.filter((profile) => {
+         return (
+            profile?.companyName?.toLowerCase().includes(search) ||
+            profile?.businessLocation?.toLowerCase().includes(search) ||
+            profile?.contactNumber?.includes(search) ||
+            profile?.services?.some((s) =>
+               s?.serviceId?.name?.toLowerCase().includes(search)
+            ) ||
+            profile?.skillMatrix?.some((s) =>
+               s.skill.toLowerCase().includes(search)
+            )
+         );
+      });
 
-  const {
-    companyLogoUrl,
-    companyName,
-    contactNumber,
-    businessLocation,
-    companyDescription,
-    companySpecialization,
-    certificates,
-    services,
-    skillMatrix,
-    personnelQualifications,
-    companyCertifications,
-    proceduresUrl,
-    userId,
-  } = profile;
+      setFilteredProfiles(filtered);
+   }, [filter, profiles]);
 
-  return (
-    <section className="max-w-5xl mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-6">
-        {companyLogoUrl && (
-          <img
-            src={companyLogoUrl}
-            alt="Company Logo"
-            className="w-20 h-20 rounded-md object-cover border"
-          />
-        )}
-        <div>
-          <h2 className="text-2xl font-bold text-blue-600">{companyName}</h2>
-          <p className="text-gray-600">{businessLocation}</p>
-          <p className="text-gray-500 text-sm">{contactNumber}</p>
-        </div>
-      </div>
+   if (loading) return <p className="text-center mt-10">Loading...</p>;
 
-      {/* About */}
-      <Card>
-        <CardHeader>
-          <CardTitle>About the Company</CardTitle>
-        </CardHeader>
-        <CardContent className="text-gray-700 space-y-2">
-          {companyDescription && <p>{companyDescription}</p>}
-          {proceduresUrl && (
-            <p>
-              <strong>Procedures File: </strong>
-              <a
-                href={proceduresUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline"
-              >
-                View
-              </a>
+   return (
+      <section className="max-w-6xl mx-auto p-6 space-y-6">
+         <Input
+            placeholder="Search by company name, location, skill, or service..."
+            className="mb-4 w-full max-w-md mx-auto"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+         />
+
+         {filteredProfiles.length === 0 ? (
+            <p className="text-center text-red-500">
+               No matching profiles found.
             </p>
-          )}
-        </CardContent>
-      </Card>
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {filteredProfiles.map((profile, index) => (
+                  <Card key={index} className="h-full">
+                     <CardHeader className="flex flex-col items-center text-center">
+                        {profile.companyLogoUrl && (
+                           <img
+                              src={profile.companyLogoUrl}
+                              alt="Company Logo"
+                              className="w-20 h-20 rounded-md object-cover border mb-2"
+                           />
+                        )}
+                        <CardTitle className="text-blue-600">
+                           {profile.companyName}
+                        </CardTitle>
+                        <p className="text-sm text-gray-500">
+                           {profile.businessLocation}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                           {profile.contactNumber}
+                        </p>
+                     </CardHeader>
+                     <CardContent className="text-sm text-gray-700 space-y-2">
+                        {profile.companyDescription && (
+                           <p>{profile.companyDescription}</p>
+                        )}
 
-      {/* Services */}
-      {services?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Services Offered</CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm border rounded-lg">
-              <thead className="bg-gray-100 text-left">
-                <tr>
-                  <th className="p-2">Service ID</th>
-                  <th className="p-2">Unit</th>
-                  <th className="p-2">Quantity</th>
-                  <th className="p-2">Price</th>
-                  <th className="p-2">Currency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {services.map((s, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="p-2">{s.serviceId}</td>
-                    <td className="p-2">{s.unit}</td>
-                    <td className="p-2">{s.quantity}</td>
-                    <td className="p-2">${s.price}</td>
-                    <td className="p-2">{s.currency}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      )}
+                        {profile.services?.length > 0 && (
+                           <div>
+                              <strong>Services:</strong>
+                              <ul className="list-disc pl-4">
+                                 {profile.services.map((s, i) => (
+                                    <li key={i}>
+                                       {s?.serviceId?.name} - ${s.price}
+                                    </li>
+                                 ))}
+                              </ul>
+                           </div>
+                        )}
 
-      {/* Skills */}
-      {skillMatrix?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Skill Matrix</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              {skillMatrix.map((skill, i) => (
-                <li key={i}>
-                  {skill.skill} -{" "}
-                  {skill.level === 1
-                    ? "Beginner"
-                    : skill.level === 2
-                    ? "Intermediate"
-                    : "Expert"}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+                        {profile.skillMatrix?.length > 0 && (
+                           <div>
+                              <strong>Skills:</strong>
+                              <ul className="list-disc pl-4">
+                                 {profile.skillMatrix.map((s, i) => (
+                                    <li key={i}>
+                                       {s.skill} (
+                                       {s.level === 1
+                                          ? "Beginner"
+                                          : s.level === 2
+                                          ? "Intermediate"
+                                          : "Expert"}
+                                       )
+                                    </li>
+                                 ))}
+                              </ul>
+                           </div>
+                        )}
 
-      {/* Personnel Qualifications */}
-      {personnelQualifications?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Personnel Qualifications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              {personnelQualifications.map((q, i) => (
-                <li key={i}>
-                  {q.certificationBody} - Level {q.level}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Certifications */}
-      {companyCertifications?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Company Certifications</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {companyCertifications.map((cert, i) => (
-              <Badge key={i} variant="outline">
-                {cert}
-              </Badge>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Certificates */}
-      {certificates && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Uploaded Certificates</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {certificates.twic && (
-              <div>
-                <strong>TWIC: </strong>
-                {certificates.twic.fileUrl ? (
-                  <>
-                    <a
-                      href={certificates.twic.fileUrl}
-                      target="_blank"
-                      className="text-blue-600 underline"
-                    >
-                      View File
-                    </a>
-                    {certificates.twic.expiryDate && (
-                      <span className="text-gray-500 ml-2">
-                        (Expires:{" "}
-                        {new Date(certificates.twic.expiryDate).toLocaleDateString()}
-                        )
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  "Not uploaded"
-                )}
-              </div>
-            )}
-            {certificates.gatePass && (
-              <div>
-                <strong>Gate Pass: </strong>
-                {certificates.gatePass.fileUrl ? (
-                  <>
-                    <a
-                      href={certificates.gatePass.fileUrl}
-                      target="_blank"
-                      className="text-blue-600 underline"
-                    >
-                      View File
-                    </a>
-                    {certificates.gatePass.expiryDate && (
-                      <span className="text-gray-500 ml-2">
-                        (Expires:{" "}
-                        {new Date(certificates.gatePass.expiryDate).toLocaleDateString()}
-                        )
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  "Not uploaded"
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </section>
-  );
+                        {profile.companyCertifications?.length > 0 && (
+                           <div className="flex flex-wrap gap-2">
+                              {profile.companyCertifications.map((cert, i) => (
+                                 <Badge key={i} variant="outline">
+                                    {cert?.certificateName || cert}
+                                 </Badge>
+                              ))}
+                           </div>
+                        )}
+                     </CardContent>
+                  </Card>
+               ))}
+            </div>
+         )}
+      </section>
+   );
 };
 
 export default ServiceProviderProfile;

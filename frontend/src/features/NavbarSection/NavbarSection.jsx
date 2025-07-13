@@ -65,16 +65,6 @@ const NavbarSection = () => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-6">
-               <a href="/#about" className="hover:text-blue-600">
-                  About
-               </a>
-               <a href="/#features" className="hover:text-blue-600">
-                  Features
-               </a>
-               <a href="/#contact" className="hover:text-blue-600">
-                  Contact
-               </a>
-
                {user?.role === "client" && (
                   <>
                      <Link
@@ -142,7 +132,17 @@ const NavbarSection = () => {
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem
-                           onClick={() => navigate("/dashboard")}
+                           onClick={() => {
+                              if (user.role === "client") {
+                                 navigate("/dashboard-client");
+                              } else if (user.role === "provider") {
+                                 navigate("/dashboard-provider");
+                              } else if (user.role === "admin") {
+                                 navigate("/dashboard-admin");
+                              } else {
+                                 navigate("/dashboard");
+                              }
+                           }}
                         >
                            <LayoutDashboard className="mr-2 h-4 w-4" />{" "}
                            Dashboard
@@ -201,15 +201,7 @@ const NavbarSection = () => {
                   </SheetHeader>
 
                   <nav className="space-y-4 mt-6 text-gray-700">
-                     <a href="#about" className="block hover:text-blue-600">
-                        About
-                     </a>
-                     <a href="#features" className="block hover:text-blue-600">
-                        Features
-                     </a>
-                     <a href="#contact" className="block hover:text-blue-600">
-                        Contact
-                     </a>
+
 
                      {user?.role === "client" && (
                         <>

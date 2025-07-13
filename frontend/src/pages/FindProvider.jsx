@@ -1,175 +1,334 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import axios from "axios";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/components/ui/select";
 import { BACKEND_URL } from "@/constant/Global";
-import toast from "react-hot-toast";
-import { Phone, MapPin, Briefcase } from "lucide-react";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
-export default function FindProviders() {
-   const [providers, setProviders] = useState([]);
+const PREDEFINED_CERTIFICATIONS = [
+   "API Q1",
+   "AS9100",
+   "IACS - American Bureau of Shipping (ABS)",
+   "IACS - Bureau Veritas (BV)",
+   "IACS - China Classification Society (CCS)",
+   "IACS - Croatian Register of Shipping (CRS)",
+   "IACS - DNV",
+   "IACS - Indian Register of Shipping (IRS)",
+   "IACS - Korean Register of Shipping (KR)",
+   "IACS - Lloyd's Register (LR)",
+   "IACS - Nippon Kaiji Kyokai (ClassNK)",
+   "IACS - Polski Rejestr Statków (PRS)",
+   "IACS - RINA Services (RINA)",
+   "IACS - Russian Maritime Register of Shipping (RS)",
+   "ISO 9001",
+   "ISO 14001",
+   "ISO 45001",
+   "ISO/IEC 17020",
+   "ISO/IEC 17024",
+   "ISO/IEC 17025",
+   "Nadcap",
+   "NAS 410",
+];
+
+const PREDEFINED_PERSONNEL_CERTS = [
+   "ACCP",
+   "ASNT",
+   "CGSB",
+   "CSWIP",
+   "EN 4179",
+   "ISO 9712",
+   "NAS 410",
+   "PCN",
+   "SNT-TC-1A",
+];
+
+const FindProvider = () => {
+   const [profiles, setProfiles] = useState([]);
+   const [filteredProfiles, setFilteredProfiles] = useState([]);
+   const [ndtServices, setNdtServices] = useState([]);
    const [loading, setLoading] = useState(true);
 
+   const [searchName, setSearchName] = useState("");
+   const [searchLocation, setSearchLocation] = useState("");
+   const [searchService, setSearchService] = useState("");
+   const [searchSpecialization, setSearchSpecialization] = useState("");
+   const [searchCompanyCert, setSearchCompanyCert] = useState("");
+   const [searchPersonnelCert, setSearchPersonnelCert] = useState("");
+
    useEffect(() => {
-      const fetchProviders = async () => {
-         const token = localStorage.getItem("accessToken");
+      const fetchData = async () => {
          try {
-            const res = await fetch(
+            const accessToken = localStorage.getItem("accessToken");
+            const res = await axios.get(
                `${BACKEND_URL}/api/v1/service-provider/all`,
                {
-                  headers: {
-                     Authorization: `Bearer ${token}`,
-                  },
+                  headers: { Authorization: `Bearer ${accessToken}` },
                }
             );
-            const data = await res.json();
-
-            if (res.ok) {
-               setProviders(data.data || []);
-            } else {
-               toast.error(data.message || "Failed to fetch providers");
-            }
-         } catch (error) {
-            console.error(error);
-            toast.error("Error fetching providers");
+            setProfiles(res.data?.data || []);
+            setFilteredProfiles(res.data?.data || []);
+         } catch (err) {
+            console.error("Failed to fetch providers:", err);
          } finally {
             setLoading(false);
          }
       };
 
-      fetchProviders();
+      const fetchServices = async () => {
+         try {
+            const res = await axios.get(`${BACKEND_URL}/api/v1/service`);
+            setNdtServices(res.data?.data || []);
+         } catch (err) {
+            console.error("Failed to fetch services:", err);
+         }
+      };
+
+      fetchData();
+      fetchServices();
    }, []);
 
+   useEffect(() => {
+      const filtered = profiles.filter((profile) => {
+         const nameMatch = profile?.companyName
+            ?.toLowerCase()
+            .includes(searchName.toLowerCase());
+         const locationMatch = profile?.businessLocation
+            ?.toLowerCase()
+            .includes(searchLocation.toLowerCase());
+         const serviceMatch = profile?.services?.some((s) =>
+            s?.serviceId?.name
+               ?.toLowerCase()
+               .includes(searchService.toLowerCase())
+         );
+         const specializationMatch = Array.isArray(
+            profile?.companySpecialization
+         )
+            ? profile.companySpecialization.some((spec) =>
+                 spec
+                    ?.toLowerCase()
+                    .includes(searchSpecialization.toLowerCase())
+              )
+            : profile?.companySpecialization
+                 ?.toLowerCase()
+                 .includes(searchSpecialization.toLowerCase());
+
+         const companyCertMatch = profile?.companyCertifications?.some((c) =>
+            (c?.certificateName || c)
+               ?.toLowerCase()
+               .includes(searchCompanyCert.toLowerCase())
+         );
+
+         const personnelCertMatch = profile?.personnelQualifications?.some(
+            (p) =>
+               p?.certificationBody
+                  ?.toLowerCase()
+                  .includes(searchPersonnelCert.toLowerCase())
+         );
+
+         return (
+            (!searchName || nameMatch) &&
+            (!searchLocation || locationMatch) &&
+            (!searchService || serviceMatch) &&
+            (!searchSpecialization || specializationMatch) &&
+            (!searchCompanyCert || companyCertMatch) &&
+            (!searchPersonnelCert || personnelCertMatch)
+         );
+      });
+      setFilteredProfiles(filtered);
+   }, [
+      searchName,
+      searchLocation,
+      searchService,
+      searchSpecialization,
+      searchCompanyCert,
+      searchPersonnelCert,
+      profiles,
+   ]);
+
+   if (loading) return <p className="text-center mt-10">Loading...</p>;
+
    return (
-      <div className="min-h-screen bg-gray-50 px-4 py-8">
-         <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 text-blue-700">
-               NDT Service Providers
-            </h2>
-
-            {loading ? (
-               <p>Loading providers...</p>
-            ) : providers.length === 0 ? (
-               <p className="text-gray-600">No providers found.</p>
-            ) : (
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {providers.map((provider) => (
-                     <Card
-                        key={provider._id}
-                        className="shadow hover:shadow-lg transition"
+      <>
+      <NavbarSection/>
+         <section className="max-w-7xl mx-auto p-6 space-y-8">
+            <div className="bg-white p-6 rounded-xl shadow-md border">
+               <h2 className="text-xl font-semibold mb-4">
+                  Find Service Providers
+               </h2>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+                  <div className="w-full">
+                     <Input
+                        className="w-full"
+                        placeholder="Company / Inspector Name"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                     />
+                  </div>
+                  <div className="w-full">
+                     <Input
+                        className="w-full"
+                        placeholder="Location"
+                        value={searchLocation}
+                        onChange={(e) => setSearchLocation(e.target.value)}
+                     />
+                  </div>
+                  <div className="w-full">
+                     <Select
+                        value={searchService}
+                        onValueChange={setSearchService}
                      >
-                        <CardHeader className="flex gap-4 items-center">
-                           <img
-                              src={provider.companyLogoUrl}
-                              alt="logo"
-                              className="w-16 h-16 object-cover rounded-md"
-                           />
-                           <div>
-                              <CardTitle className="text-xl font-semibold">
-                                 {provider.companyName}
-                              </CardTitle>
-                              <div className="text-sm text-gray-500 flex items-center gap-1">
-                                 <MapPin className="w-4 h-4" />{" "}
-                                 {provider.businessLocation}
-                              </div>
-                              <div className="text-sm text-gray-500 flex items-center gap-1">
-                                 <Phone className="w-4 h-4" />{" "}
-                                 {provider.contactNumber}
-                              </div>
-                           </div>
+                        <SelectTrigger className="w-full">
+                           <SelectValue placeholder="NDT Service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {ndtServices.map((service) => (
+                              <SelectItem
+                                 key={service._id}
+                                 value={service.name.toLowerCase()}
+                              >
+                                 {service.name}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+                  <div className="w-full">
+                     <Input
+                        className="w-full"
+                        placeholder="Specialization"
+                        value={searchSpecialization}
+                        onChange={(e) =>
+                           setSearchSpecialization(e.target.value)
+                        }
+                     />
+                  </div>
+                  <div className="w-full">
+                     <Select
+                        value={searchCompanyCert}
+                        onValueChange={setSearchCompanyCert}
+                     >
+                        <SelectTrigger className="w-full">
+                           <SelectValue placeholder="Company Certification" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {PREDEFINED_CERTIFICATIONS.map((cert) => (
+                              <SelectItem key={cert} value={cert.toLowerCase()}>
+                                 {cert}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+                  <div className="w-full">
+                     <Select
+                        value={searchPersonnelCert}
+                        onValueChange={setSearchPersonnelCert}
+                     >
+                        <SelectTrigger className="w-full">
+                           <SelectValue placeholder="Personnel Certification" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {PREDEFINED_PERSONNEL_CERTS.map((cert) => (
+                              <SelectItem key={cert} value={cert.toLowerCase()}>
+                                 {cert}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+               </div>
+            </div>
+
+            {filteredProfiles.length === 0 ? (
+               <p className="text-center text-red-500">
+                  No matching profiles found.
+               </p>
+            ) : (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProfiles.map((profile, index) => (
+                     <Card key={index} className="h-full">
+                        <CardHeader className="flex flex-col items-center text-center">
+                           {profile.companyLogoUrl && (
+                              <img
+                                 src={profile.companyLogoUrl}
+                                 alt="Company Logo"
+                                 className="w-20 h-20 rounded-md object-cover border mb-2"
+                              />
+                           )}
+                           <CardTitle className="text-blue-600">
+                              {profile.companyName}
+                           </CardTitle>
+                           <p className="text-sm text-gray-500">
+                              {profile.businessLocation}
+                           </p>
+                           <p className="text-sm text-gray-500">
+                              {profile.contactNumber}
+                           </p>
                         </CardHeader>
+                        <CardContent className="text-sm text-gray-700 space-y-2">
+                           {profile.companyDescription && (
+                              <p>{profile.companyDescription}</p>
+                           )}
 
-                        <Separator />
+                           {profile.services?.length > 0 && (
+                              <div>
+                                 <strong>Services:</strong>
+                                 <ul className="list-disc pl-4">
+                                    {profile.services.map((s, i) => (
+                                       <li key={i}>
+                                          {s?.serviceId?.name} - ${s.price}
+                                       </li>
+                                    ))}
+                                 </ul>
+                              </div>
+                           )}
 
-                        <CardContent className="space-y-3">
-                           {/* Services */}
-                           <div>
-                              <h4 className="text-sm font-semibold mb-1 text-gray-700">
-                                 Services Offered:
-                              </h4>
-                              {provider.services.map((service) => (
-                                 <Badge key={service._id} className="mr-2 mb-1">
-                                    ${service.price} / {service.unit}
-                                 </Badge>
-                              ))}
-                           </div>
+                           {profile.skillMatrix?.length > 0 && (
+                              <div>
+                                 <strong>Skills:</strong>
+                                 <ul className="list-disc pl-4">
+                                    {profile.skillMatrix.map((s, i) => (
+                                       <li key={i}>
+                                          {s.skill} (
+                                          {s.level === 1
+                                             ? "Beginner"
+                                             : s.level === 2
+                                             ? "Intermediate"
+                                             : "Expert"}
+                                          )
+                                       </li>
+                                    ))}
+                                 </ul>
+                              </div>
+                           )}
 
-                           {/* Skills */}
-                           <div>
-                              <h4 className="text-sm font-semibold mb-1 text-gray-700">
-                                 Skills:
-                              </h4>
-                              {provider.skillMatrix.map((skill) => (
-                                 <Badge
-                                    key={skill._id}
-                                    variant="outline"
-                                    className="text-blue-600 border-blue-300 mr-2 mb-1"
-                                 >
-                                    {skill.skill} (Level {skill.level})
-                                 </Badge>
-                              ))}
-                           </div>
-
-                           {/* Certifications */}
-                           <div>
-                              <h4 className="text-sm font-semibold mb-1 text-gray-700">
-                                 Company Certifications:
-                              </h4>
-                              {provider.companyCertifications.map(
-                                 (cert, idx) => (
-                                    <Badge
-                                       key={idx}
-                                       variant="secondary"
-                                       className="mr-2 mb-1"
-                                    >
-                                       {cert}
-                                    </Badge>
-                                 )
-                              )}
-                           </div>
-
-                           {/* Personnel Qualifications */}
-                           <div>
-                              <h4 className="text-sm font-semibold mb-1 text-gray-700">
-                                 Personnel Qualifications:
-                              </h4>
-                              {provider.personnelQualifications.map((qual) => (
-                                 <Badge key={qual._id} className="mr-2 mb-1">
-                                    {qual.certificationBody} Level {qual.level}
-                                 </Badge>
-                              ))}
-                           </div>
-
-                           {/* Certificate Files */}
-                           <div>
-                              <h4 className="text-sm font-semibold mb-1 text-gray-700">
-                                 Uploaded Certificates:
-                              </h4>
-                              <div className="flex gap-4">
-                                 {provider.certificates?.twic?.fileUrl && (
-                                    <img
-                                       src={provider.certificates.twic.fileUrl}
-                                       alt="TWIC"
-                                       className="w-10 h-10 object-cover rounded"
-                                    />
-                                 )}
-                                 {provider.certificates?.gatePass?.fileUrl && (
-                                    <img
-                                       src={
-                                          provider.certificates.gatePass.fileUrl
-                                       }
-                                       alt="Gate Pass"
-                                       className="w-10 h-10 object-cover rounded"
-                                    />
+                           {profile.companyCertifications?.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                 {profile.companyCertifications.map(
+                                    (cert, i) => (
+                                       <Badge key={i} variant="outline">
+                                          {cert?.certificateName || cert}
+                                       </Badge>
+                                    )
                                  )}
                               </div>
-                           </div>
+                           )}
                         </CardContent>
                      </Card>
                   ))}
                </div>
             )}
-         </div>
-      </div>
+         </section>
+      </>
    );
-}
+};
+
+export default FindProvider;
