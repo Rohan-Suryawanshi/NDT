@@ -65,13 +65,13 @@ const NavbarSection = () => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-6">
-               <a href="#about" className="hover:text-blue-600">
+               <a href="/#about" className="hover:text-blue-600">
                   About
                </a>
-               <a href="#features" className="hover:text-blue-600">
+               <a href="/#features" className="hover:text-blue-600">
                   Features
                </a>
-               <a href="#contact" className="hover:text-blue-600">
+               <a href="/#contact" className="hover:text-blue-600">
                   Contact
                </a>
 
