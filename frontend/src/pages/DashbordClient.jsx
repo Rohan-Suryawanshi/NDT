@@ -74,7 +74,7 @@ export default function DashboardClient() {
                         className="group border border-gray-200 hover:shadow-xl transition duration-300"
                      >
                         <CardHeader className="flex items-center gap-4">
-                           <div className="bg-[#004aad] p-3 rounded-md group-hover:bg-[#004aad] transition">
+                           <div className="bg-blue-50 p-3 rounded-md group-hover:bg-blue-100 transition">
                               {feature.icon}
                            </div>
                            <CardTitle className="text-xl font-semibold text-gray-800">

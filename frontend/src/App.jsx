@@ -8,6 +8,9 @@ import FindProviders from "./pages/FindProvider";
 import ClientAccountSettings from "./pages/ClientAccountSettings";
 import DashboardProvider from "./pages/DashbordProvider";
 import ServiceProviderProfile from "./pages/ServiceProviderProfile";
+import CertificateManager from "./features/CertificateManager/CertificateManager";
+import EquipmentManager from "./features/EquipmentManager/EquipmentManager";
+import SkillMatrixManager from "./features/SkillMatrixManager/SkillMatrixManager";
 
 export default function App() {
    return (
@@ -28,6 +31,9 @@ export default function App() {
                path="/provider-profile"
                element={<ServiceProviderProfile />}
             />
+            <Route path="/certificate" element={<CertificateManager />} />
+            <Route path="/equipment" element={<EquipmentManager />} />
+            <Route path="/skill-matrix" element={<SkillMatrixManager />} />
          </Routes>
       </Router>
    );

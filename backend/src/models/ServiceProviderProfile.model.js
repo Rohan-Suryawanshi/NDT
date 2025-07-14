@@ -63,9 +63,7 @@ const providerSchema = new mongoose.Schema(
         certificateName: String,
         certificateUrl: String,
       },
-    ], // List of ISO/NDT certifications, etc.
-
-    acceptedTerms: { type: Boolean, default: false },
+    ], 
   },
   { timestamps: true }
 );

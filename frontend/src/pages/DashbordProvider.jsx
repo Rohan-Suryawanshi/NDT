@@ -29,7 +29,7 @@ export default function DashboardProvider() {
          description:
             "Update your company details, services offered, and availability.",
          icon: <UserCircle className="w-8 h-8 text-purple-600" />,
-         route: "/provider/profile",
+         route: "/provider-profile",
       },
       {
          title: "Account Settings",
@@ -37,6 +37,13 @@ export default function DashboardProvider() {
             "Manage your NDT Connect account settings and preferences.",
          icon: <Settings className="w-8 h-8 text-gray-600" />,
          route: "/settings",
+      },
+      {
+         title: "Certificate",
+         description:
+            "Manage your NDT Connect account Certificates and preferences.",
+         icon: <Settings className="w-8 h-8 text-gray-600" />,
+         route: "/certificate",
       },
    ];
 
