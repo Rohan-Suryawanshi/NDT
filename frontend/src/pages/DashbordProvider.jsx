@@ -72,7 +72,7 @@ export default function DashboardProvider() {
 
                <Separator />
 
-               {/* Dashboard Cards */}
+               
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
                   {features.map(({ icon, title, description, route }) => (
                      <Card
