@@ -5,6 +5,7 @@ import CertificateForm from "./CertificateForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Pencil, Trash2, PlusCircle } from "lucide-react";
+import { BACKEND_URL } from "@/constant/Global";
 
 export default function CertificateManager() {
    const [certificates, setCertificates] = useState([]);
@@ -14,7 +15,7 @@ export default function CertificateManager() {
    const fetchCertificates = async () => {
       try {
          const res = await axios.get(
-            "http://localhost:3000/api/v1/certificates",
+            `${BACKEND_URL}/api/v1/certificates`,
             {
                headers: {
                   Authorization: `Bearer ${localStorage.getItem(
@@ -31,7 +32,7 @@ export default function CertificateManager() {
 
    const deleteCertificate = async (id) => {
       try {
-         await axios.delete(`http://localhost:3000/api/v1/certificates/${id}`, {
+         await axios.delete(`${BACKEND_URL}/api/v1/certificates/${id}`, {
             headers: {
                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
             },

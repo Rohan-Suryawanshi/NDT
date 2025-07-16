@@ -45,6 +45,13 @@ export default function DashboardProvider() {
          icon: <Settings className="w-8 h-8 text-gray-600" />,
          route: "/certificate",
       },
+        {
+         title: "Skill Matrix",
+         description:
+            "Manage your NDT Connect account Certificates and preferences.",
+         icon: <Settings className="w-8 h-8 text-gray-600" />,
+         route: "/skill-matrix",
+      },
    ];
 
    return (

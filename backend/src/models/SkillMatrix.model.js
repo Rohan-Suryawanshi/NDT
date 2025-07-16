@@ -14,7 +14,7 @@ const skillMatrixSchema = new mongoose.Schema({
       method: { type: String, required: true },
       level: { type: String, required: true },
       certificationExpiryDate: { type: Date, required: true },
-      certificationUrl: { type: String, required: true },
+      certificationUrl: { type: String ,required:true},
     },
   ],
   updatedAt: { type: Date, default: Date.now },

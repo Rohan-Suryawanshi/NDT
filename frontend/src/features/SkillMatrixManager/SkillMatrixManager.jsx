@@ -15,11 +15,16 @@ export default function SkillMatrixManager() {
       level: "",
       expiry: "",
    });
+   const [formKey, setFormKey] = useState(Date.now()); // For resetting file input
    const [form, setForm] = useState({
       technician: "",
       certificates: [{ method: "", level: "", expiry: "", file: null }],
    });
    const [editing, setEditing] = useState(null);
+
+   useEffect(() => {
+      fetchData();
+   }, []);
 
    const fetchData = async () => {
       try {
@@ -34,23 +39,16 @@ export default function SkillMatrixManager() {
       }
    };
 
-   useEffect(() => {
-      fetchData();
-   }, []);
-
-   const handleChange = (idx, key, val) => {
+   const handleChange = (idx, key, value) => {
       const updated = [...form.certificates];
-      updated[idx][key] = val;
+      updated[idx][key] = value;
       setForm((prev) => ({ ...prev, certificates: updated }));
    };
 
    const addCertRow = () => {
       setForm((prev) => ({
          ...prev,
-         certificates: [
-            ...prev.certificates,
-            { method: "", level: "", expiry: "", file: null },
-         ],
+         certificates: [...prev.certificates, { method: "", level: "", expiry: "", file: null }],
       }));
    };
 
@@ -60,72 +58,26 @@ export default function SkillMatrixManager() {
       setForm((prev) => ({ ...prev, certificates: updated }));
    };
 
-   const handleSubmit = async (e) => {
-      e.preventDefault();
-      const formData = new FormData();
-
-      const certs = form.certificates.map((cert) => ({
-         method: cert.method,
-         level: cert.level,
-         certificationExpiryDate: cert.expiry,
-      }));
-
-      formData.append(
-         "data",
-         JSON.stringify({
-            technician: { name: form.technician },
-            certificates: certs,
-         })
-      );
-
-      form.certificates.forEach((cert) => {
-         formData.append("certificateFiles", cert.file);
+   const clearForm = () => {
+      setForm({
+         technician: "",
+         certificates: [{ method: "", level: "", expiry: "", file: null }],
       });
-
-      try {
-         if (editing) {
-            await axios.put(
-               `${BACKEND_URL}/api/v1/skill-matrix/${editing}`,
-               formData,
-               {
-                  headers: {
-                     Authorization: `Bearer ${localStorage.getItem(
-                        "accessToken"
-                     )}`,
-                  },
-               }
-            );
-            toast.success("Skill Matrix Updated");
-         } else {
-            await axios.post(`${BACKEND_URL}/api/v1/skill-matrix`, formData, {
-               headers: {
-                  Authorization: `Bearer ${localStorage.getItem(
-                     "accessToken"
-                  )}`,
-               },
-            });
-            toast.success("Skill Matrix Created");
-         }
-
-         setForm({
-            technician: "",
-            certificates: [{ method: "", level: "", expiry: "", file: null }],
-         });
-         setEditing(null);
-         fetchData();
-      } catch (err) {
-         toast.error(err?.response?.data?.message || "Submission Failed");
-      }
+      setEditing(null);
+      setFormKey(Date.now());
    };
 
    const handleEdit = (matrix) => {
       setEditing(matrix._id);
+      setFormKey(Date.now());
       setForm({
          technician: matrix.technician.name,
          certificates: matrix.certificates.map((cert) => ({
             method: cert.method,
             level: cert.level,
-            expiry: cert.certificationExpiryDate,
+            expiry: cert.certificationExpiryDate
+               ? new Date(cert.certificationExpiryDate).toISOString().slice(0, 10)
+               : "",
             file: null,
          })),
       });
@@ -145,16 +97,54 @@ export default function SkillMatrixManager() {
       }
    };
 
+   const handleSubmit = async (e) => {
+      e.preventDefault();
+
+      if (!editing && form.certificates.some((c) => !c.file)) {
+         toast.error("All certificates must have a file uploaded.");
+         return;
+      }
+
+      const formData = new FormData();
+      const certs = form.certificates.map((c) => ({
+         method: c.method,
+         level: c.level,
+         certificationExpiryDate: c.expiry,
+      }));
+
+      formData.append(
+         "data",
+         JSON.stringify({ technician: { name: form.technician }, certificates: certs })
+      );
+      form.certificates.forEach((c) => formData.append("certificateFiles", c.file));
+
+      try {
+         const url = editing
+            ? `${BACKEND_URL}/api/v1/skill-matrix/${editing}`
+            : `${BACKEND_URL}/api/v1/skill-matrix`;
+
+         const method = editing ? "put" : "post";
+
+         await axios[method](url, formData, {
+            headers: {
+               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+         });
+
+         toast.success(editing ? "Skill Matrix Updated" : "Skill Matrix Created");
+         clearForm();
+         fetchData();
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Submission Failed");
+      }
+   };
+
    const filtered = data.filter(
       (matrix) =>
-         matrix.technician.name
-            .toLowerCase()
-            .includes(filters.technician.toLowerCase()) &&
+         matrix.technician.name.toLowerCase().includes(filters.technician.toLowerCase()) &&
          matrix.certificates.some(
             (cert) =>
-               cert.method
-                  .toLowerCase()
-                  .includes(filters.method.toLowerCase()) &&
+               cert.method.toLowerCase().includes(filters.method.toLowerCase()) &&
                cert.level.toLowerCase().includes(filters.level.toLowerCase()) &&
                cert.certificationExpiryDate.includes(filters.expiry)
          )
@@ -163,49 +153,88 @@ export default function SkillMatrixManager() {
    return (
       <div className="p-6 space-y-6">
          <h1 className="text-2xl font-bold">Skill Matrix Manager</h1>
-         <div className="border p-4 rounded space-y-2 shadow">
+
+         {/* Filters */}
+         {/* <div className="border p-4 rounded mb-2 shadow">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                {["Technician", "Method", "Level", "Expiry"].map((key) => (
-                  <label key={key} className="font-medium">
-                     {key}
-                  </label>
+                  <label key={key} >{key}</label>
                ))}
             </div>
-
-            {/* Filter Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                {["technician", "method", "level", "expiry"].map((key) => (
                   <Input
                      key={key}
                      placeholder={`Filter by ${key}`}
                      value={filters[key]}
-                     onChange={(e) =>
-                        setFilters((prev) => ({
-                           ...prev,
-                           [key]: e.target.value,
-                        }))
-                     }
+                     onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))}
                   />
                ))}
             </div>
-         </div>
+         </div> */}
+         {/* Filters */}
+<div className="border p-4 rounded mb-4 shadow space-y-4">
+  <h2 className="text-lg font-semibold">Filter Skill Matrices</h2>
+  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    {/* Technician Filter */}
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">Technician</label>
+      <Input
+        placeholder="Filter by Technician"
+        value={filters.technician}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, technician: e.target.value }))
+        }
+      />
+    </div>
+
+    {/* Method Filter */}
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">Method</label>
+      <Input
+        placeholder="Filter by Method"
+        value={filters.method}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, method: e.target.value }))
+        }
+      />
+    </div>
+
+    {/* Level Filter */}
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">Level</label>
+      <Input
+        placeholder="Filter by Level"
+        value={filters.level}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, level: e.target.value }))
+        }
+      />
+    </div>
+
+    {/* Expiry Filter */}
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">Expiry</label>
+      <Input
+        placeholder="Filter by Expiry"
+        value={filters.expiry}
+        onChange={(e) =>
+          setFilters((prev) => ({ ...prev, expiry: e.target.value }))
+        }
+      />
+    </div>
+  </div>
+</div>
+
 
          {/* Form */}
-         <form
-            onSubmit={handleSubmit}
-            className="border p-4 rounded space-y-4 shadow"
-         >
+         <form onSubmit={handleSubmit} className="border p-4 rounded space-y-4 shadow">
             <div>
-               <Label className="mb-2">Technician Name</Label>
+               <Label className='mb-2'>Technician Name</Label>
                <Input
                   placeholder="Technician Name"
                   value={form.technician}
-                  onChange={(e) =>
-                     setForm((prev) => ({
-                        ...prev,
-                        technician: e.target.value,
-                     }))
-                  }
+                  onChange={(e) => setForm((prev) => ({ ...prev, technician: e.target.value }))}
                   required
                />
             </div>
@@ -216,46 +245,39 @@ export default function SkillMatrixManager() {
                   className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
                >
                   <div>
-                     <Label className="mb-2">Method</Label>
+                     <Label className='mb-2'>Method</Label>
                      <Input
                         placeholder="Method"
                         value={cert.method}
-                        onChange={(e) =>
-                           handleChange(idx, "method", e.target.value)
-                        }
+                        onChange={(e) => handleChange(idx, "method", e.target.value)}
                         required
                      />
                   </div>
                   <div>
-                     <Label className="mb-2">Level</Label>
+                     <Label className='mb-2'>Level</Label>
                      <Input
                         placeholder="Level"
                         value={cert.level}
-                        onChange={(e) =>
-                           handleChange(idx, "level", e.target.value)
-                        }
+                        onChange={(e) => handleChange(idx, "level", e.target.value)}
                         required
                      />
                   </div>
                   <div>
-                     <Label className="mb-2">Expiry Date</Label>
+                     <Label className='mb-2'>Expiry Date</Label>
                      <Input
                         type="date"
                         value={cert.expiry}
-                        onChange={(e) =>
-                           handleChange(idx, "expiry", e.target.value)
-                        }
+                        onChange={(e) => handleChange(idx, "expiry", e.target.value)}
                         required
                      />
                   </div>
                   <div>
-                     <Label className="mb-2">Upload File</Label>
+                     <Label className='mb-2'>Upload File</Label>
                      <Input
+                        key={`${formKey}-${idx}`}
                         type="file"
-                        onChange={(e) =>
-                           handleChange(idx, "file", e.target.files[0])
-                        }
                         accept="image/*,application/pdf"
+                        onChange={(e) => handleChange(idx, "file", e.target.files[0])}
                      />
                   </div>
                   {form.certificates.length > 1 && (
@@ -276,6 +298,9 @@ export default function SkillMatrixManager() {
                   <Plus size={16} className="mr-1" /> Add Certificate
                </Button>
                <Button type="submit">{editing ? "Update" : "Submit"}</Button>
+               <Button type="button" variant="secondary" onClick={clearForm}>
+                  Clear Form
+               </Button>
             </div>
          </form>
 
@@ -295,26 +320,16 @@ export default function SkillMatrixManager() {
                   {filtered.flatMap((matrix) =>
                      matrix.certificates.map((cert, i) => (
                         <tr key={`${matrix._id}-${i}`} className="border-b">
-                           <td className="p-2 border">
-                              {matrix.technician.name}
-                           </td>
+                           <td className="p-2 border">{matrix.technician.name}</td>
                            <td className="p-2 border">{cert.method}</td>
                            <td className="p-2 border">{cert.level}</td>
                            <td className="p-2 border">
-                              {new Date(
-                                 cert.certificationExpiryDate
-                              ).toLocaleDateString()}
+                              {new Date(cert.certificationExpiryDate).toLocaleDateString()}
                            </td>
                            <td className="p-2 border flex gap-2 items-center">
                               {cert.certificationUrl && (
-                                 <a
-                                    href={cert.certificationUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                 >
-                                    <Button size="sm" variant="secondary">
-                                       <Eye size={14} />
-                                    </Button>
+                                 <a href={cert.certificationUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button size="sm" variant="secondary"><Eye size={14} /></Button>
                                  </a>
                               )}
                               <Button

@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { BACKEND_URL } from "@/constant/Global";
 
 export default function CertificateForm({ initialData, onSuccess }) {
    const [formData, setFormData] = useState({
@@ -45,14 +46,14 @@ export default function CertificateForm({ initialData, onSuccess }) {
 
          if (isEdit) {
             await axios.put(
-               `http://localhost:3000/api/v1/certificates/${initialData._id}`,
+               `${BACKEND_URL}/api/v1/certificates/${initialData._id}`,
                body,
                { headers }
             );
             toast.success("Certificate updated");
          } else {
             await axios.post(
-               "http://localhost:3000/api/v1/certificates",
+               `${BACKEND_URL}/api/v1/certificates`,
                body,
                {
                   headers,

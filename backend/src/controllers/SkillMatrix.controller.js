@@ -2,7 +2,7 @@ import { SkillMatrix } from "../models/SkillMatrix.model.js";
 import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { uploadToCloudinary } from "../utils/Cloudinary.js";
+import { destroyImage, uploadToCloudinary } from "../utils/Cloudinary.js";
 import fs from "fs";
 
 // Delete file after upload
@@ -85,30 +85,69 @@ export const getSkillMatrixById = AsyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, matrix));
 });
 
-// ✅ Update
+/**
+ * Extract public_id from full Cloudinary URL
+ * Example: https://res.cloudinary.com/demo/image/upload/v1234567890/folder/image.jpg
+ * Output: folder/image (or just image if not inside folder)
+ */
+const extractPublicId = (imageUrl) => {
+  const urlParts = imageUrl.split("/");
+  const fileNameWithExt = urlParts.pop(); // image.jpg
+  const fileName = fileNameWithExt.split(".")[0]; // image
+  const folderParts = urlParts.slice(urlParts.indexOf("upload") + 1); // folder structure
+  return [...folderParts, fileName].join("/"); // folder/image
+};
 export const updateSkillMatrix = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { id } = req.params;
-  const { technician, certificates } = JSON.parse(req.body.data);
+  const { technician, certificates } = JSON.parse(req.body.data || "{}");
 
   const existing = await SkillMatrix.findOne({ _id: id, userId });
   if (!existing) throw new ApiError(404, "Skill matrix not found");
 
   const files = req.files?.certificateFiles || [];
+  let fileIndex = 0;
 
   const updatedCertificates = await Promise.all(
-    certificates.map(async (cert, index) => {
-      if (files[index]) {
-        const localPath = files[index].path;
-        const result = await uploadToCloudinary(localPath);
-        deleteLocalFile(localPath);
+    certificates.map(async (cert) => {
+      const isNew = !cert._id;
+      const hasNewFile = files[fileIndex];
+      const existingCert = cert._id
+        ? existing.certificates.find((c) => c._id?.toString() === cert._id)
+        : null;
+
+      // ✅ If a new file is uploaded
+      if (hasNewFile) {
+        // ❌ Delete old file if exists
+        if (existingCert?.certificationUrl) {
+          const publicId = extractPublicId(existingCert.certificationUrl);
+          await destroyImage(publicId);
+        }
+
+        const result = await uploadToCloudinary(files[fileIndex].path);
+        fileIndex++;
+
         if (!result?.url) throw new ApiError(500, "Upload failed");
+
         return {
           ...cert,
           certificationUrl: result.url,
         };
       }
-      return cert; // retain URL if no file is uploaded for this cert
+
+      // ✅ No new file, but this is an existing certificate → retain old image
+      if (!isNew && existingCert?.certificationUrl) {
+        return {
+          ...cert,
+          certificationUrl: existingCert.certificationUrl,
+        };
+      }
+
+      // ❌ No new file, and no existing image → Invalid state
+      throw new ApiError(
+        400,
+        `Missing certificate image for certificate ID: ${cert._id || "new"}`
+      );
     })
   );
 
@@ -116,8 +155,12 @@ export const updateSkillMatrix = AsyncHandler(async (req, res) => {
   existing.certificates = updatedCertificates;
   await existing.save();
 
-  res.status(200).json(new ApiResponse(200, existing, "Updated successfully"));
+  res
+    .status(200)
+    .json(new ApiResponse(200, existing, "Skill matrix updated successfully"));
 });
+
+
 
 // ✅ Delete
 export const deleteSkillMatrix = AsyncHandler(async (req, res) => {
