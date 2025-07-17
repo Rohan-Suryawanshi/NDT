@@ -25,7 +25,7 @@ import inspectorRoutes from './routes/inspector.routes.js';
 import certificateRoutes from './routes/companyCertification.routes.js'
 import equipmentRoutes from "./routes/equipment.routes.js";
 import skillMatrixRoutes from "./routes/skillMatrix.routes.js";
-
+import offeredServices from "./routes/serviceOffered.routes.js";
 //http://localhost:8000/api/v1/users/register
 app.use('/api/v1/users', userRoutes);
 app.use("/api/v1/service-provider", serviceProviderRoutes);
@@ -35,6 +35,7 @@ app.use("/api/v1/inspector", inspectorRoutes);
 app.use("/api/v1/certificates", certificateRoutes);
 app.use("/api/v1/equipments", equipmentRoutes);
 app.use("/api/v1/skill-matrix", skillMatrixRoutes);
+app.use("/api/v1/offered-services", offeredServices);
 
 //Error Handling middleware
 app.use((err, req, res, next) => {

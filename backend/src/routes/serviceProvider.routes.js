@@ -1,27 +1,25 @@
-import { Router } from "express";
+import express from "express";
 import {
-  upsertServiceProvider,
-  getServiceProviderProfile,
-  getAllServiceProviders,
+  upsertProfile,
+  getMyProfile,
+  deleteMyProfile,
+  getAllProfiles,
 } from "../controllers/ServiceProvider.controller.js";
+ // assuming multer setup
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
-const router = Router();
+const router = express.Router();
 
-router.post(
-  "/profile",
-  verifyJWT,
-  upload.fields([
-    { name: "twicCertificate", maxCount: 1 },
-    { name: "gatePassCertificate", maxCount: 1 },
-    { name: "personnelCertificate", maxCount: 1 },
-    { name: "companyLogo", maxCount: 1 },
-  ]),
-  upsertServiceProvider
-);
+// Upload fields config (adjust field names if different)
+const uploadFields = upload.fields([
+  { name: "companyLogo", maxCount: 1 },
+  { name: "proceduresFile", maxCount: 1 },
+]);
 
-router.get("/profile", verifyJWT, getServiceProviderProfile);
-router.get("/all",verifyJWT,getAllServiceProviders);
+router.post("/profile", verifyJWT,uploadFields, upsertProfile);
+router.get("/profile", verifyJWT, getMyProfile);
+router.delete("/profile", verifyJWT, deleteMyProfile);
+router.get("/providers", getAllProfiles); // Public or admin
 
 export default router;

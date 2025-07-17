@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 // Lucide Icons
 import { Search, Bot, ClipboardList, Settings } from "lucide-react";
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
-import { Header } from "@/components/Layout/Header";
 
 export default function DashboardClient() {
    const navigate = useNavigate();

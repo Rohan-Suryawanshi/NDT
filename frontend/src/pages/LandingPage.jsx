@@ -1,5 +1,4 @@
 import Loader from "@/components/common/Loader";
-import { Header } from "@/components/Layout/Header";
 import AboutSection from "@/features/AboutSection/AboutSection";
 import ContactSection from "@/features/ContactSection/ContactSection";
 import FeaturesSection from "@/features/FeaturesSection/FeaturesSection";
