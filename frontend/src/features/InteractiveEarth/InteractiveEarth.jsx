@@ -10,18 +10,6 @@ export default function InteractiveEarth() {
             {/* Spline Scene */}
             <Spline scene="https://prod.spline.design/e7FrPItw4qPget49/scene.splinecode" />
          </div>
-          <div
-            className="absolute bg-amber-400"
-            style={{
-               bottom: "20px",
-              //  right: "12px",
-               width: "150px",
-               height: "35px",
-               zIndex: 10,
-            }}
-         >
-          hello
-          </div>
         
       </div>
    );
