@@ -13,6 +13,7 @@ import EquipmentManager from "./features/EquipmentManager/EquipmentManager";
 import SkillMatrixManager from "./features/SkillMatrixManager/SkillMatrixManager";
 import ServiceProviderProfileManage from "./pages/ServiceProviderProfileManage";
 import OfferedServicesManager from "./pages/OfferedServicesManager";
+import GeminiForm from "./features/Gemini/GeminiForm";
 
 export default function App() {
    return (
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/skill-matrix" element={<SkillMatrixManager />} />
             <Route path="/provider-profile" element={<ServiceProviderProfileManage />} />
             <Route path="/offered-services-manager" element={<OfferedServicesManager />} />
+            <Route path="/gemini" element={<GeminiForm/>} />
          </Routes>
       </Router>
    );

@@ -32,11 +32,11 @@ export default function DashboardProvider() {
          route: "/provider-profile",
       },
       {
-         title: "Account Settings",
+         title: "Services Provided",
          description:
-            "Manage your NDT Connect account settings and preferences.",
+            "Manage your NDT Connect account Services.",
          icon: <Settings className="w-8 h-8 text-gray-600" />,
-         route: "/settings",
+         route: "/offered-services-manager",
       },
       {
          title: "Certificate",
