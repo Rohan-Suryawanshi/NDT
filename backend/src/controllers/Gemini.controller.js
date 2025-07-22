@@ -1,5 +1,6 @@
 // controllers/geminiController.js
 import { GoogleGenAI } from "@google/genai";
+import { marked } from "marked";
 
 const API_KEYS = [
   "AIzaSyA1iZRWtgcH1f5hGAsvTGytHbGvyHtrTWM",
@@ -12,6 +13,7 @@ const MAX_TOKENS_PER_KEY = 1_000_000;
 
 export const generateProcedure = async (req, res) => {
   const { userInput } = req.body;
+  console.log(req.body);
 
   const config = {
     temperature: 1,
@@ -42,7 +44,7 @@ Inputs:
 - *Consumables*: Magnaflux brand particles and cleaner  
 - *Comments*: Use wet non-fluorescent method with aerosol-based application. Include proper lighting requirements, calibration checks, and demagnetization if needed.
 
-The output must be formal, technical, and structured as a real inspection procedure ready to be used by Level II NDT technicians or included in a client's documentation system. generate the 10 to 12 pages procedure Give the output in the html tag rather than the markdown`,
+The output must be formal, technical, and structured as a real inspection procedure ready to be used by Level II NDT technicians or included in a client's documentation system. generate the 10 to 12 pages procedure`,
       },
     ],
   };
@@ -77,8 +79,10 @@ The output must be formal, technical, and structured as a real inspection proced
       }
 
       console.log("Ans :"+output);
+      const htmlOutput = marked.parse(output);
+      console.log("Ans :" + htmlOutput);
 
-      return res.json({ result: output, tokensUsed: estimatedTokens });
+      return res.json({ result: htmlOutput, tokensUsed: estimatedTokens });
     } catch (err) {
       if (
         err.message.includes("RESOURCE_EXHAUSTED") ||

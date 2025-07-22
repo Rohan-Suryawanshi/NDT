@@ -118,3 +118,91 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* General typography and layout */
+.jodit-wysiwyg * {
+  font-family: 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  color: #212529;
+}
+
+/* Headings */
+.jodit-wysiwyg h1,
+.jodit-wysiwyg h2,
+.jodit-wysiwyg h3,
+.jodit-wysiwyg h4,
+.jodit-wysiwyg h5,
+.jodit-wysiwyg h6 {
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+}
+
+/* Paragraphs */
+.jodit-wysiwyg p {
+  margin: 0.5em 0;
+}
+
+/* Lists */
+.jodit-wysiwyg ul,
+.jodit-wysiwyg ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.jodit-wysiwyg li {
+  margin: 0.25em 0;
+}
+
+/* Tables */
+.jodit-wysiwyg table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.jodit-wysiwyg th,
+.jodit-wysiwyg td {
+  border: 1px solid #ccc;
+  padding: 0.5em;
+  text-align: left;
+  background-color: #f9f9f9;
+}
+
+/* Code blocks */
+.jodit-wysiwyg pre,
+.jodit-wysiwyg code {
+  font-family: 'Courier New', monospace;
+  background-color: #f4f4f4;
+  padding: 0.3em 0.5em;
+  border-radius: 4px;
+  overflow-x: auto;
+  display: block;
+}
+
+/* Inline code */
+.jodit-wysiwyg code {
+  display: inline;
+  background-color: #eee;
+}
+
+/* Blockquotes */
+.jodit-wysiwyg blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #ccc;
+  background-color: #f1f1f1;
+  font-style: italic;
+}
+
+/* Links */
+.jodit-wysiwyg a {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+/* Images */
+.jodit-wysiwyg img {
+  max-width: 100%;
+  height: auto;
+  margin: 1em 0;
+}

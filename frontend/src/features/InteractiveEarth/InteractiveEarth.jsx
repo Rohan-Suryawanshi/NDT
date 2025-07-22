@@ -1,16 +1,75 @@
-import Spline from "@splinetool/react-spline";
+// // src/components/EarthViewer.jsx
+// import { Canvas, useFrame } from '@react-three/fiber';
+// import { OrbitControls, useGLTF } from '@react-three/drei';
+// import { Suspense, useRef } from 'react';
+
+// function EarthModel() {
+//   const gltf = useGLTF('./earth.glb'); // Make sure earth.glb is in public/models/
+//   const earthRef = useRef();
+
+//   useFrame(() => {
+//     if (earthRef.current) {
+//       earthRef.current.rotation.y += 0.01; // Smooth continuous rotation
+//     }
+//   });
+
+//   return <primitive object={gltf.scene} ref={earthRef} scale={2.5} />;
+// }
+
+// export default function InteractiveEarth() {
+//   return (
+//     <div style={{ width: '100%', height: '50vh'}} className="rounded-2xl">
+//       <Canvas
+//         camera={{ position: [0, 0, 4.5], fov: 60 }}
+//         style={{ background: 'black' }} className="rounded-2xl"
+//       >
+//         {/* <ambientLight intensity={0.3} /> */}
+//         <directionalLight position={[5, 5, 5]} intensity={1.2} />
+//         <Suspense fallback={null}>
+//           <EarthModel />
+//         </Suspense>
+//         <OrbitControls
+//           enableZoom={true}
+//           enablePan={true}
+//           enableRotate={true}
+//         />
+//       </Canvas>
+//     </div>
+//   );
+// }
+
+
+// src/components/EarthViewer.jsx
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, useGLTF, Stars } from '@react-three/drei';
+import { Suspense, useRef } from 'react';
+
+function EarthModel() {
+  const { scene } = useGLTF('./earth.glb'); // Ensure earth.glb is in public/models/
+  const earthRef = useRef();
+
+  useFrame(() => {
+    if (earthRef.current) {
+      earthRef.current.rotation.y += 0.01; // Smooth slow rotation
+    }
+  });
+
+  return <primitive object={scene} ref={earthRef} scale={2.5} />;
+}
 
 export default function InteractiveEarth() {
-   return (
-      <div className="relative">
-         <div
-            className="w-full mx-auto rounded-xl shadow-lg bg-gray-50 overflow-hidden"
-            style={{ height: "400px" }}
-         >
-            {/* Spline Scene */}
-            <Spline scene="https://prod.spline.design/e7FrPItw4qPget49/scene.splinecode" />
-         </div>
-        
-      </div>
-   );
+  return (
+    <div style={{ width: '100%', height: '80vh' }} className="rounded-2xl bg-black">
+      <Canvas camera={{ position: [0, 0, 3], fov: 45 }} className="rounded-2xl">
+        {/* Add background stars for better effect */}
+        <Stars radius={100} depth={25} count={5000} factor={4} fade speed={1} />
+        <ambientLight intensity={1} />
+        <directionalLight position={[5, 5, 5]} intensity={1} />
+        <Suspense fallback={null}>
+          <EarthModel />
+        </Suspense>
+        <OrbitControls enableZoom enablePan enableRotate />
+      </Canvas>
+    </div>
+  );
 }
