@@ -3,13 +3,47 @@ import {
   upsertInspectorProfile,
   getInspectorProfile,
   getAllInspectors,
+  updateAvailability,
+  updateRates,
+  addCertification,
+  removeCertification,
+  updateResume,
+  updateNotificationPreferences,
+  getInspectorsWithExpiringCertificates,
+  verifyInspector,
+  deleteInspectorProfile,
 } from "../controllers/Inspector.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { isAdmin } from "../middlewares/isAdmin.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
-router.post("/profile", verifyJWT, upsertInspectorProfile);
+// Profile routes
+router.post("/profile", verifyJWT, upload.single("resume"), upsertInspectorProfile);
 router.get("/profile", verifyJWT, getInspectorProfile);
-router.get("/all", verifyJWT, getAllInspectors); // Optional: Add admin check
+router.delete("/profile", verifyJWT, deleteInspectorProfile);
+
+// Update specific fields
+router.patch("/availability", verifyJWT, updateAvailability);
+router.patch("/rates", verifyJWT, updateRates);
+router.patch("/notifications", verifyJWT, updateNotificationPreferences);
+router.patch("/resume", verifyJWT, upload.single("resume"), updateResume);
+
+// Certification management
+router.post(
+  "/certifications",
+  verifyJWT,
+  upload.single("certificateImage"),
+  addCertification
+);
+router.delete("/certifications/:certificationId", verifyJWT, removeCertification);
+
+// Public/Admin routes
+router.get("/all", getAllInspectors);
+
+// Admin only routes
+router.get("/expiring-certificates", verifyJWT, isAdmin, getInspectorsWithExpiringCertificates);
+router.patch("/verify/:inspectorId", verifyJWT, isAdmin, verifyInspector);
 
 export default router;

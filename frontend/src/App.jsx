@@ -14,6 +14,9 @@ import SkillMatrixManager from "./features/SkillMatrixManager/SkillMatrixManager
 import ServiceProviderProfileManage from "./pages/ServiceProviderProfileManage";
 import OfferedServicesManager from "./pages/OfferedServicesManager";
 import GeminiForm from "./features/Gemini/GeminiForm";
+import DashboardInspector from "./pages/DashbordInspector";
+import ManageInspectorProfile from "./pages/ManageInspectorProfile";
+import EnhancedJobRequestForm from "./features/JobRequest/EnhancedJobRequestForm";
 
 export default function App() {
    return (
@@ -24,6 +27,7 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard-client" element={<DashboardClient />} />
+             <Route path="/dashboard-inspector" element={<DashboardInspector />} />
             <Route path="/find-providers" element={<FindProviders />} />
             <Route
                path="/account-settings"
@@ -40,6 +44,10 @@ export default function App() {
             <Route path="/provider-profile" element={<ServiceProviderProfileManage />} />
             <Route path="/offered-services-manager" element={<OfferedServicesManager />} />
             <Route path="/gemini" element={<GeminiForm/>} />
+            <Route path="/Rohan" element={<ManageInspectorProfile/>} />
+            <Route path="/request-service/:providerId" element={<EnhancedJobRequestForm />} />
+
+
          </Routes>
       </Router>
    );

@@ -36,9 +36,7 @@ const ServiceProviderProfile = () => {
       if (!filter.trim()) {
          setFilteredProfiles(profiles);
          return;
-      }
-
-      const search = filter.toLowerCase();
+      }      const search = filter.toLowerCase();
       const filtered = profiles.filter((profile) => {
          return (
             profile?.companyName?.toLowerCase().includes(search) ||
@@ -49,6 +47,9 @@ const ServiceProviderProfile = () => {
             ) ||
             profile?.skillMatrix?.some((s) =>
                s.skill.toLowerCase().includes(search)
+            ) ||
+            profile?.certificates?.some((cert) =>
+               cert?.certificateName?.toLowerCase().includes(search)
             )
          );
       });
@@ -128,15 +129,16 @@ const ServiceProviderProfile = () => {
                                  ))}
                               </ul>
                            </div>
-                        )}
-
-                        {profile.companyCertifications?.length > 0 && (
-                           <div className="flex flex-wrap gap-2">
-                              {profile.companyCertifications.map((cert, i) => (
-                                 <Badge key={i} variant="outline">
-                                    {cert?.certificateName || cert}
-                                 </Badge>
-                              ))}
+                        )}                        {profile.certificates?.length > 0 && (
+                           <div>
+                              <strong>Certificates:</strong>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                 {profile.certificates.map((cert, i) => (
+                                    <Badge key={i} variant="outline">
+                                       {cert?.certificateName}
+                                    </Badge>
+                                 ))}
+                              </div>
                            </div>
                         )}
                      </CardContent>

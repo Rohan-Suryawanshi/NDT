@@ -45,12 +45,30 @@ export const getMyServices = AsyncHandler(async (req, res) => {
 
   const services = await ServiceOffered.find({ userId }).populate(
     "serviceId",
-    "name"
+    "name code"
   );
 
   res
     .status(200)
     .json(new ApiResponse(200, services, "Your service offerings"));
+});
+
+// Get all services offered by a specific provider
+export const getServiceOfferByProviderId = AsyncHandler(async (req, res) => {
+  const { providerId } = req.params;
+
+  if (!providerId) {
+    throw new ApiError(400, "Provider ID is required");
+  }
+
+  const services = await ServiceOffered.find({ userId: providerId }).populate(
+    "serviceId",
+    "name code"
+  );
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, services, "Provider service offerings"));
 });
 
 // Delete a service offering

@@ -39,7 +39,7 @@ export default function DashboardProvider() {
          route: "/offered-services-manager",
       },
       {
-         title: "Certificate",
+         title: "Company certificate",
          description:
             "Manage your NDT Connect account Certificates and preferences.",
          icon: <Settings className="w-8 h-8 text-gray-600" />,
@@ -52,6 +52,7 @@ export default function DashboardProvider() {
          icon: <Settings className="w-8 h-8 text-gray-600" />,
          route: "/skill-matrix",
       },
+      
    ];
 
    return (

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
    Select,
    SelectContent,
@@ -10,8 +10,28 @@ import {
    SelectTrigger,
    SelectValue,
 } from "@/components/ui/select";
+import { 
+   Search, 
+   MapPin, 
+   Phone, 
+   Star, 
+   Filter,
+   X,
+   Send,
+   Building2,
+   Award,
+   Briefcase,
+   Users,
+   FileText,
+   ChevronDown,
+   ChevronUp
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import axios from "axios";
 import { BACKEND_URL } from "@/constant/Global";
-import NavbarSection from "@/features/NavbarSection/NavbarSection";
+import EnhancedJobRequestForm from "@/features/JobRequest/EnhancedJobRequestForm";
+import { useNavigate } from "react-router-dom";
+
 
 const PREDEFINED_CERTIFICATIONS = [
    "API Q1",
@@ -55,7 +75,11 @@ const FindProvider = () => {
    const [filteredProfiles, setFilteredProfiles] = useState([]);
    const [ndtServices, setNdtServices] = useState([]);
    const [loading, setLoading] = useState(true);
+   const [showFilters, setShowFilters] = useState(false);
+   const [expandedCards, setExpandedCards] = useState(new Set());
+   const navigate=useNavigate();
 
+   // Filter states
    const [searchName, setSearchName] = useState("");
    const [searchLocation, setSearchLocation] = useState("");
    const [searchService, setSearchService] = useState("");
@@ -93,6 +117,7 @@ const FindProvider = () => {
 
       fetchData();
       fetchServices();
+
    }, []);
 
    useEffect(() => {
@@ -100,37 +125,30 @@ const FindProvider = () => {
          const nameMatch = profile?.companyName
             ?.toLowerCase()
             .includes(searchName.toLowerCase());
-         const locationMatch = profile?.businessLocation
+         const locationMatch = profile?.companyLocation
             ?.toLowerCase()
             .includes(searchLocation.toLowerCase());
-         const serviceMatch = profile?.services?.some((s) =>
-            s?.serviceId?.name
-               ?.toLowerCase()
-               .includes(searchService.toLowerCase())
+         const serviceMatch = profile?.serviceDetails?.some((s) =>
+            s?.name?.toLowerCase().includes(searchService.toLowerCase())
          );
-         const specializationMatch = Array.isArray(
-            profile?.companySpecialization
-         )
+         const specializationMatch = Array.isArray(profile?.companySpecialization)
             ? profile.companySpecialization.some((spec) =>
-                 spec
-                    ?.toLowerCase()
-                    .includes(searchSpecialization.toLowerCase())
+                 spec?.toLowerCase().includes(searchSpecialization.toLowerCase())
               )
             : profile?.companySpecialization
                  ?.toLowerCase()
                  .includes(searchSpecialization.toLowerCase());
 
-         const companyCertMatch = profile?.companyCertifications?.some((c) =>
+         const companyCertMatch = profile?.certificates?.some((c) =>
             (c?.certificateName || c)
                ?.toLowerCase()
                .includes(searchCompanyCert.toLowerCase())
          );
 
-         const personnelCertMatch = profile?.personnelQualifications?.some(
-            (p) =>
-               p?.certificationBody
-                  ?.toLowerCase()
-                  .includes(searchPersonnelCert.toLowerCase())
+         const personnelCertMatch = profile?.personnelQualifications?.some((p) =>
+            p?.certificationBody
+               ?.toLowerCase()
+               .includes(searchPersonnelCert.toLowerCase())
          );
 
          return (
@@ -153,181 +171,375 @@ const FindProvider = () => {
       profiles,
    ]);
 
-   if (loading) return <p className="text-center mt-10">Loading...</p>;
+   const clearFilters = () => {
+      setSearchName("");
+      setSearchLocation("");
+      setSearchService("");
+      setSearchSpecialization("");
+      setSearchCompanyCert("");
+      setSearchPersonnelCert("");
+      toast.success("Filters cleared");
+   };
+
+   const handleBack = () => {
+      // Navigate to the previous page or dashboard
+      window.history.back(); // or use router.push('/dashboard')
+   };
+
+   const handleRequestService = (providerId, providerName) => {
+      // Navigate to request service page - replace with your routing logic
+      toast.success(`Redirecting to request service from ${providerName}`);
+      // navigate(`/request-service/${providerId}`);
+      navigate(`/request-service/${providerId}`, {
+         state: { providerName }, // optional: pass extra data
+      });
+      // <JobRequestForm providerId={providerId} providerName={providerName} onBack={handleBack}/>
+       <EnhancedJobRequestForm providerId={12121121212} providerName={"Rohan"} onBack={handleBack}/>
+      console.log("Requesting service from provider:", providerId);
+
+   };
+
+   const toggleCardExpansion = (profileId) => {
+      const newExpanded = new Set(expandedCards);
+      if (newExpanded.has(profileId)) {
+         newExpanded.delete(profileId);
+      } else {
+         newExpanded.add(profileId);
+      }
+      setExpandedCards(newExpanded);
+   };
+
+   const getRatingStars = (rating) => {
+      const stars = [];
+      const fullStars = Math.floor(rating);
+      const hasHalfStar = rating % 1 !== 0;
+      
+      for (let i = 0; i < fullStars; i++) {
+         stars.push(<Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
+      }
+      
+      if (hasHalfStar) {
+         stars.push(<Star key="half" className="w-4 h-4 fill-yellow-200 text-yellow-400" />);
+      }
+      
+      const remainingStars = 5 - Math.ceil(rating);
+      for (let i = 0; i < remainingStars; i++) {
+         stars.push(<Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />);
+      }
+      
+      return stars;
+   };
+
+   if (loading) {
+      return (
+         <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+         </div>
+      );
+   }
 
    return (
-      <>
-         <NavbarSection />
-         <section className="max-w-7xl mx-auto p-6 space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-md border">
-               <h2 className="text-xl font-semibold mb-4">
-                  Find Service Providers
-               </h2>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-                  <div className="w-full">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+         {/* Header */}
+         {/* <EnhancedJobRequestForm providerId={12121121212} providerName={"Rohan"} onBack={handleBack}/> */}
+         <div className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-6 py-6">
+               <div className="flex items-center justify-between">
+                  <div>
+                     <h1 className="text-3xl font-bold text-gray-900">Find Service Providers</h1>
+                     <p className="text-gray-600 mt-1">Discover qualified NDT professionals for your projects</p>
+                  </div>
+                  <Button
+                     onClick={() => setShowFilters(!showFilters)}
+                     variant="outline"
+                     className="flex items-center gap-2"
+                  >
+                     <Filter className="w-4 h-4" />
+                     Filters
+                     {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+               </div>
+            </div>
+         </div>
+
+         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+            {/* Search and Filters */}
+            <div className={`bg-white rounded-xl shadow-lg border transition-all duration-300 ${showFilters ? 'p-6' : 'p-4'}`}>
+               {/* Quick Search */}
+               <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="flex-1 relative">
+                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                      <Input
-                        className="w-full"
-                        placeholder="Company / Inspector Name"
+                        className="pl-10"
+                        placeholder="Search by company or inspector name..."
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
                      />
                   </div>
-                  <div className="w-full">
+                  <div className="flex-1 relative">
+                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                      <Input
-                        className="w-full"
-                        placeholder="Location"
+                        className="pl-10"
+                        placeholder="Location..."
                         value={searchLocation}
                         onChange={(e) => setSearchLocation(e.target.value)}
                      />
                   </div>
-                  <div className="w-full">
-                     <Select
-                        value={searchService}
-                        onValueChange={setSearchService}
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="NDT Service" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {ndtServices.map((service) => (
-                              <SelectItem
-                                 key={service._id}
-                                 value={service.name.toLowerCase()}
-                              >
-                                 {service.name}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
-                  <div className="w-full">
-                     <Input
-                        className="w-full"
-                        placeholder="Specialization"
-                        value={searchSpecialization}
-                        onChange={(e) =>
-                           setSearchSpecialization(e.target.value)
-                        }
-                     />
-                  </div>
-                  <div className="w-full">
-                     <Select
-                        value={searchCompanyCert}
-                        onValueChange={setSearchCompanyCert}
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Company Certification" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {PREDEFINED_CERTIFICATIONS.map((cert) => (
-                              <SelectItem key={cert} value={cert.toLowerCase()}>
-                                 {cert}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
-                  <div className="w-full">
-                     <Select
-                        value={searchPersonnelCert}
-                        onValueChange={setSearchPersonnelCert}
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Personnel Certification" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {PREDEFINED_PERSONNEL_CERTS.map((cert) => (
-                              <SelectItem key={cert} value={cert.toLowerCase()}>
-                                 {cert}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
                </div>
+
+               {/* Advanced Filters */}
+               {showFilters && (
+                  <div className="space-y-4 pt-4 border-t">
+                     <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">Advanced Filters</h3>
+                        <Button
+                           onClick={clearFilters}
+                           variant="ghost"
+                           size="sm"
+                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                           <X className="w-4 h-4 mr-1" />
+                           Clear All
+                        </Button>
+                     </div>
+                     
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Select value={searchService} onValueChange={setSearchService}>
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="NDT Service" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {ndtServices.map((service) => (
+                                 <SelectItem key={service._id} value={service.name.toLowerCase()}>
+                                    {service.name}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+
+                        <Input
+                           placeholder="Specialization (RT, UT, VT...)"
+                           value={searchSpecialization}
+                           onChange={(e) => setSearchSpecialization(e.target.value)}
+                           className="w-full"
+                        />
+
+                        <Select value={searchCompanyCert} onValueChange={setSearchCompanyCert}>
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Company Certification" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {PREDEFINED_CERTIFICATIONS.map((cert) => (
+                                 <SelectItem key={cert} value={cert.toLowerCase()}>
+                                    {cert}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+
+                        {/* <Select value={searchPersonnelCert} onValueChange={setSearchPersonnelCert}>
+                           <SelectTrigger>
+                              <SelectValue placeholder="Personnel Certification" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {PREDEFINED_PERSONNEL_CERTS.map((cert) => (
+                                 <SelectItem key={cert} value={cert.toLowerCase()}>
+                                    {cert}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select> */}
+                     </div>
+                  </div>
+               )}
             </div>
 
-            {filteredProfiles.length === 0 ? (
-               <p className="text-center text-red-500">
-                  No matching profiles found.
+            {/* Results Count */}
+            <div className="flex items-center justify-between">
+               <p className="text-gray-600">
+                  Found <span className="font-semibold text-blue-600">{filteredProfiles.length}</span> provider{filteredProfiles.length !== 1 ? 's' : ''}
                </p>
+            </div>
+
+            {/* Provider Cards */}
+            {filteredProfiles.length === 0 ? (
+               <div className="text-center py-16">
+                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                     <Search className="w-12 h-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No providers found</h3>
+                  <p className="text-gray-600 mb-4">Try adjusting your search criteria or clearing filters</p>
+                  <Button onClick={clearFilters} variant="outline">
+                     Clear Filters
+                  </Button>
+               </div>
             ) : (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProfiles.map((profile, index) => (
-                     <Card key={index} className="h-full">
-                        <CardHeader className="flex flex-col items-center text-center">
-                           {profile.companyLogoUrl && (
-                              <img
-                                 src={profile.companyLogoUrl}
-                                 alt="Company Logo"
-                                 className="w-20 h-20 rounded-md object-cover border mb-2"
-                              />
-                           )}
-                           <CardTitle className="text-[#004aad]">
-                              {profile.companyName}
-                           </CardTitle>
-                           <p className="text-sm text-gray-500">
-                              {profile.businessLocation}
-                           </p>
-                           <p className="text-sm text-gray-500">
-                              {profile.contactNumber}
-                           </p>
-                        </CardHeader>
-                        <CardContent className="text-sm text-gray-700 space-y-2">
-                           {profile.companyDescription && (
-                              <p>{profile.companyDescription}</p>
-                           )}
+               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                  {filteredProfiles.map((profile) => {
+                     const isExpanded = expandedCards.has(profile._id);
+                     
+                     return (
+                        <Card key={profile._id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-0 shadow-md">
+                           <div className="relative">
+                              {profile.user?.isPremium && (
+                                 <div className="absolute top-4 right-4 z-10">
+                                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white">
+                                       Premium
+                                    </Badge>
+                                 </div>
+                              )}
+                              
+                              <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-4">
+                                 <div className="flex items-start gap-4 pt-4">
+                                    <div className="flex-shrink-0">
+                                       {profile.companyLogoUrl ? (
+                                          <img
+                                             src={profile.companyLogoUrl}
+                                             alt={`${profile.companyName} logo`}
+                                             className="w-16 h-16 rounded-lg object-cover border-2 border-white shadow-md"
+                                          />
+                                       ) : (
+                                          <div className="w-16 h-16 rounded-lg bg-blue-600 flex items-center justify-center">
+                                             <Building2 className="w-8 h-8 text-white" />
+                                          </div>
+                                       )}
+                                    </div>
+                                    
+                                    <div className="flex-1 min-w-0">
+                                       <CardTitle className="text-lg font-bold text-gray-900 truncate">
+                                          {profile.companyName}
+                                       </CardTitle>
+                                       
+                                       <div className="flex items-center gap-2 mt-1">
+                                          <MapPin className="w-4 h-4 text-gray-500" />
+                                          <span className="text-sm text-gray-600">{profile.businessLocation || profile.companyLocation}</span>
+                                       </div>
+                                       
+                                       <div className="flex items-center gap-2 mt-1">
+                                          <Phone className="w-4 h-4 text-gray-500" />
+                                          <span className="text-sm text-gray-600">{profile.contactNumber}</span>
+                                       </div>
+                                       
+                                       {profile.rating > 0 && (
+                                          <div className="flex items-center gap-2 mt-2">
+                                             <div className="flex">{getRatingStars(profile.rating)}</div>
+                                             <span className="text-sm font-medium text-gray-700">
+                                                {profile.rating.toFixed(1)}
+                                             </span>
+                                          </div>
+                                       )}
+                                    </div>
+                                 </div>
+                              </CardHeader>
+                           </div>
 
-                           {profile.services?.length > 0 && (
-                              <div>
-                                 <strong>Services:</strong>
-                                 <ul className="list-disc pl-4">
-                                    {profile.services.map((s, i) => (
-                                       <li key={i}>
-                                          {s?.serviceId?.name} - ${s.price}
-                                       </li>
-                                    ))}
-                                 </ul>
-                              </div>
-                           )}
+                           <CardContent className="p-6 space-y-4">
+                              {profile.companyDescription && (
+                                 <p className="text-gray-700 text-sm leading-relaxed">
+                                    {isExpanded 
+                                       ? profile.companyDescription 
+                                       : `${profile.companyDescription.slice(0, 120)}${profile.companyDescription.length > 120 ? '...' : ''}`
+                                    }
+                                 </p>
+                              )}
 
-                           {profile.skillMatrix?.length > 0 && (
-                              <div>
-                                 <strong>Skills:</strong>
-                                 <ul className="list-disc pl-4">
-                                    {profile.skillMatrix.map((s, i) => (
-                                       <li key={i}>
-                                          {s.skill} (
-                                          {s.level === 1
-                                             ? "Beginner"
-                                             : s.level === 2
-                                             ? "Intermediate"
-                                             : "Expert"}
-                                          )
-                                       </li>
-                                    ))}
-                                 </ul>
-                              </div>
-                           )}
+                              {/* Specializations */}
+                              {profile.companySpecialization && (
+                                 <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                       <Award className="w-4 h-4 text-blue-600" />
+                                       <span className="font-medium text-gray-900">Specializations</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                       {(Array.isArray(profile.companySpecialization) 
+                                          ? profile.companySpecialization 
+                                          : profile.companySpecialization.split(',')
+                                       ).map((spec, i) => (
+                                          <Badge key={i} variant="secondary" className="text-xs">
+                                             {spec.trim()}
+                                          </Badge>
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
 
-                           {profile.companyCertifications?.length > 0 && (
-                              <div className="flex flex-wrap gap-2">
-                                 {profile.companyCertifications.map(
-                                    (cert, i) => (
-                                       <Badge key={i} variant="outline">
-                                          {cert?.certificateName || cert}
-                                       </Badge>
-                                    )
-                                 )}
+                              {/* Services */}
+                              {profile.serviceDetails?.length > 0 && (
+                                 <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                       <Briefcase className="w-4 h-4 text-green-600" />
+                                       <span className="font-medium text-gray-900">Services & Pricing</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                       {profile.serviceDetails.slice(0, isExpanded ? undefined : 2).map((service, i) => {
+                                          const serviceCharge = profile.services?.find(s => s?.serviceId === service._id);
+                                          return (
+                                             <div key={i} className="flex items-center justify-between text-sm">
+                                                <span className="text-gray-700">{service.name}</span>
+                                                {serviceCharge && (
+                                                   <span className="font-medium text-blue-600">
+                                                      ${serviceCharge.charge} {serviceCharge.unit}
+                                                   </span>
+                                                )}
+                                             </div>
+                                          );
+                                       })}
+                                       {!isExpanded && profile.serviceDetails.length > 2 && (
+                                          <p className="text-xs text-gray-500">
+                                             +{profile.serviceDetails.length - 2} more services
+                                          </p>
+                                       )}
+                                    </div>
+                                 </div>
+                              )}
+
+                              {/* Certifications */}
+                              {profile.certificates?.length > 0 && isExpanded && (
+                                 <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                       <FileText className="w-4 h-4 text-purple-600" />
+                                       <span className="font-medium text-gray-900">Certifications</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                       {profile.certificates.map((cert, i) => (
+                                          <Badge key={i} variant="outline" className="text-xs">
+                                             {cert?.certificateName || cert}
+                                          </Badge>
+                                       ))}
+                                    </div>
+                                 </div>
+                              )}
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-3 pt-4 border-t">
+                                 <Button
+                                    onClick={() => handleRequestService(profile.userId, profile.companyName)}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                 >
+                                    <Send className="w-4 h-4 mr-2" />
+                                    Request Service
+                                 </Button>
+                                 
+                                 <Button
+                                    onClick={() => toggleCardExpansion(profile._id)}
+                                    variant="outline"
+                                    size="sm"
+                                 >
+                                    {isExpanded ? (
+                                       <ChevronUp className="w-4 h-4" />
+                                    ) : (
+                                       <ChevronDown className="w-4 h-4" />
+                                    )}
+                                 </Button>
                               </div>
-                           )}
-                        </CardContent>
-                     </Card>
-                  ))}
+                           </CardContent>
+                        </Card>
+                     );
+                  })}
                </div>
             )}
-         </section>
-      </>
+         </div>
+      </div>
    );
 };
 

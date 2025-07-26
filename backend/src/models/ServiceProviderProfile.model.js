@@ -15,6 +15,7 @@ const serviceProviderProfileSchema = new mongoose.Schema(
     companySpecialization: [{ type: String }],
     companyLogoUrl: { type: String },
     proceduresUrl: { type: String },
+    rating:{type:Number,default:0},
   },
   { timestamps: true }
 );
