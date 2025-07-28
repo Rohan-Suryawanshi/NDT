@@ -164,45 +164,47 @@ const costBreakdownSchema = new mongoose.Schema({
 const quotationHistorySchema = new mongoose.Schema({
   providerId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Provider',
-    required: true
+    ref: "ServiceProviderProfile",
+    required: true,
   },
   quotedAmount: {
     type: Number,
-    required: true
+    required: true,
   },
   quotedCurrency: {
     type: String,
     required: true,
-    default: 'USD'
+    default: "USD",
   },
   quotationDetails: {
     type: String,
-    maxlength: 2000
+    maxlength: 2000,
   },
   quotedAt: {
     type: Date,
     required: true,
-    default: Date.now
+    default: Date.now,
   },
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'accepted', 'rejected', 'counter_offered'],
-    default: 'pending'
+    enum: ["pending", "accepted", "rejected", "counter_offered"],
+    default: "pending",
   },
   validUntil: {
-    type: Date
+    type: Date,
   },
-  attachments: [{
-    fileName: String,
-    fileUrl: String,
-    fileType: String,
-    uploadedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }]
+  attachments: [
+    {
+      fileName: String,
+      fileUrl: String,
+      fileType: String,
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
 });
 
 // Main Job Request Schema

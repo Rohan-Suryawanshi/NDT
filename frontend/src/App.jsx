@@ -17,6 +17,7 @@ import GeminiForm from "./features/Gemini/GeminiForm";
 import DashboardInspector from "./pages/DashbordInspector";
 import ManageInspectorProfile from "./pages/ManageInspectorProfile";
 import EnhancedJobRequestForm from "./features/JobRequest/EnhancedJobRequestForm";
+import JobRequestsDashboard from "./pages/JobRequestsDashboard";
 
 export default function App() {
    return (
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/gemini" element={<GeminiForm/>} />
             <Route path="/Rohan" element={<ManageInspectorProfile/>} />
             <Route path="/request-service/:providerId" element={<EnhancedJobRequestForm />} />
+            <Route path="/job" element={<JobRequestsDashboard/>} />
 
 
          </Routes>

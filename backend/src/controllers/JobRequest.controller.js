@@ -6,6 +6,7 @@ import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import { v2 as cloudinary } from "cloudinary";
 
 // @desc    Create a new job request
 // @route   POST /api/v1/job-requests
@@ -33,7 +34,17 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     providerName,
   } = req.body;
 
-  if (!title || !description || !location || !region || !requiredServices || !estimatedTotal || !providerName) {
+  console.log(req.body);
+
+  if (
+    !title ||
+    !description ||
+    !location ||
+    !region ||
+    !requiredServices ||
+    !estimatedTotal ||
+    !providerName
+  ) {
     throw new ApiError(400, "All required fields must be filled");
   }
 
@@ -47,14 +58,11 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     }
   }
 
-
   // Verify services exist
   const services = await Service.find({ _id: { $in: requiredServices } });
   if (services.length !== requiredServices.length) {
-    throw new ApiError(400, "One or more services not founddddd");
+    throw new ApiError(400, "One or more services not found");
   }
-
- 
 
   // Get client information
   const client = await User.findById(req.user._id).select("name email");
@@ -62,6 +70,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     throw new ApiError(404, "Client not found");
   }
 
+  console.log("This is the assing " + assignedProviderId);
 
   // Create job request
   const jobRequestData = {
@@ -72,7 +81,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     clientId: req.user._id,
     clientName: client.name,
     clientEmail: client.email,
-    assignedProviderId: assignedProviderId || null,
+    assignedProviderId,
     requiredServices,
     serviceQuantities: serviceQuantities || {},
     projectDuration: projectDuration || 1,
@@ -101,14 +110,12 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
   // Populate references for response
   await jobRequest.populate([
     { path: "requiredServices", select: "name code description" },
-    { path: "assignedProviderId", select: "fullName email" },
+    { path: "assignedProviderId", select: "name email" },
   ]);
 
   res
     .status(201)
-    .json(
-      new ApiResponse(201, jobRequest, "Job request created successfully")
-    );
+    .json(new ApiResponse(201, jobRequest, "Job request created successfully"));
 });
 
 // @desc    Get all job requests with filtering and pagination
@@ -136,7 +143,7 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   // Role-based filtering
   if (req.user.role === "client") {
     query.clientId = req.user._id;
-  } else if (req.user.role === "serviceProvider") {
+  } else if (req.user.role === "provider") {
     // Find provider profile for this user
     const providerProfile = await ServiceProviderProfile.findOne({
       userId: req.user._id,
@@ -179,7 +186,7 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   const jobRequests = await JobRequest.find(query)
     .populate("requiredServices", "name code")
     .populate("clientId", "fullName email")
-    .populate("assignedProviderId", "fullName email")
+    .populate("assignedProviderId", "name email")
     .sort({ [sortBy]: sortOrder === "desc" ? -1 : 1 })
     .skip(skip)
     .limit(limitNumber);
@@ -187,10 +194,10 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   const totalJobs = await JobRequest.countDocuments(query);
   const totalPages = Math.ceil(totalJobs / limitNumber);
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(200, {
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
         jobRequests,
         pagination: {
           currentPage: pageNumber,
@@ -199,8 +206,10 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
           hasNextPage: pageNumber < totalPages,
           hasPrevPage: pageNumber > 1,
         },
-      }, "Job requests retrieved successfully")
-    );
+      },
+      "Job requests retrieved successfully"
+    )
+  );
 });
 // @desc    Get job request by ID
 // @route   GET /api/v1/job-requests/:id
@@ -214,23 +223,26 @@ export const getJobRequestById = AsyncHandler(async (req, res) => {
 
   const jobRequest = await JobRequest.findById(id)
     .populate("requiredServices", "name code description")
-    .populate("clientId", "fullName email")
-    .populate("assignedProviderId", "fullName email")
-    .populate("quotationHistory.providerId", "fullName")
-    .populate("internalNotes.addedBy", "fullName")
-    .populate("attachments.uploadedBy", "fullName");
+    .populate("clientId", "name email")
+    // .populate("assignedProviderId", "name email");
+  .populate("quotationHistory.providerId", "name")
+  .populate("internalNotes.addedBy", "name")
+  .populate("attachments.uploadedBy", "name");
 
   if (!jobRequest) {
     throw new ApiError(404, "Job request not found");
   }
+
+  console.log(jobRequest);
 
   // Check authorization
   const isAuthorized =
     req.user.role === "admin" ||
     (req.user.role === "client" &&
       jobRequest.clientId._id.toString() === req.user._id.toString()) ||
-    (req.user.role === "serviceProvider" &&
-      jobRequest.assignedProviderId?._id.toString() === req.user._id.toString());
+    (req.user.role === "provider" &&
+      jobRequest.assignedProviderId?._id.toString() ===
+        req.user._id.toString());
 
   if (!isAuthorized) {
     throw new ApiError(403, "Not authorized to view this job request");
@@ -268,14 +280,12 @@ export const updateJobRequest = AsyncHandler(async (req, res) => {
   }
 
   // Prevent updates if job is in certain statuses
-  const nonEditableStatuses = [
-    "completed",
-    "delivered",
-    "closed",
-    "cancelled",
-  ];
+  const nonEditableStatuses = ["completed", "delivered", "closed", "cancelled"];
   if (nonEditableStatuses.includes(jobRequest.status)) {
-    throw new ApiError(400, `Cannot update job request in ${jobRequest.status} status`);
+    throw new ApiError(
+      400,
+      `Cannot update job request in ${jobRequest.status} status`
+    );
   }
 
   // Update allowed fields
@@ -300,7 +310,10 @@ export const updateJobRequest = AsyncHandler(async (req, res) => {
   const updates = {};
   allowedUpdates.forEach((field) => {
     if (req.body[field] !== undefined) {
-      if (field === "preferredStartDate" || field === "expectedCompletionDate") {
+      if (
+        field === "preferredStartDate" ||
+        field === "expectedCompletionDate"
+      ) {
         updates[field] = new Date(req.body[field]);
       } else {
         updates[field] = req.body[field];
@@ -321,7 +334,11 @@ export const updateJobRequest = AsyncHandler(async (req, res) => {
   res
     .status(200)
     .json(
-      new ApiResponse(200, updatedJobRequest, "Job request updated successfully")
+      new ApiResponse(
+        200,
+        updatedJobRequest,
+        "Job request updated successfully"
+      )
     );
 });
 // @desc    Delete job request
@@ -352,11 +369,14 @@ export const deleteJobRequest = AsyncHandler(async (req, res) => {
   // Prevent deletion if job is in progress
   const nonDeletableStatuses = ["in_progress", "completed", "delivered"];
   if (nonDeletableStatuses.includes(jobRequest.status)) {
-    throw new ApiError(400, `Cannot delete job request in ${jobRequest.status} status`);
+    throw new ApiError(
+      400,
+      `Cannot delete job request in ${jobRequest.status} status`
+    );
   }
 
   await JobRequest.findByIdAndDelete(id);
-  
+
   res
     .status(200)
     .json(new ApiResponse(200, null, "Job request deleted successfully"));
@@ -387,9 +407,10 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
   ) {
     // Clients can cancel or accept quotes
     isAuthorized = ["cancelled", "accepted"].includes(status);
-  } else if (req.user.role === "serviceProvider") {
+  } else if (req.user.role === "provider") {
     // Check if user is assigned to this job
-    const isAssignedProvider = jobRequest.assignedProviderId?.toString() === req.user._id.toString();
+    const isAssignedProvider =
+      jobRequest.assignedProviderId?.toString() === req.user._id.toString();
     if (isAssignedProvider) {
       // Providers can quote, start work, complete, etc.
       isAuthorized = [
@@ -437,7 +458,11 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
     res
       .status(200)
       .json(
-        new ApiResponse(200, updatedJobRequest, "Job status updated successfully")
+        new ApiResponse(
+          200,
+          updatedJobRequest,
+          "Job status updated successfully"
+        )
       );
   } catch (error) {
     throw new ApiError(400, error.message);
@@ -461,7 +486,7 @@ export const addQuotation = AsyncHandler(async (req, res) => {
 
   // Check authorization - only assigned provider can quote
   if (
-    req.user.role !== "serviceProvider" ||
+    req.user.role !== "provider" ||
     jobRequest.assignedProviderId?.toString() !== req.user._id.toString()
   ) {
     throw new ApiError(403, "Not authorized to add quotation");
@@ -519,7 +544,7 @@ export const getQuotationHistory = AsyncHandler(async (req, res) => {
     req.user.role === "admin" ||
     (req.user.role === "client" &&
       jobRequest.clientId.toString() === req.user._id.toString()) ||
-    (req.user.role === "serviceProvider" &&
+    (req.user.role === "provider" &&
       jobRequest.assignedProviderId?.toString() === req.user._id.toString());
 
   if (!isAuthorized) {
@@ -541,13 +566,15 @@ export const getQuotationHistory = AsyncHandler(async (req, res) => {
 // @access  Private
 export const addInternalNote = AsyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { note, noteType = "general" } = req.body;
+  const { content, noteType = "general" } = req.body;
+
+  console.log(req.body);
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
   }
 
-  if (!note || note.trim().length === 0) {
+  if (!content || content.trim().length === 0) {
     throw new ApiError(400, "Note content is required");
   }
 
@@ -556,12 +583,15 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
     throw new ApiError(404, "Job request not found");
   }
 
+  console.log(jobRequest.assignedProviderId.toString());
+  console.log(req.user._id.toString());
+
   // Check authorization
   const isAuthorized =
     req.user.role === "admin" ||
     (req.user.role === "client" &&
       jobRequest.clientId.toString() === req.user._id.toString()) ||
-    (req.user.role === "serviceProvider" &&
+    (req.user.role === "provider" &&
       jobRequest.assignedProviderId?.toString() === req.user._id.toString());
 
   if (!isAuthorized) {
@@ -569,7 +599,7 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
   }
 
   jobRequest.internalNotes.push({
-    note: note.trim(),
+    note: content.trim(),
     addedBy: req.user._id,
     noteType,
   });
@@ -596,17 +626,15 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
 // @access  Private
 export const addAttachment = AsyncHandler(async (req, res) => {
   const { id } = req.params;
-  const {
-    fileName,
-    originalFileName,
-    fileUrl,
-    fileType,
-    fileSize,
-    category = "other",
-  } = req.body;
+  const { category = "other" } = req.body;
+  const file = req.file; // Assuming file is uploaded via multer middleware
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
+  }
+
+  if (!file) {
+    throw new ApiError(400, "No file uploaded");
   }
 
   const jobRequest = await JobRequest.findById(id);
@@ -619,19 +647,25 @@ export const addAttachment = AsyncHandler(async (req, res) => {
     req.user.role === "admin" ||
     (req.user.role === "client" &&
       jobRequest.clientId.toString() === req.user._id.toString()) ||
-    (req.user.role === "serviceProvider" &&
+    (req.user.role === "provider" &&
       jobRequest.assignedProviderId?.toString() === req.user._id.toString());
 
   if (!isAuthorized) {
     throw new ApiError(403, "Not authorized to add attachments");
   }
 
+  // Upload to Cloudinary
+  const cloudinaryResult = await cloudinary.uploader.upload(file.path, {
+    resource_type: "auto",
+    folder: "job_attachments",
+  });
+
   jobRequest.attachments.push({
-    fileName,
-    originalFileName,
-    fileUrl,
-    fileType,
-    fileSize,
+    fileName: cloudinaryResult.public_id,
+    originalFileName: file.originalname,
+    fileUrl: cloudinaryResult.secure_url,
+    fileType: cloudinaryResult.format || file.mimetype || "unknown",
+    fileSize: file.size,
     uploadedBy: req.user._id,
     category,
   });
@@ -662,7 +696,7 @@ export const getJobRequestStats = AsyncHandler(async (req, res) => {
   // Role-based filtering
   if (req.user.role === "client") {
     matchStage.clientId = new mongoose.Types.ObjectId(req.user._id);
-  } else if (req.user.role === "serviceProvider") {
+  } else if (req.user.role === "provider") {
     matchStage.assignedProviderId = new mongoose.Types.ObjectId(req.user._id);
   }
 
@@ -707,27 +741,25 @@ export const getJobRequestStats = AsyncHandler(async (req, res) => {
     },
   ]);
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          overview: stats[0] || {
-            totalJobs: 0,
-            openJobs: 0,
-            inProgressJobs: 0,
-            completedJobs: 0,
-            totalValue: 0,
-            averageValue: 0,
-            premiumJobs: 0,
-          },
-          statusBreakdown,
-          regionBreakdown,
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        overview: stats[0] || {
+          totalJobs: 0,
+          openJobs: 0,
+          inProgressJobs: 0,
+          completedJobs: 0,
+          totalValue: 0,
+          averageValue: 0,
+          premiumJobs: 0,
         },
-        "Job request statistics retrieved successfully"
-      )
-    );
+        statusBreakdown,
+        regionBreakdown,
+      },
+      "Job request statistics retrieved successfully"
+    )
+  );
 });
 
 // @desc    Get jobs by provider (for provider dashboard)
@@ -747,7 +779,9 @@ export const getJobsByProvider = AsyncHandler(async (req, res) => {
 
   res
     .status(200)
-    .json(new ApiResponse(200, { jobs }, "Provider jobs retrieved successfully"));
+    .json(
+      new ApiResponse(200, { jobs }, "Provider jobs retrieved successfully")
+    );
 });
 
 // @desc    Get jobs by client (for client dashboard)
