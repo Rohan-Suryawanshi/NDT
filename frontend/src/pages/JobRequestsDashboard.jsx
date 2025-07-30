@@ -65,12 +65,19 @@ const MAJOR_CITIES = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'open', label: 'Open', color: 'bg-green-100 text-green-800 border-green-200' },
-  { value: 'quoted', label: 'Quoted', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { value: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800 border-red-200' },
-  { value: 'on_hold', label: 'On Hold', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+  { value: 'draft', label: 'Draft', color: 'bg-gray-100 text-gray-800 border-gray-200' }, // Created but not submitted
+  { value: 'open', label: 'Open', color: 'bg-green-100 text-green-800 border-green-200' }, // Submitted and waiting for provider response
+  { value: 'quoted', label: 'Quoted', color: 'bg-blue-100 text-blue-800 border-blue-200' }, // Provider has provided quotation
+  { value: 'negotiating', label: 'Negotiating', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' }, // In negotiation phase
+  { value: 'accepted', label: 'Accepted', color: 'bg-green-100 text-green-800 border-green-200' }, // Quote accepted, work can begin
+  { value: 'in_progress', label: 'In Progress', color: 'bg-orange-100 text-orange-800 border-orange-200' }, // Work is ongoing
+  { value: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-800 border-purple-200' }, // Work completed
+  { value: 'delivered', label: 'Delivered', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' }, // Report/results delivered
+  { value: 'closed', label: 'Closed', color: 'bg-green-100 text-green-800 border-green-200' }, // Job closed successfully
+  { value: 'cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800 border-red-200' }, // Cancelled by client
+  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-800 border-red-200' }, // Rejected by provider
+  { value: 'disputed', label: 'Disputed', color: 'bg-pink-100 text-pink-800 border-pink-200' }, // In dispute
+  { value: 'on_hold', label: 'On Hold', color: 'bg-gray-100 text-gray-800 border-gray-200' } // Temporarily on hold
 ];
 
 const NOTE_TYPES = [
@@ -344,11 +351,11 @@ const JobRequestsDashboard = () => {
   const canEditJob = (job) => {
     return user?.role === 'admin' || 
            (user?.role === 'client' && job.clientId._id === user._id) ||
-           (user?.role === 'serviceProvider' && job.assignedProviderId === user._id);
+           (user?.role === 'provider' && job.assignedProviderId === user._id);
   };
 
   const canAddQuotation = (job) => {
-    return user?.role === 'serviceProvider' && 
+    return user?.role === 'provider' && 
            (job.assignedProviderId === user._id || job.status === 'open');
   };
 
@@ -661,7 +668,7 @@ const JobRequestsDashboard = () => {
                       <Quote className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="text-xs text-blue-700 mt-1">
-                      Latest: {formatCurrency(job.quotationHistory[job.quotationHistory.length - 1]?.amount)}
+                      Latest: {formatCurrency(job.quotationHistory[job.quotationHistory.length - 1]?.quotedAmount)}
                     </div>
                   </div>
                 )}
@@ -902,7 +909,7 @@ const JobRequestsDashboard = () => {
                               <div className="flex justify-between items-start mb-2">
                                 <div>
                                   <p className="font-semibold text-lg text-green-600">
-                                    {formatCurrency(quotation.amount, quotation.currency)}
+                                    {formatCurrency(quotation.quotedAmount, quotation.currency)}
                                   </p>
                                   <p className="text-sm text-gray-600">
                                     Valid until: {formatDate(quotation.validUntil)}
@@ -916,7 +923,7 @@ const JobRequestsDashboard = () => {
                                 <p className="text-sm text-gray-700 mb-2">{quotation.description}</p>
                               )}
                               <p className="text-xs text-gray-500">
-                                Submitted by {quotation.providerId?.companyName} on {formatDate(quotation.createdAt)}
+                                Submitted by {quotation.providerId?.companyName} on {formatDate(quotation.quotedAt)}
                               </p>
                             </div>
                           ))}

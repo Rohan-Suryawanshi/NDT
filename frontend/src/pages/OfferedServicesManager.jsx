@@ -153,7 +153,7 @@ export default function OfferedServicesManager() {
 
                {/* All other fields have equal flexible width */}
                <div className="w-full sm:flex-1 min-w-[140px]">
-                  <Label className="mb-2">Charge</Label>
+                  <Label className="mb-2">Price</Label>
                   <Input
                      type="number"
                      placeholder="e.g. 100"
@@ -217,7 +217,7 @@ export default function OfferedServicesManager() {
             </div>
 
             <Button type="submit" className="w-full sm:w-auto">
-               {editingId ? "Update Offering" : "Add Offering"}
+               {editingId ? "Update Service" : "Add Service"}
             </Button>
          </form>
 
@@ -227,7 +227,7 @@ export default function OfferedServicesManager() {
                <thead className="bg-gray-100 text-gray-600">
                   <tr>
                      <th className="p-3">Service</th>
-                     <th className="p-3">Charge</th>
+                     <th className="p-3">Price</th>
                      <th className="p-3">Unit</th>
                      <th className="p-3">Currency</th>
                      <th className="p-3">Tax</th>

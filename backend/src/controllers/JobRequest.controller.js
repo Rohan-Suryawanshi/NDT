@@ -224,8 +224,6 @@ export const getJobRequestById = AsyncHandler(async (req, res) => {
   const jobRequest = await JobRequest.findById(id)
     .populate("requiredServices", "name code description")
     .populate("clientId", "name email")
-    // .populate("assignedProviderId", "name email");
-  .populate("quotationHistory.providerId", "name")
   .populate("internalNotes.addedBy", "name")
   .populate("attachments.uploadedBy", "name");
 
@@ -388,6 +386,8 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status, reason } = req.body;
 
+  console.log(req.body);
+
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
   }
@@ -405,20 +405,30 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
     req.user.role === "client" &&
     jobRequest.clientId.toString() === req.user._id.toString()
   ) {
-    // Clients can cancel or accept quotes
-    isAuthorized = ["cancelled", "accepted"].includes(status);
+    // Clients can move to: cancelled, accepted, disputed, on_hold, closed
+    isAuthorized = [
+      "cancelled",
+      "accepted",
+      "disputed",
+      "on_hold",
+      "closed"
+    ].includes(status);
   } else if (req.user.role === "provider") {
     // Check if user is assigned to this job
     const isAssignedProvider =
       jobRequest.assignedProviderId?.toString() === req.user._id.toString();
     if (isAssignedProvider) {
-      // Providers can quote, start work, complete, etc.
+      // Providers can move to: quoted, rejected, negotiating, in_progress, completed, delivered, disputed, on_hold, closed
       isAuthorized = [
         "quoted",
         "rejected",
+        "negotiating",
         "in_progress",
         "completed",
         "delivered",
+        "disputed",
+        "on_hold",
+        "closed"
       ].includes(status);
     }
   }
@@ -473,7 +483,9 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
 // @access  Private (Provider only)
 export const addQuotation = AsyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { quotedAmount, quotationDetails, validUntil, attachments } = req.body;
+  const { amount, quotationDetails, validUntil, attachments } = req.body;
+
+  console.log(req.body);
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
@@ -497,9 +509,14 @@ export const addQuotation = AsyncHandler(async (req, res) => {
     throw new ApiError(400, "Cannot add quotation to job in current status");
   }
 
+  // Validate quotedAmount
+  if (amount === undefined || amount === null || amount === "") {
+    throw new ApiError(400, "Quoted amount is required");
+  }
+
   const quotationData = {
     providerId: req.user._id,
-    quotedAmount,
+    quotedAmount: amount,
     quotationDetails,
     validUntil: validUntil ? new Date(validUntil) : null,
     attachments: attachments || [],
@@ -508,9 +525,12 @@ export const addQuotation = AsyncHandler(async (req, res) => {
   try {
     await jobRequest.addQuotation(quotationData);
 
-    const updatedJobRequest = await JobRequest.findById(id)
-      .populate("quotationHistory.providerId", "fullName")
-      .populate("assignedProviderId", "fullName email");
+    const updatedJobRequest = await JobRequest.findById(id);
+    
+      // .populate("quotationHistory.providerId", "clientName")
+    //   .populate("assignedProviderId", "name email");
+
+    
 
     res
       .status(201)
@@ -532,8 +552,9 @@ export const getQuotationHistory = AsyncHandler(async (req, res) => {
   }
 
   const jobRequest = await JobRequest.findById(id)
-    .populate("quotationHistory.providerId", "fullName email")
-    .select("quotationHistory clientId assignedProviderId");
+    // .populate("quotationHistory.providerId", "fullName email")
+    // .select("quotationHistory clientId assignedProviderId");
+    console.log(jobRequest);
 
   if (!jobRequest) {
     throw new ApiError(404, "Job request not found");
