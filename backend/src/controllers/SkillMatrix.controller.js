@@ -39,7 +39,6 @@ export const createSkillMatrix = AsyncHandler(async (req, res) => {
       "Number of certificate files and data entries must match."
     );
   }
-
   const uploadedCertificates = await Promise.all(
     files.map(async (file, index) => {
       const filePath = file.path;
@@ -54,6 +53,9 @@ export const createSkillMatrix = AsyncHandler(async (req, res) => {
         level: cert.level,
         certificationExpiryDate: cert.certificationExpiryDate,
         certificationUrl: result.url,
+        experience: cert.experience || "",
+        qualification: cert.qualification || "",
+        isAvailable: cert.isAvailable !== undefined ? cert.isAvailable : true,
       };
     })
   );
@@ -127,19 +129,21 @@ export const updateSkillMatrix = AsyncHandler(async (req, res) => {
         const result = await uploadToCloudinary(files[fileIndex].path);
         fileIndex++;
 
-        if (!result?.url) throw new ApiError(500, "Upload failed");
-
-        return {
+        if (!result?.url) throw new ApiError(500, "Upload failed");        return {
           ...cert,
           certificationUrl: result.url,
+          experience: cert.experience || "",
+          qualification: cert.qualification || "",
+          isAvailable: cert.isAvailable !== undefined ? cert.isAvailable : true,
         };
-      }
-
-      // ✅ No new file, but this is an existing certificate → retain old image
+      }      // ✅ No new file, but this is an existing certificate → retain old image
       if (!isNew && existingCert?.certificationUrl) {
         return {
           ...cert,
           certificationUrl: existingCert.certificationUrl,
+          experience: cert.experience || "",
+          qualification: cert.qualification || "",
+          isAvailable: cert.isAvailable !== undefined ? cert.isAvailable : true,
         };
       }
 

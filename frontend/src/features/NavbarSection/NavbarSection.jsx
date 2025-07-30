@@ -158,7 +158,17 @@ const NavbarSection = () => {
 
                         {user.role !== "admin" && (
                            <DropdownMenuItem
-                              onClick={() => navigate("/settings")}
+                             onClick={() => {
+                              if (user.role === "client") {
+                                 navigate("/account-settings");
+                              } else if (user.role === "provider") {
+                                 navigate("/provider-profile");
+                              } else if (user.role === "inspector") {
+                                 navigate("/inspector-profile");
+                              } else {
+                                 navigate("/dashboard");
+                              }
+                           }}
                            >
                               <Settings className="mr-2 h-4 w-4" /> Settings
                            </DropdownMenuItem>

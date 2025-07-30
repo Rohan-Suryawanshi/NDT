@@ -233,7 +233,7 @@ const FindProvider = () => {
    if (loading) {
       return (
          <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
          </div>
       );
    }
@@ -357,7 +357,7 @@ const FindProvider = () => {
             {/* Results Count */}
             <div className="flex items-center justify-between">
                <p className="text-gray-600">
-                  Found <span className="font-semibold text-blue-600">{filteredProfiles.length}</span> provider{filteredProfiles.length !== 1 ? 's' : ''}
+                  Found <span className="font-semibold text-[#004aad]">{filteredProfiles.length}</span> provider{filteredProfiles.length !== 1 ? 's' : ''}
                </p>
             </div>
 
@@ -399,7 +399,7 @@ const FindProvider = () => {
                                              className="w-16 h-16 rounded-lg object-cover border-2 border-white shadow-md"
                                           />
                                        ) : (
-                                          <div className="w-16 h-16 rounded-lg bg-blue-600 flex items-center justify-center">
+                                          <div className="w-16 h-16 rounded-lg bg-[#004aad] flex items-center justify-center">
                                              <Building2 className="w-8 h-8 text-white" />
                                           </div>
                                        )}
@@ -447,7 +447,7 @@ const FindProvider = () => {
                               {profile.companySpecialization && (
                                  <div className="space-y-2">
                                     <div className="flex items-center gap-2">
-                                       <Award className="w-4 h-4 text-blue-600" />
+                                       <Award className="w-4 h-4 text-[#004aad]" />
                                        <span className="font-medium text-gray-900">Specializations</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -477,7 +477,7 @@ const FindProvider = () => {
                                              <div key={i} className="flex items-center justify-between text-sm">
                                                 <span className="text-gray-700">{service.name}</span>
                                                 {serviceCharge && (
-                                                   <span className="font-medium text-blue-600">
+                                                   <span className="font-medium text-[#004aad]">
                                                       ${serviceCharge.charge} {serviceCharge.unit}
                                                    </span>
                                                 )}
@@ -514,7 +514,7 @@ const FindProvider = () => {
                               <div className="flex items-center gap-3 pt-4 border-t">
                                  <Button
                                     onClick={() => handleRequestService(profile.userId, profile.companyName)}
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    className="flex-1 bg-[#004aad]"
                                  >
                                     <Send className="w-4 h-4 mr-2" />
                                     Request Service

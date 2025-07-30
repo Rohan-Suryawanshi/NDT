@@ -363,7 +363,7 @@ const JobRequestsDashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="animate-spin h-16 w-16 text-blue-600 mx-auto mb-4" />
+          <Loader2 className="animate-spin h-16 w-16 text-[#004aad] mx-auto mb-4" />
           <p className="text-gray-600">Loading job requests...</p>
         </div>
       </div>
@@ -378,10 +378,10 @@ const JobRequestsDashboard = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Building className="h-8 w-8 text-blue-600" />
+                <Building className="h-8 w-8 text-[#004aad]" />
                 <h1 className="text-2xl font-bold text-gray-900">Job Requests</h1>
               </div>
-              <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+              <span className="bg-blue-100 text-[#004aad] text-sm font-medium px-2.5 py-0.5 rounded-full">
                 {pagination.totalJobs} {pagination.totalJobs === 1 ? 'Request' : 'Requests'}
               </span>
             </div>
@@ -393,10 +393,6 @@ const JobRequestsDashboard = () => {
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
-              </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
               </Button>
             </div>
           </div>
@@ -515,12 +511,12 @@ const JobRequestsDashboard = () => {
                   Clear Filters
                 </Button>
               </div>
-              <div className="flex items-end justify-end">
+              {/* <div className="flex items-end justify-end">
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
                   Export
                 </Button>
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>
@@ -662,12 +658,12 @@ const JobRequestsDashboard = () => {
                 {job.quotationHistory?.length > 0 && (
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-blue-900">
+                      <span className="text-sm font-medium text-[#004aad]">
                         {job.quotationHistory.length} Quotation{job.quotationHistory.length > 1 ? 's' : ''}
                       </span>
-                      <Quote className="h-4 w-4 text-blue-600" />
+                      <Quote className="h-4 w-4 text-[#004aad]" />
                     </div>
-                    <div className="text-xs text-blue-700 mt-1">
+                    <div className="text-xs text-[#004aad] mt-1">
                       Latest: {formatCurrency(job.quotationHistory[job.quotationHistory.length - 1]?.quotedAmount)}
                     </div>
                   </div>
@@ -769,7 +765,7 @@ const JobRequestsDashboard = () => {
 
       {/* Job Details Modal */}
       {selectedJob && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-screen overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1041,10 +1037,10 @@ const JobRequestsDashboard = () => {
                         Add Attachment
                       </Button>
                       
-                      <Button variant="outline" className="w-full">
+                      {/* <Button variant="outline" className="w-full">
                         <Download className="h-4 w-4 mr-2" />
                         Export Details
-                      </Button>
+                      </Button> */}
                     </CardContent>
                   </Card>
                 </div>

@@ -16,13 +16,13 @@ export default function DashboardProvider() {
          title: "Service Requests",
          description: "View and manage incoming service requests from clients.",
          icon: <ClipboardList className="w-8 h-8 text-[#004aad]" />,
-         route: "/provider/service-requests",
+         route: "/service-request",
       },
       {
          title: "AI Procedure Writer",
          description: "Use AI to generate comprehensive NDT procedures.",
          icon: <Bot className="w-8 h-8 text-green-600" />,
-         route: "/provider/ai-writer",
+         route: "/gemini",
       },
       {
          title: "Manage Profile",

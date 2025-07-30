@@ -3,12 +3,24 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Trash2, Plus, Eye } from "lucide-react";
 import { BACKEND_URL } from "@/constant/Global";
 import toast from "react-hot-toast";
 
+const NDT_LEVELS = [
+   { value: "assistant", label: "Assistant NDT Tech." },
+   { value: "level_1", label: "Level I" },
+   { value: "level_2", label: "Level II" },
+   { value: "level_3", label: "Level III" },
+   { value: "engineer", label: "Engineer" }
+];
+
 export default function SkillMatrixManager() {
    const [data, setData] = useState([]);
+   const [services, setServices] = useState([]);
    const [filters, setFilters] = useState({
       technician: "",
       method: "",
@@ -18,13 +30,35 @@ export default function SkillMatrixManager() {
    const [formKey, setFormKey] = useState(Date.now()); // For resetting file input
    const [form, setForm] = useState({
       technician: "",
-      certificates: [{ method: "", level: "", expiry: "", file: null }],
+      certificates: [{ 
+         method: "", 
+         level: "", 
+         expiry: "", 
+         file: null,
+         experience: "",
+         qualification: "",
+         isAvailable: true
+      }],
    });
    const [editing, setEditing] = useState(null);
 
    useEffect(() => {
       fetchData();
+      fetchServices();
    }, []);
+
+   const fetchServices = async () => {
+      try {
+         const res = await axios.get(`${BACKEND_URL}/api/v1/service`, {
+            headers: {
+               Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+         });
+         setServices(res.data?.data || []);
+      } catch {
+         toast.error("Failed to load services");
+      }
+   };
 
    const fetchData = async () => {
       try {
@@ -43,12 +77,18 @@ export default function SkillMatrixManager() {
       const updated = [...form.certificates];
       updated[idx][key] = value;
       setForm((prev) => ({ ...prev, certificates: updated }));
-   };
-
-   const addCertRow = () => {
+   };   const addCertRow = () => {
       setForm((prev) => ({
          ...prev,
-         certificates: [...prev.certificates, { method: "", level: "", expiry: "", file: null }],
+         certificates: [...prev.certificates, { 
+            method: "", 
+            level: "", 
+            expiry: "", 
+            file: null,
+            experience: "",
+            qualification: "",
+            isAvailable: true
+         }],
       }));
    };
 
@@ -61,13 +101,19 @@ export default function SkillMatrixManager() {
    const clearForm = () => {
       setForm({
          technician: "",
-         certificates: [{ method: "", level: "", expiry: "", file: null }],
+         certificates: [{ 
+            method: "", 
+            level: "", 
+            expiry: "", 
+            file: null,
+            experience: "",
+            qualification: "",
+            isAvailable: true
+         }],
       });
       setEditing(null);
       setFormKey(Date.now());
-   };
-
-   const handleEdit = (matrix) => {
+   };   const handleEdit = (matrix) => {
       setEditing(matrix._id);
       setFormKey(Date.now());
       setForm({
@@ -79,6 +125,9 @@ export default function SkillMatrixManager() {
                ? new Date(cert.certificationExpiryDate).toISOString().slice(0, 10)
                : "",
             file: null,
+            experience: cert.experience || "",
+            qualification: cert.qualification || "",
+            isAvailable: cert.isAvailable !== undefined ? cert.isAvailable : true,
          })),
       });
    };
@@ -95,9 +144,7 @@ export default function SkillMatrixManager() {
       } catch {
          toast.error("Delete failed");
       }
-   };
-
-   const handleSubmit = async (e) => {
+   };   const handleSubmit = async (e) => {
       e.preventDefault();
 
       if (!editing && form.certificates.some((c) => !c.file)) {
@@ -110,6 +157,9 @@ export default function SkillMatrixManager() {
          method: c.method,
          level: c.level,
          certificationExpiryDate: c.expiry,
+         experience: c.experience,
+         qualification: c.qualification,
+         isAvailable: c.isAvailable,
       }));
 
       formData.append(
@@ -237,31 +287,52 @@ export default function SkillMatrixManager() {
                   onChange={(e) => setForm((prev) => ({ ...prev, technician: e.target.value }))}
                   required
                />
-            </div>
-
-            {form.certificates.map((cert, idx) => (
+            </div>            {form.certificates.map((cert, idx) => (
                <div
                   key={idx}
-                  className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border rounded-lg bg-gray-50"
                >
+                  {/* Method (Service) Dropdown */}
                   <div>
-                     <Label className='mb-2'>Method</Label>
-                     <Input
-                        placeholder="Method"
-                        value={cert.method}
-                        onChange={(e) => handleChange(idx, "method", e.target.value)}
-                        required
-                     />
+                     <Label className='mb-2'>Method (Service)</Label>
+                     <Select 
+                        value={cert.method} 
+                        onValueChange={(value) => handleChange(idx, "method", value)}
+                     >
+                        <SelectTrigger>
+                           <SelectValue placeholder="Select Service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {services.map((service) => (
+                              <SelectItem key={service._id} value={service.name}>
+                                 {service.name}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
                   </div>
+
+                  {/* Level Dropdown */}
                   <div>
-                     <Label className='mb-2'>Level</Label>
-                     <Input
-                        placeholder="Level"
-                        value={cert.level}
-                        onChange={(e) => handleChange(idx, "level", e.target.value)}
-                        required
-                     />
+                     <Label className='mb-2'>Certification Level</Label>
+                     <Select 
+                        value={cert.level} 
+                        onValueChange={(value) => handleChange(idx, "level", value)}
+                     >
+                        <SelectTrigger>
+                           <SelectValue placeholder="Select Level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {NDT_LEVELS.map((level) => (
+                              <SelectItem key={level.value} value={level.value}>
+                                 {level.label}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
                   </div>
+
+                  {/* Expiry Date */}
                   <div>
                      <Label className='mb-2'>Expiry Date</Label>
                      <Input
@@ -271,8 +342,43 @@ export default function SkillMatrixManager() {
                         required
                      />
                   </div>
+
+                  {/* Experience */}
                   <div>
-                     <Label className='mb-2'>Upload File</Label>
+                     <Label className='mb-2'>Experience</Label>
+                     <Input
+                        placeholder="e.g., 5 years"
+                        value={cert.experience}
+                        onChange={(e) => handleChange(idx, "experience", e.target.value)}
+                     />
+                  </div>
+
+                  {/* Qualification */}
+                  <div>
+                     <Label className='mb-2'>Qualification</Label>
+                     <Textarea
+                        placeholder="Educational background, certifications..."
+                        value={cert.qualification}
+                        onChange={(e) => handleChange(idx, "qualification", e.target.value)}
+                        rows={2}
+                     />
+                  </div>
+
+                  {/* Availability Switch */}
+                  <div className="flex items-center space-x-2">
+                     <Label className='mb-2'>Available</Label>
+                     <Switch
+                        checked={cert.isAvailable}
+                        onCheckedChange={(checked) => handleChange(idx, "isAvailable", checked)}
+                     />
+                     <span className="text-sm text-gray-600">
+                        {cert.isAvailable ? "Available" : "Not Available"}
+                     </span>
+                  </div>
+
+                  {/* Upload File */}
+                  <div className="md:col-span-2">
+                     <Label className='mb-2'>Upload Certificate</Label>
                      <Input
                         key={`${formKey}-${idx}`}
                         type="file"
@@ -280,15 +386,20 @@ export default function SkillMatrixManager() {
                         onChange={(e) => handleChange(idx, "file", e.target.files[0])}
                      />
                   </div>
+
+                  {/* Remove Button */}
                   {form.certificates.length > 1 && (
-                     <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => removeCertRow(idx)}
-                        className="mt-5"
-                     >
-                        <Trash2 size={16} />
-                     </Button>
+                     <div className="flex items-end">
+                        <Button
+                           type="button"
+                           variant="destructive"
+                           onClick={() => removeCertRow(idx)}
+                           className="w-full"
+                        >
+                           <Trash2 size={16} className="mr-2" />
+                           Remove Certificate
+                        </Button>
+                     </div>
                   )}
                </div>
             ))}
@@ -302,9 +413,7 @@ export default function SkillMatrixManager() {
                   Clear Form
                </Button>
             </div>
-         </form>
-
-         {/* Table */}
+         </form>         {/* Table */}
          <div className="overflow-x-auto border rounded">
             <table className="min-w-full table-auto">
                <thead className="bg-gray-100 text-left">
@@ -312,6 +421,9 @@ export default function SkillMatrixManager() {
                      <th className="p-2 border">Technician</th>
                      <th className="p-2 border">Method</th>
                      <th className="p-2 border">Level</th>
+                     <th className="p-2 border">Experience</th>
+                     <th className="p-2 border">Qualification</th>
+                     <th className="p-2 border">Available</th>
                      <th className="p-2 border">Expiry</th>
                      <th className="p-2 border">Action</th>
                   </tr>
@@ -322,7 +434,24 @@ export default function SkillMatrixManager() {
                         <tr key={`${matrix._id}-${i}`} className="border-b">
                            <td className="p-2 border">{matrix.technician.name}</td>
                            <td className="p-2 border">{cert.method}</td>
-                           <td className="p-2 border">{cert.level}</td>
+                           <td className="p-2 border">
+                              {NDT_LEVELS.find(level => level.value === cert.level)?.label || cert.level}
+                           </td>
+                           <td className="p-2 border">{cert.experience || "N/A"}</td>
+                           <td className="p-2 border">
+                              <div className="max-w-xs truncate" title={cert.qualification}>
+                                 {cert.qualification || "N/A"}
+                              </div>
+                           </td>
+                           <td className="p-2 border">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                 cert.isAvailable !== false 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                              }`}>
+                                 {cert.isAvailable !== false ? 'Available' : 'Not Available'}
+                              </span>
+                           </td>
                            <td className="p-2 border">
                               {new Date(cert.certificationExpiryDate).toLocaleDateString()}
                            </td>

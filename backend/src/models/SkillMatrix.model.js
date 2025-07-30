@@ -8,13 +8,19 @@ const skillMatrixSchema = new mongoose.Schema({
   },
   technician: {
     name: { type: String, required: true },
-  },
-  certificates: [
+  },  certificates: [
     {
       method: { type: String, required: true },
-      level: { type: String, required: true },
+      level: { 
+        type: String, 
+        required: true,
+        enum: ["assistant", "level_1", "level_2", "level_3", "engineer"]
+      },
       certificationExpiryDate: { type: Date, required: true },
-      certificationUrl: { type: String ,required:true},
+      certificationUrl: { type: String, required: true },
+      experience: { type: String, default: "" },
+      qualification: { type: String, default: "" },
+      isAvailable: { type: Boolean, default: true },
     },
   ],
   updatedAt: { type: Date, default: Date.now },

@@ -18,6 +18,7 @@ import DashboardInspector from "./pages/DashbordInspector";
 import ManageInspectorProfile from "./pages/ManageInspectorProfile";
 import EnhancedJobRequestForm from "./features/JobRequest/EnhancedJobRequestForm";
 import JobRequestsDashboard from "./pages/JobRequestsDashboard";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
    return (
@@ -45,9 +46,10 @@ export default function App() {
             <Route path="/provider-profile" element={<ServiceProviderProfileManage />} />
             <Route path="/offered-services-manager" element={<OfferedServicesManager />} />
             <Route path="/gemini" element={<GeminiForm/>} />
-            <Route path="/Rohan" element={<ManageInspectorProfile/>} />
+            <Route path="/inspector-profile" element={<ManageInspectorProfile/>} />
             <Route path="/request-service/:providerId" element={<EnhancedJobRequestForm />} />
-            <Route path="/job" element={<JobRequestsDashboard/>} />
+            <Route path="/service-request" element={<JobRequestsDashboard/>} />
+            <Route path="*" element={<NotFound />} />
 
 
          </Routes>
