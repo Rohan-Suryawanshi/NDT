@@ -160,6 +160,36 @@ const costBreakdownSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+// Negotiation Schema for quotations
+const negotiationSchema = new mongoose.Schema({
+  message: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  proposedAmount: {
+    type: Number,
+    default: null
+  },
+  counterOffer: {
+    type: String,
+    default: null
+  },
+  fromClient: {
+    type: Boolean,
+    required: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
+
 // Quotation History Schema (for tracking quote updates)
 const quotationHistorySchema = new mongoose.Schema({
   providerId: {
@@ -188,12 +218,23 @@ const quotationHistorySchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ["pending", "accepted", "rejected", "counter_offered"],
+    enum: ["pending", "accepted", "rejected", "negotiating"],
     default: "pending",
   },
   validUntil: {
     type: Date,
   },
+  // Add client response tracking
+  clientResponse: {
+    message: String,
+    respondedAt: Date,
+    respondedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  },
+  // Add negotiations array
+  negotiations: [negotiationSchema],
   attachments: [
     {
       fileName: String,

@@ -13,6 +13,8 @@ import {
   getJobRequestStats,
   getJobsByProvider,
   getJobsByClient,
+  updateQuotationStatus,
+  addNegotiationMessage,
 } from "../controllers/JobRequest.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -36,6 +38,8 @@ router.patch("/:id/status", updateJobStatus);
 // Quotation management
 router.post("/:id/quotations", addQuotation);
 router.get("/:id/quotations", getQuotationHistory);
+router.patch("/:id/quotations/:quotationId", updateQuotationStatus); // Accept/Reject quotation
+router.post("/:id/quotations/:quotationId/negotiate", addNegotiationMessage); // Add negotiation
 
 // Notes and attachments
 router.post("/:id/notes", addInternalNote);

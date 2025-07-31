@@ -181,12 +181,12 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
   const skip = (pageNumber - 1) * limitNumber;
-
   // Execute query
   const jobRequests = await JobRequest.find(query)
     .populate("requiredServices", "name code")
     .populate("clientId", "fullName email")
     .populate("assignedProviderId", "name email")
+    .populate("quotationHistory.providerId", "companyName email")
     .sort({ [sortBy]: sortOrder === "desc" ? -1 : 1 })
     .skip(skip)
     .limit(limitNumber);
@@ -220,12 +220,12 @@ export const getJobRequestById = AsyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
   }
-
   const jobRequest = await JobRequest.findById(id)
     .populate("requiredServices", "name code description")
     .populate("clientId", "name email")
-  .populate("internalNotes.addedBy", "name")
-  .populate("attachments.uploadedBy", "name");
+    .populate("quotationHistory.providerId", "companyName email contactNumber")
+    .populate("internalNotes.addedBy", "name")
+    .populate("attachments.uploadedBy", "name");
 
   if (!jobRequest) {
     throw new ApiError(404, "Job request not found");
@@ -411,7 +411,7 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
       "accepted",
       "disputed",
       "on_hold",
-      "closed"
+      "closed",
     ].includes(status);
   } else if (req.user.role === "provider") {
     // Check if user is assigned to this job
@@ -428,7 +428,7 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
         "delivered",
         "disputed",
         "on_hold",
-        "closed"
+        "closed",
       ].includes(status);
     }
   }
@@ -439,7 +439,15 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
 
   try {
     await jobRequest.updateStatus(status, req.user._id);
-
+    // If status is "accepted", update the accepted quotation in quotationHistory
+    if (status === "accepted" && jobRequest.finalQuotationId) {
+      const acceptedQuotation = jobRequest.quotationHistory.id(jobRequest.finalQuotationId);
+      if (acceptedQuotation) {
+      acceptedQuotation.status = "accepted";
+      }
+      await jobRequest.save();
+    }
+ 
     // Add internal note for status change
     if (reason) {
       jobRequest.internalNotes.push({
@@ -526,11 +534,9 @@ export const addQuotation = AsyncHandler(async (req, res) => {
     await jobRequest.addQuotation(quotationData);
 
     const updatedJobRequest = await JobRequest.findById(id);
-    
-      // .populate("quotationHistory.providerId", "clientName")
-    //   .populate("assignedProviderId", "name email");
 
-    
+    // .populate("quotationHistory.providerId", "clientName")
+    //   .populate("assignedProviderId", "name email");
 
     res
       .status(201)
@@ -551,10 +557,10 @@ export const getQuotationHistory = AsyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid job request ID");
   }
 
-  const jobRequest = await JobRequest.findById(id)
-    // .populate("quotationHistory.providerId", "fullName email")
-    // .select("quotationHistory clientId assignedProviderId");
-    console.log(jobRequest);
+  const jobRequest = await JobRequest.findById(id);
+  // .populate("quotationHistory.providerId", "fullName email")
+  // .select("quotationHistory clientId assignedProviderId");
+  console.log(jobRequest);
 
   if (!jobRequest) {
     throw new ApiError(404, "Job request not found");
@@ -823,4 +829,131 @@ export const getJobsByClient = AsyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, { jobs }, "Client jobs retrieved successfully"));
+});
+// @desc    Update quotation status (accept/reject by client)
+// @route   PATCH /api/v1/job-requests/:id/quotations/:quotationId
+// @access  Private (Client only)
+export const updateQuotationStatus = AsyncHandler(async (req, res) => {
+  const { id, quotationId } = req.params;
+  const { status, clientMessage } = req.body;
+
+  if (!["accepted", "rejected", "negotiating"].includes(status)) {
+    throw new ApiError(400, "Invalid quotation status");
+  }
+
+  const jobRequest = await JobRequest.findById(id);
+  if (!jobRequest) {
+    throw new ApiError(404, "Job request not found");
+  }
+
+  // Check if user is the client who created this request
+  if (jobRequest.clientId.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Not authorized to update this quotation");
+  }
+
+  // Find and update the quotation
+  const quotation = jobRequest.quotationHistory.id(quotationId);
+  if (!quotation) {
+    throw new ApiError(404, "Quotation not found");
+  }
+
+  quotation.status = status;
+  if (clientMessage) {
+    quotation.clientResponse = {
+      message: clientMessage,
+      respondedAt: new Date(),
+      respondedBy: req.user._id,
+    };
+  }
+
+  // Update job request status based on quotation acceptance
+  if (status === "accepted") {
+    jobRequest.status = "accepted";
+    jobRequest.finalQuotationId = quotationId;
+  } else if (status === "negotiating") {
+    jobRequest.status = "negotiating";
+  }
+
+  await jobRequest.save();
+
+  const updatedJobRequest = await JobRequest.findById(id)
+    .populate("requiredServices", "name code")
+    .populate("clientId", "fullName email")
+    .populate("assignedProviderId", "name email");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedJobRequest,
+        `Quotation ${status} successfully`
+      )
+    );
+});
+
+// @desc    Add negotiation message to quotation
+// @route   POST /api/v1/job-requests/:id/quotations/:quotationId/negotiate
+// @access  Private (Client/Provider)
+export const addNegotiationMessage = AsyncHandler(async (req, res) => {
+  const { id, quotationId } = req.params;
+  const { message, proposedAmount, counterOffer } = req.body;
+
+  if (!message || message.trim() === "") {
+    throw new ApiError(400, "Message is required for negotiation");
+  }
+
+  const jobRequest = await JobRequest.findById(id);
+  if (!jobRequest) {
+    throw new ApiError(404, "Job request not found");
+  }
+
+  const quotation = jobRequest.quotationHistory.id(quotationId);
+  if (!quotation) {
+    throw new ApiError(404, "Quotation not found");
+  }
+
+  // Check authorization - either client or the provider who submitted the quotation
+  const isClient = jobRequest.clientId.toString() === req.user._id.toString();
+  const isProvider =
+    quotation.providerId.toString() === req.user._id.toString();
+
+  if (!isClient && !isProvider) {
+    throw new ApiError(403, "Not authorized to negotiate this quotation");
+  }
+
+  // Initialize negotiations array if it doesn't exist
+  if (!quotation.negotiations) {
+    quotation.negotiations = [];
+  }
+
+  // Add negotiation message
+  quotation.negotiations.push({
+    message: message.trim(),
+    proposedAmount: proposedAmount ? parseFloat(proposedAmount) : null,
+    counterOffer: counterOffer || null,
+    fromClient: isClient,
+    createdBy: req.user._id,
+    createdAt: new Date(),
+  });
+
+  quotation.status = "negotiating";
+  jobRequest.status = "negotiating";
+
+  await jobRequest.save();
+
+  const updatedJobRequest = await JobRequest.findById(id)
+    .populate("requiredServices", "name code")
+    .populate("clientId", "fullName email")
+    .populate("assignedProviderId", "name email");
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedJobRequest,
+        "Negotiation message sent successfully"
+      )
+    );
 });
