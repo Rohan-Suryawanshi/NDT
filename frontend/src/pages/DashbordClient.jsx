@@ -30,7 +30,7 @@ export default function DashboardClient() {
          description:
             "Track the status of your ongoing and past service requests.",
          icon: <ClipboardList className="w-8 h-8 text-green-600" />,
-         route: "/my-service-requests",
+         route: "/client-requests",
       },
       {
          title: "Account Settings",
