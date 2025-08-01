@@ -20,6 +20,8 @@ import EnhancedJobRequestForm from "./features/JobRequest/EnhancedJobRequestForm
 import JobRequestsDashboard from "./pages/JobRequestsDashboard";
 import NotFound from "./pages/NotFound";
 import ClientServiceRequest from "./pages/ClientServiceRequest";
+import ClientProviderSelection from "./pages/ClientProviderSelection";
+import InspectorJobDashboard from "./pages/InspectorJobDashboard";
 
 export default function App() {
    return (
@@ -51,6 +53,9 @@ export default function App() {
             <Route path="/request-service/:providerId" element={<EnhancedJobRequestForm />} />
             <Route path="/service-request" element={<JobRequestsDashboard/>} />
             <Route path="/client-requests" element={<ClientServiceRequest/>} />
+
+            <Route path="/client" element={<ClientProviderSelection/>} />
+            <Route path="/inspector/assigned-jobs" element={<InspectorJobDashboard/>} />
             <Route path="*" element={<NotFound />} />
 
 

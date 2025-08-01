@@ -33,6 +33,13 @@ export default function DashboardClient() {
          route: "/client-requests",
       },
       {
+         title: "Download Report",
+         description:
+            "Track the status of your ongoing and past service requests.",
+         icon: <ClipboardList className="w-8 h-8 text-green-600" />,
+         route: "/client-requests",
+      },
+      {
          title: "Account Settings",
          description: "Manage your account details and preferences.",
          icon: <Settings className="w-8 h-8 text-gray-600" />,

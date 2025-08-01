@@ -7,6 +7,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import { v2 as cloudinary } from "cloudinary";
+import { InspectorProfile } from "../models/InspectorProfile.model.js";
 
 // @desc    Create a new job request
 // @route   POST /api/v1/job-requests
@@ -32,9 +33,10 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     complianceRequirements,
     paymentTerms,
     providerName,
+    type
   } = req.body;
 
-  console.log(req.body);
+  console.log("This is the body "+req.body);
 
   if (
     !title ||
@@ -49,10 +51,18 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
   }
 
   // Verify provider exists if assigned
+  let provider;
   if (assignedProviderId) {
-    const provider = await ServiceProviderProfile.findOne({
+     provider = await ServiceProviderProfile.findOne({
       userId: assignedProviderId,
     });
+    if(!provider)
+    {
+      provider = await InspectorProfile.findOne({
+        userId: assignedProviderId,
+      });
+    }
+    console.log(provider)
     if (!provider) {
       throw new ApiError(404, "Service provider not found");
     }
@@ -102,6 +112,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     createdBy: req.user._id,
     status: "open",
     providerName,
+    type:type||"provider"
   };
 
   const jobRequest = new JobRequest(jobRequestData);
@@ -141,11 +152,20 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   let query = {};
 
   // Role-based filtering
+  let providerProfile;
   if (req.user.role === "client") {
     query.clientId = req.user._id;
   } else if (req.user.role === "provider") {
     // Find provider profile for this user
-    const providerProfile = await ServiceProviderProfile.findOne({
+     providerProfile = await ServiceProviderProfile.findOne({
+       userId: req.user._id,
+     });
+    if (providerProfile) {
+      query.assignedProviderId = req.user._id;
+    }
+  }
+  else{
+     providerProfile = await InspectorProfile.findOne({
       userId: req.user._id,
     });
     if (providerProfile) {
@@ -413,24 +433,23 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
       "on_hold",
       "closed",
     ].includes(status);
-  } else if (req.user.role === "provider") {
-    // Check if user is assigned to this job
-    const isAssignedProvider =
-      jobRequest.assignedProviderId?.toString() === req.user._id.toString();
-    if (isAssignedProvider) {
-      // Providers can move to: quoted, rejected, negotiating, in_progress, completed, delivered, disputed, on_hold, closed
-      isAuthorized = [
-        "quoted",
-        "rejected",
-        "negotiating",
-        "in_progress",
-        "completed",
-        "delivered",
-        "disputed",
-        "on_hold",
-        "closed",
-      ].includes(status);
-    }
+  } else if (
+    (req.user.role === "provider" || req.user.role === "inspector") &&
+    jobRequest.assignedProviderId?.toString() === req.user._id.toString()
+  ) {
+    // Providers and Inspectors can move to: quoted, rejected, negotiating, in_progress, completed, delivered, disputed, on_hold, closed
+    isAuthorized = [
+      "quoted",
+      "rejected",
+      "negotiating",
+      "in_progress",
+      "completed",
+      "delivered",
+      "disputed",
+      "on_hold",
+      "closed",
+      "accepted",
+    ].includes(status);
   }
 
   if (!isAuthorized) {
@@ -619,6 +638,8 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
     (req.user.role === "client" &&
       jobRequest.clientId.toString() === req.user._id.toString()) ||
     (req.user.role === "provider" &&
+      jobRequest.assignedProviderId?.toString() === req.user._id.toString()) ||
+    (req.user.role === "inspector" &&
       jobRequest.assignedProviderId?.toString() === req.user._id.toString());
 
   if (!isAuthorized) {
@@ -675,6 +696,8 @@ export const addAttachment = AsyncHandler(async (req, res) => {
     (req.user.role === "client" &&
       jobRequest.clientId.toString() === req.user._id.toString()) ||
     (req.user.role === "provider" &&
+      jobRequest.assignedProviderId?.toString() === req.user._id.toString()) ||
+    (req.user.role === "inspector" &&
       jobRequest.assignedProviderId?.toString() === req.user._id.toString());
 
   if (!isAuthorized) {

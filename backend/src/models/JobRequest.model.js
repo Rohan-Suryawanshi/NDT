@@ -564,6 +564,7 @@ const jobRequestSchema = new mongoose.Schema(
       min: 1,
       max: 5,
     },
+    type:{type:String,default:"provider"}
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt
@@ -611,19 +612,19 @@ jobRequestSchema.methods.addQuotation = function(quotationData) {
 // Method to update job status with validation
 jobRequestSchema.methods.updateStatus = function(newStatus, userId) {
   const validTransitions = {
-    'draft': ['open', 'cancelled'],
-    'open': ['quoted', 'rejected', 'cancelled', 'on_hold'],
-    'quoted': ['negotiating', 'accepted', 'rejected', 'cancelled'],
-    'negotiating': ['quoted', 'accepted', 'rejected', 'cancelled'],
-    'accepted': ['in_progress', 'cancelled', 'on_hold'],
-    'in_progress': ['completed', 'on_hold', 'cancelled'],
-    'completed': ['delivered', 'disputed'],
-    'delivered': ['closed', 'disputed'],
-    'on_hold': ['open', 'in_progress', 'cancelled'],
-    'disputed': ['in_progress', 'completed', 'cancelled'],
-    'cancelled': [], // Terminal state
-    'rejected': [], // Terminal state
-    'closed': [] // Terminal state
+    draft: ["open", "cancelled"],
+    open: ["quoted", "rejected", "cancelled", "on_hold", "accepted"],
+    quoted: ["negotiating", "accepted", "rejected", "cancelled"],
+    negotiating: ["quoted", "accepted", "rejected", "cancelled"],
+    accepted: ["in_progress", "cancelled", "on_hold"],
+    in_progress: ["completed", "on_hold", "cancelled"],
+    completed: ["delivered", "disputed"],
+    delivered: ["closed", "disputed"],
+    on_hold: ["open", "in_progress", "cancelled"],
+    disputed: ["in_progress", "completed", "cancelled"],
+    cancelled: [], // Terminal state
+    rejected: [], // Terminal state
+    closed: [], // Terminal state
   };
 
   if (validTransitions[this.status] && validTransitions[this.status].includes(newStatus)) {
