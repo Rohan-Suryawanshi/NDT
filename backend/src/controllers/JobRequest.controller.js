@@ -980,3 +980,172 @@ export const addNegotiationMessage = AsyncHandler(async (req, res) => {
       )
     );
 });
+
+// @desc    Generate PDF report for completed job
+// @route   GET /api/v1/job-requests/:id/report
+// @access  Private (Client only - must have paid)
+export const generateJobReport = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(400, "Invalid job request ID");
+  }
+
+  const jobRequest = await JobRequest.findById(id)
+    .populate("requiredServices", "name code description")
+    .populate("clientId", "fullName email")
+    .populate("assignedProviderId", "name email")
+    .populate("internalNotes.addedBy", "fullName");
+
+  if (!jobRequest) {
+    throw new ApiError(404, "Job request not found");
+  }
+
+  // Check authorization
+  if (
+    req.user.role !== "admin" &&
+    jobRequest.clientId._id.toString() !== req.user._id.toString()
+  ) {
+    throw new ApiError(403, "Not authorized to access this report");
+  }
+
+  // Check if job is completed and payment is made
+  if (jobRequest.status !== "closed") {
+    throw new ApiError(400, "Report only available for completed jobs");
+  }
+
+  if (jobRequest.paymentStatus !== "paid") {
+    throw new ApiError(402, "Payment required to access report");
+  }
+
+  // Generate PDF report (simplified version - you can enhance this)
+  const reportData = {
+    jobId: jobRequest._id,
+    title: jobRequest.title,
+    description: jobRequest.description,
+    client: jobRequest.clientId,
+    provider: jobRequest.assignedProviderId,
+    location: jobRequest.location,
+    region: jobRequest.region,
+    services: jobRequest.requiredServices,
+    status: jobRequest.status,
+    createdAt: jobRequest.createdAt,
+    completedAt: jobRequest.actualCompletionDate,
+    estimatedTotal: jobRequest.estimatedTotal,
+    finalAmount: jobRequest.finalQuotedAmount,
+    notes: jobRequest.internalNotes,
+    attachments: jobRequest.attachments,
+    rating: jobRequest.clientRating || null
+  };
+
+  // For demo purposes, return JSON. In production, generate actual PDF
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="job-report-${id}.json"`);
+  
+  res.status(200).json(
+    new ApiResponse(200, reportData, "Job report generated successfully")
+  );
+});
+
+// @desc    Add client rating for completed job
+// @route   POST /api/v1/job-requests/:id/rating
+// @access  Private (Client only)
+export const addClientRating = AsyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { rating, review } = req.body;
+
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(400, "Invalid job request ID");
+  }
+
+  if (!rating || rating < 1 || rating > 5) {
+    throw new ApiError(400, "Rating must be between 1 and 5");
+  }
+
+  const jobRequest = await JobRequest.findById(id);
+  if (!jobRequest) {
+    throw new ApiError(404, "Job request not found");
+  }
+
+  // Check authorization
+  if (
+    req.user.role !== "admin" &&
+    jobRequest.clientId.toString() !== req.user._id.toString()
+  ) {
+    throw new ApiError(403, "Not authorized to rate this job");
+  }
+
+  // Check if job is completed and payment is made
+  if (jobRequest.status !== "closed") {
+    throw new ApiError(400, "Can only rate completed jobs");
+  }
+
+  if (jobRequest.paymentStatus !== "paid") {
+    throw new ApiError(400, "Payment required to submit rating");
+  }
+
+  // Check if rating already exists
+  if (jobRequest.clientRating && jobRequest.clientRating.rating) {
+    throw new ApiError(400, "Rating already submitted for this job");
+  }
+
+  // Add rating
+  jobRequest.clientRating = {
+    rating: parseInt(rating),
+    review: review ? review.trim() : "",
+    submittedAt: new Date(),
+    submittedBy: req.user._id
+  };
+
+  await jobRequest.save();
+
+  const updatedJobRequest = await JobRequest.findById(id)
+    .populate("clientId", "fullName")
+    .populate("assignedProviderId", "name")
+    .select("clientRating title status");
+
+  res.status(200).json(
+    new ApiResponse(200, updatedJobRequest, "Rating submitted successfully")
+  );
+});
+
+// @desc    Get job statistics for client dashboard
+// @route   GET /api/v1/job-requests/client-stats
+// @access  Private (Client only)
+export const getClientJobStats = AsyncHandler(async (req, res) => {
+  const clientId = req.user._id;
+
+  const stats = await JobRequest.aggregate([
+    { $match: { clientId: clientId } },
+    {
+      $group: {
+        _id: null,
+        totalJobs: { $sum: 1 },
+        completedJobs: {
+          $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] }
+        },
+        inProgressJobs: {
+          $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] }
+        },
+        totalSpent: {
+          $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$paymentAmount", 0] }
+        },
+        averageRating: {
+          $avg: "$clientRating.rating"
+        }
+      }
+    }
+  ]);
+
+  const result = stats[0] || {
+    totalJobs: 0,
+    completedJobs: 0,
+    inProgressJobs: 0,
+    totalSpent: 0,
+    averageRating: 0
+  };
+
+  res.status(200).json(
+    new ApiResponse(200, result, "Client statistics retrieved successfully")
+  );
+});

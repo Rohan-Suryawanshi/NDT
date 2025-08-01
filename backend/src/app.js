@@ -28,6 +28,7 @@ import skillMatrixRoutes from "./routes/skillMatrix.routes.js";
 import offeredServices from "./routes/serviceOffered.routes.js";
 import geminiRoutes from "./routes/gemini.routes.js";
 import jobRequestRoutes from "./routes/jobRequest.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 
 //http://localhost:8000/api/v1/users/register
 app.use('/api/v1/users', userRoutes);
@@ -41,6 +42,7 @@ app.use("/api/v1/skill-matrix", skillMatrixRoutes);
 app.use("/api/v1/offered-services", offeredServices);
 app.use("/api/v1/gemini", geminiRoutes);
 app.use("/api/v1/job-requests", jobRequestRoutes);
+app.use("/api/v1/payments", paymentRoutes);
 
 //Error Handling middleware
 app.use((err, req, res, next) => {

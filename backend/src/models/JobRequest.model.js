@@ -558,12 +558,46 @@ const jobRequestSchema = new mongoose.Schema(
       type: Number,
       min: 1,
       max: 5,
-    },
-    providerRating: {
+    },    providerRating: {
       type: Number,
       min: 1,
       max: 5,
     },
+
+    // Payment Information
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending',
+    },
+    paymentAmount: {
+      type: Number,
+      min: 0,
+    },
+    paidAt: {
+      type: Date,
+    },
+    
+    // Client Rating and Review
+    clientRating: {
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+      review: {
+        type: String,
+        maxlength: 1000,
+      },
+      submittedAt: {
+        type: Date,
+      },
+      submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    },
+
     type:{type:String,default:"provider"}
   },
   {

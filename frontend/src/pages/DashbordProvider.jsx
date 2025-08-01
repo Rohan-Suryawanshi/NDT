@@ -32,6 +32,14 @@ export default function DashboardProvider() {
          route: "/provider-profile",
       },
       {
+         title: "Withdraw Money",
+         description:
+            "Update your company details, services offered, and availability.",
+         icon: <UserCircle className="w-8 h-8 text-purple-600" />,
+         route: "/provider/withdraw",
+      },
+      
+      {
          title: "Services Provided",
          description:
             "Manage your NDT Connect account Services.",

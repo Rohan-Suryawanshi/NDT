@@ -11,10 +11,12 @@ import {
   addInternalNote,
   addAttachment,
   getJobRequestStats,
-  getJobsByProvider,
-  getJobsByClient,
+  getJobsByProvider,  getJobsByClient,
   updateQuotationStatus,
   addNegotiationMessage,
+  generateJobReport,
+  addClientRating,
+  getClientJobStats,
 } from "../controllers/JobRequest.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -48,5 +50,10 @@ router.post("/:id/attachments", upload.single("attachment"), addAttachment);
 // Dashboard specific routes
 router.get("/provider/:providerId", getJobsByProvider);
 router.get("/client/:clientId", getJobsByClient);
+router.get("/client-stats", getClientJobStats);
+
+// Report and rating routes
+router.get("/:id/report", generateJobReport);
+router.post("/:id/rating", addClientRating);
 
 export default router;

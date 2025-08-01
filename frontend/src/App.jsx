@@ -22,6 +22,8 @@ import NotFound from "./pages/NotFound";
 import ClientServiceRequest from "./pages/ClientServiceRequest";
 import ClientProviderSelection from "./pages/ClientProviderSelection";
 import InspectorJobDashboard from "./pages/InspectorJobDashboard";
+import DownloadReportWrapper from "./pages/DownloadReportWrapper";
+import ServiceProviderWithdraw from "./pages/ServiceProviderWithdraw";
 
 export default function App() {
    return (
@@ -54,8 +56,11 @@ export default function App() {
             <Route path="/service-request" element={<JobRequestsDashboard/>} />
             <Route path="/client-requests" element={<ClientServiceRequest/>} />
 
-            <Route path="/client" element={<ClientProviderSelection/>} />
+            <Route path="/find-inspectors" element={<ClientProviderSelection/>} />
+            
             <Route path="/inspector/assigned-jobs" element={<InspectorJobDashboard/>} />
+            <Route path="/download-reports" element={<DownloadReportWrapper/>} />
+            <Route path="/provider/withdraw" element={<ServiceProviderWithdraw/>} />
             <Route path="*" element={<NotFound />} />
 
 
