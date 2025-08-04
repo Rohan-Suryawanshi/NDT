@@ -133,23 +133,41 @@ export default function ServiceProviderProfileManage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="mb-2">Upload Company Logo</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setCompanyLogo(e.target.files[0])}
-            />
+            <Button asChild className="w-full">
+              <label>
+                <Upload size={16} className="mr-2" />
+                Choose Logo
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCompanyLogo(e.target.files[0])}
+                  className="hidden"
+                />
+              </label>
+            </Button>
+            {companyLogo && (
+              <div className="mt-2 text-sm text-gray-600">{companyLogo.name}</div>
+            )}
           </div>
           <div>
             <Label className="mb-2">Upload Procedures (PDF)</Label>
-            <Input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setProceduresFile(e.target.files[0])}
-            />
+            <Button asChild className="w-full">
+              <label>
+                <Upload size={16} className="mr-2" />
+                Choose PDF
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setProceduresFile(e.target.files[0])}
+                  className="hidden"
+                />
+              </label>
+            </Button>
+            {proceduresFile && (
+              <div className="mt-2 text-sm text-gray-600">{proceduresFile.name}</div>
+            )}
           </div>
         </div>
-
-        {/* Submit Button */}
         <div className="flex justify-end gap-3 pt-4">
           <Button type="submit" className="gap-2">
             <Save size={16} /> Save Profile

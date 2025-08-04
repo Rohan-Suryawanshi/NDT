@@ -26,17 +26,11 @@ export default function DashboardInspector() {
          route: "/inspector/assigned-jobs",
       },
       {
-         title: "Upload Final Report",
-         description: "Upload completed reports after fieldwork.",
-         icon: <UploadCloud className="w-8 h-8 text-blue-500" />,
-         route: "/inspector/final-report-upload",
-      },
-      {
          title: "Payment & Downloads",
          description:
             "Clients must pay to download reports. Track payment status.",
          icon: <DollarSign className="w-8 h-8 text-emerald-600" />,
-         route: "/inspector/payment-downloads",
+         route: "/inspector/withdraw",
       },
       {
          title: "Feedback Received",

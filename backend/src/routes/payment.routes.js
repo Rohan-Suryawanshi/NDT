@@ -8,7 +8,9 @@ import {
   requestWithdrawal,
   getWithdrawHistory,
   getProviderEarnings,
-  updateWithdrawalStatus
+  updateWithdrawalStatus,
+  getInspectorBalance,
+  getInspectorEarnings
 } from '../controllers/Payment.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 
@@ -27,6 +29,10 @@ router.route('/request-withdrawal').post(requestWithdrawal);
 router.route('/withdraw-history').get(getWithdrawHistory);
 router.route('/provider-earnings').get(getProviderEarnings);
 router.route('/withdraw/:id/status').patch(updateWithdrawalStatus);
+
+// Inspector withdrawal routes
+router.route('/inspector-balance').get(getInspectorBalance);
+router.route('/inspector-earnings').get(getInspectorEarnings);
 
 // Webhook route (no auth required for Stripe webhooks)
 router.route('/webhook').post(handleStripeWebhook);

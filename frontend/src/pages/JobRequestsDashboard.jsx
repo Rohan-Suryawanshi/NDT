@@ -585,11 +585,8 @@ const JobRequestsDashboard = () => {
 
    if (loading) {
       return (
-         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-            <div className="text-center">
-               <Loader2 className="animate-spin h-16 w-16 text-[#004aad] mx-auto mb-4" />
-               <p className="text-gray-600">Loading job requests...</p>
-            </div>
+         <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1a5cb5]"></div>
          </div>
       );
    }
@@ -1665,14 +1662,14 @@ Export Details
 
          {/* Quotation Modal */}
          {showQuotationModal && selectedJob && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-blue-50 bg-opacity-50 flex items-center justify-center p-4 z-50">
                <div className="bg-white rounded-xl max-w-2xl w-full max-h-screen overflow-y-auto">
                   <div className="p-6">
                      <h3 className="text-xl font-bold mb-4">Add Quotation</h3>
                      <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                            <div>
-                              <Label htmlFor="amount">Amount *</Label>
+                              <Label htmlFor="amount" className="mb-2">Amount *</Label>
                               <Input
                                  id="amount"
                                  type="number"
@@ -1687,7 +1684,7 @@ Export Details
                               />
                            </div>
                            <div>
-                              <Label htmlFor="currency">Currency</Label>
+                              <Label htmlFor="currency" className="mb-2">Currency</Label>
                               <Select
                                  value={quotationForm.currency}
                                  onValueChange={(value) =>
@@ -1711,7 +1708,7 @@ Export Details
                         </div>
 
                         <div>
-                           <Label htmlFor="validUntil">Valid Until *</Label>
+                           <Label htmlFor="validUntil" className="mb-2">Valid Until *</Label>
                            <Input
                               id="validUntil"
                               type="date"
@@ -1779,7 +1776,7 @@ Export Details
 
          {/* Notes Modal */}
          {showNotesModal && selectedJob && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-blue-50 bg-opacity-50 flex items-center justify-center p-4 z-50">
                <div className="bg-white rounded-xl max-w-lg w-full">
                   <div className="p-6">
                      <h3 className="text-xl font-bold mb-4">Add Note</h3>
@@ -1830,7 +1827,7 @@ Export Details
                            />
                         </div>
 
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 ">
                            <input
                               type="checkbox"
                               id="isInternal"
@@ -1842,7 +1839,7 @@ Export Details
                                  }))
                               }
                            />
-                           <Label htmlFor="isInternal">
+                           <Label htmlFor="isInternal" className="mb-0">
                               Internal note (not visible to client)
                            </Label>
                         </div>
@@ -1868,13 +1865,13 @@ Export Details
 
          {/* Attachment Modal */}
          {showAttachmentModal && selectedJob && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="fixed inset-0 bg-blue-50 bg-opacity-50 flex items-center justify-center p-4 z-50">
                <div className="bg-white rounded-xl max-w-lg w-full">
                   <div className="p-6">
                      <h3 className="text-xl font-bold mb-4">Add Attachment</h3>
                      <div className="space-y-4">
                         <div>
-                           <Label htmlFor="files">Files *</Label>
+                           <Label htmlFor="files" className="mb-2">Files *</Label>
                            <Input
                               id="files"
                               type="file"

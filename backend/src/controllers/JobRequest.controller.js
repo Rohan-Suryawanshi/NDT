@@ -214,6 +214,7 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   const totalJobs = await JobRequest.countDocuments(query);
   const totalPages = Math.ceil(totalJobs / limitNumber);
 
+
   res.status(200).json(
     new ApiResponse(
       200,

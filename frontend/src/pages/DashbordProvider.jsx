@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 // Lucide Icons
-import { ClipboardList, Bot, UserCircle, Settings } from "lucide-react";
+import { ClipboardList, Bot, UserCircle, Settings, MessageCircle, DollarSign } from "lucide-react";
 
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
@@ -25,18 +25,30 @@ export default function DashboardProvider() {
          route: "/gemini",
       },
       {
+         title: "Manage Feedback",
+         description: "View and respond to client feedback.",
+         icon: <MessageCircle className="w-8 h-8 text-blue-600" />,
+         route: "/provider/feedback",
+      },
+      {
          title: "Manage Profile",
          description:
             "Update your company details, services offered, and availability.",
          icon: <UserCircle className="w-8 h-8 text-purple-600" />,
          route: "/provider-profile",
-      },
-      {
+      },      {
          title: "Withdraw Money",
          description:
-            "Update your company details, services offered, and availability.",
-         icon: <UserCircle className="w-8 h-8 text-purple-600" />,
+            "Manage your earnings and withdraw funds from completed jobs.",
+         icon: <DollarSign className="w-8 h-8 text-green-600" />,
          route: "/provider/withdraw",
+      },
+      {
+         title: "Client Feedback",
+         description:
+            "View feedback and ratings from your clients.",
+         icon: <MessageCircle className="w-8 h-8 text-blue-600" />,
+         route: "/provider/feedback",
       },
       
       {

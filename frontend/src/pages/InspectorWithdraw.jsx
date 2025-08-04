@@ -34,13 +34,16 @@ import {
   ArrowDownLeft,
   FileText,
   Receipt,
-  Loader2
+  Loader2,
+  ShieldCheck,
+  ClipboardCheck,
+  Activity
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import { BACKEND_URL } from '@/constant/Global';
 
-const ServiceProviderWithdraw = () => {
+const InspectorWithdraw = () => {
   const [balance, setBalance] = useState({
     totalEarnings: 0,
     availableBalance: 0,
@@ -49,7 +52,7 @@ const ServiceProviderWithdraw = () => {
   });
   const [withdrawHistory, setWithdrawHistory] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
-  const [completedJobs, setCompletedJobs] = useState([]);
+  const [completedInspections, setCompletedInspections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -74,10 +77,11 @@ const ServiceProviderWithdraw = () => {
     cancelled: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle, label: 'Cancelled' }
   };
 
-  // Job status configurations
-  const jobStatusConfig = {
-    closed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Completed' },
-    delivered: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle, label: 'Delivered' }
+  // Inspection status configurations
+  const inspectionStatusConfig = {
+    closed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Inspection Complete' },
+    delivered: { color: 'bg-blue-100 text-blue-800', icon: ClipboardCheck, label: 'Report Delivered' },
+    completed: { color: 'bg-green-100 text-green-800', icon: ShieldCheck, label: 'Inspection Done' }
   };
 
   // Withdrawal methods
@@ -88,7 +92,7 @@ const ServiceProviderWithdraw = () => {
     { value: 'wire_transfer', label: 'Wire Transfer', icon: Banknote }
   ];
 
-  // Fetch balance and earnings data
+  // Fetch balance and earnings data for inspector
   const fetchBalance = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
@@ -98,7 +102,7 @@ const ServiceProviderWithdraw = () => {
         return;
       }
 
-      const response = await axios.get(`${BACKEND_URL}/api/v1/payments/provider-balance`, {
+      const response = await axios.get(`${BACKEND_URL}/api/v1/payments/inspector-balance`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -109,7 +113,14 @@ const ServiceProviderWithdraw = () => {
         toast.error('Session expired. Please login again.');
         localStorage.removeItem('accessToken');
       } else {
-        toast.error('Failed to fetch balance');
+        // Fallback to provider balance endpoint if inspector-specific endpoint doesn't exist
+        try {
+          const response = await axios.get(`${BACKEND_URL}/api/v1/payments/provider-balance`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+          });
+          setBalance(response.data.data);        } catch {
+          toast.error('Failed to fetch balance');
+        }
       }
     }
   }, []);
@@ -130,30 +141,38 @@ const ServiceProviderWithdraw = () => {
     }
   }, []);
 
-  // Fetch payment history from completed jobs
+  // Fetch payment history from completed inspections
   const fetchPaymentHistory = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
       
-      const response = await axios.get(`${BACKEND_URL}/api/v1/payments/provider-earnings`, {
+      const response = await axios.get(`${BACKEND_URL}/api/v1/payments/inspector-earnings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       setPaymentHistory(response.data.data.payments || []);
     } catch (error) {
       console.error('Error fetching payment history:', error);
-      toast.error('Failed to fetch payment history');
+      // Fallback to provider earnings if inspector-specific endpoint doesn't exist
+      try {
+        const response = await axios.get(`${BACKEND_URL}/api/v1/payments/provider-earnings`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+        });
+        setPaymentHistory(response.data.data.payments || []);      } catch {
+        toast.error('Failed to fetch payment history');
+      }
     }
   }, []);
 
-  // Fetch completed jobs
-  const fetchCompletedJobs = useCallback(async () => {
+  // Fetch completed inspections
+  const fetchCompletedInspections = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
       
-      // Build query parameters
+      // Build query parameters for inspector-specific jobs
       const params = {
-        status: 'closed,delivered',
+        status: 'closed,delivered,completed',
+        role: 'inspector',
         ...filters
       };
 
@@ -162,10 +181,10 @@ const ServiceProviderWithdraw = () => {
         params
       });
 
-      setCompletedJobs(response.data.data.jobRequests || []);
+      setCompletedInspections(response.data.data.jobRequests || []);
     } catch (error) {
-      console.error('Error fetching completed jobs:', error);
-      toast.error('Failed to fetch completed jobs');
+      console.error('Error fetching completed inspections:', error);
+      toast.error('Failed to fetch completed inspections');
     }
   }, [filters]);
 
@@ -176,10 +195,10 @@ const ServiceProviderWithdraw = () => {
       fetchBalance(),
       fetchWithdrawHistory(),
       fetchPaymentHistory(),
-      fetchCompletedJobs()
+      fetchCompletedInspections()
     ]);
     setLoading(false);
-  }, [fetchBalance, fetchWithdrawHistory, fetchPaymentHistory, fetchCompletedJobs]);
+  }, [fetchBalance, fetchWithdrawHistory, fetchPaymentHistory, fetchCompletedInspections]);
 
   // Refresh all data
   const refreshData = async () => {
@@ -216,7 +235,8 @@ const ServiceProviderWithdraw = () => {
         {
           amount: parseFloat(withdrawAmount),
           method: withdrawMethod,
-          notes: withdrawNotes.trim()
+          notes: withdrawNotes.trim(),
+          role: 'inspector' // Add role identifier
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -254,10 +274,10 @@ const ServiceProviderWithdraw = () => {
     return matchesSearch;
   });
 
-  const filteredJobs = completedJobs.filter(job => {
+  const filteredInspections = completedInspections.filter(inspection => {
     const matchesSearch = !filters.search || 
-      job.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      job.clientName.toLowerCase().includes(filters.search.toLowerCase());
+      inspection.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      inspection.clientName?.toLowerCase().includes(filters.search.toLowerCase());
     
     return matchesSearch;
   });
@@ -295,8 +315,11 @@ const ServiceProviderWithdraw = () => {
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Earnings & Withdrawals</h1>
-            <p className="text-gray-600 mt-1">Manage your earnings, withdrawals, and payment history</p>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <ShieldCheck className="h-8 w-8 text-blue-600" />
+              Inspector Earnings & Withdrawals
+            </h1>
+            <p className="text-gray-600 mt-1">Manage your inspection earnings, withdrawals, and payment history</p>
           </div>
           <div className="flex gap-2">
             <Button
@@ -393,10 +416,10 @@ const ServiceProviderWithdraw = () => {
                     <DialogHeader>
                       <DialogTitle>Request Withdrawal</DialogTitle>
                       <DialogDescription>
-                        Withdraw funds from your available balance
+                        Withdraw funds from your available inspection earnings
                       </DialogDescription>
                     </DialogHeader>
-                    <WithdrawForm
+                    <InspectorWithdrawForm
                       amount={withdrawAmount}
                       setAmount={setWithdrawAmount}
                       method={withdrawMethod}
@@ -415,7 +438,7 @@ const ServiceProviderWithdraw = () => {
               
               {balance.availableBalance < 10 && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Minimum withdrawal amount is $10. Complete more jobs to increase your balance.
+                  Minimum withdrawal amount is $10. Complete more inspections to increase your balance.
                 </p>
               )}
             </CardContent>
@@ -426,6 +449,7 @@ const ServiceProviderWithdraw = () => {
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
               <TabsTrigger value="earnings">Earnings History</TabsTrigger>
+              {/* <TabsTrigger value="inspections">Completed Inspections</TabsTrigger> */}
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
             </TabsList>
 
@@ -483,7 +507,7 @@ const ServiceProviderWithdraw = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Earnings History</CardTitle>
-                  <CardDescription>Detailed payment history from completed jobs</CardDescription>
+                  <CardDescription>Detailed payment history from completed inspections</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <EarningsHistoryTable 
@@ -495,17 +519,17 @@ const ServiceProviderWithdraw = () => {
               </Card>
             </TabsContent>
 
-            {/* Completed Jobs Tab */}
-            <TabsContent value="jobs">
+            {/* Completed Inspections Tab */}
+            <TabsContent value="inspections">
               <Card>
                 <CardHeader>
-                  <CardTitle>Completed Jobs</CardTitle>
-                  <CardDescription>All your completed jobs and their payment status</CardDescription>
+                  <CardTitle>Completed Inspections</CardTitle>
+                  <CardDescription>All your completed inspections and their payment status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CompletedJobsTable 
-                    jobs={filteredJobs}
-                    jobStatusConfig={jobStatusConfig}
+                  <CompletedInspectionsTable 
+                    inspections={filteredInspections}
+                    inspectionStatusConfig={inspectionStatusConfig}
                     formatCurrency={formatCurrency}
                     formatDate={formatDate}
                   />
@@ -515,7 +539,7 @@ const ServiceProviderWithdraw = () => {
 
             {/* Analytics Tab */}
             <TabsContent value="analytics">
-              <EarningsAnalytics 
+              <InspectorEarningsAnalytics 
                 balance={balance}
                 withdrawHistory={withdrawHistory}
                 paymentHistory={paymentHistory}
@@ -529,8 +553,8 @@ const ServiceProviderWithdraw = () => {
   );
 };
 
-// Withdraw Form Component
-const WithdrawForm = ({ 
+// Inspector Withdraw Form Component
+const InspectorWithdrawForm = ({ 
   amount, setAmount, method, setMethod, notes, setNotes, 
   processing, availableBalance, onSubmit, onCancel, withdrawMethods 
 }) => {
@@ -543,10 +567,10 @@ const WithdrawForm = ({
 
   return (
     <div className="space-y-4">
-      <div className="bg-gray-50 p-4 rounded-lg">
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">Available Balance:</span>
-          <span className="text-lg font-bold text-green-600">
+          <span className="text-sm font-medium text-blue-900">Available Balance:</span>
+          <span className="text-lg font-bold text-blue-700">
             {formatCurrency(availableBalance)}
           </span>
         </div>
@@ -604,12 +628,12 @@ const WithdrawForm = ({
 
       <div className="bg-blue-50 p-4 rounded-lg">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+          <ShieldCheck className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-blue-900">Processing Information</p>
+            <p className="text-sm font-medium text-blue-900">Inspector Withdrawal Information</p>
             <p className="text-xs text-blue-700 mt-1">
-              Withdrawals typically take 3-5 business days to process. You'll receive an email
-              confirmation once your withdrawal has been initiated.
+              Inspector withdrawals typically take 3-5 business days to process. You'll receive an email
+              confirmation once your withdrawal has been initiated. All earnings are subject to applicable taxes.
             </p>
           </div>
         </div>
@@ -637,7 +661,7 @@ const WithdrawForm = ({
   );
 };
 
-// Withdrawal History Table Component
+// Withdrawal History Table Component (same as ServiceProvider)
 const WithdrawHistoryTable = ({ withdrawals, withdrawStatusConfig, formatCurrency, formatDate }) => {
   if (withdrawals.length === 0) {
     return (
@@ -697,14 +721,14 @@ const WithdrawHistoryTable = ({ withdrawals, withdrawStatusConfig, formatCurrenc
   );
 };
 
-// Earnings History Table Component
+// Earnings History Table Component (adapted for inspections)
 const EarningsHistoryTable = ({ payments, formatCurrency, formatDate }) => {
   if (payments.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <DollarSign className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+        <ShieldCheck className="h-12 w-12 mx-auto mb-2 text-gray-300" />
         <p>No earnings history found</p>
-        <p className="text-sm mt-1">Complete jobs to start earning</p>
+        <p className="text-sm mt-1">Complete inspections to start earning</p>
       </div>
     );
   }
@@ -717,11 +741,11 @@ const EarningsHistoryTable = ({ payments, formatCurrency, formatDate }) => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-full">
-                  <ArrowUpRight className="h-4 w-4 text-green-600" />
+                  <ShieldCheck className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
                   <p className="font-semibold">{payment.jobTitle}</p>
-                  <p className="text-sm text-gray-500">Job ID: {payment.jobId?.slice(-8)}</p>
+                  <p className="text-sm text-gray-500">Inspection ID: {payment.jobId?.slice(-8)}</p>
                 </div>
               </div>
               <div className="text-right">
@@ -747,51 +771,54 @@ const EarningsHistoryTable = ({ payments, formatCurrency, formatDate }) => {
   );
 };
 
-// Completed Jobs Table Component
-const CompletedJobsTable = ({ jobs, jobStatusConfig, formatCurrency, formatDate }) => {
-  if (jobs.length === 0) {
+// Completed Inspections Table Component
+const CompletedInspectionsTable = ({ inspections, inspectionStatusConfig, formatCurrency, formatDate }) => {
+  if (inspections.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <CheckCircle className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-        <p>No completed jobs found</p>
-        <p className="text-sm mt-1">Completed jobs will appear here</p>
+        <ClipboardCheck className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+        <p>No completed inspections found</p>
+        <p className="text-sm mt-1">Completed inspections will appear here</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {jobs.map((job, index) => {
-        const StatusIcon = jobStatusConfig[job.status]?.icon || CheckCircle;
-        const isPaid = job.paymentStatus === 'paid';
+      {inspections.map((inspection, index) => {
+        const StatusIcon = inspectionStatusConfig[inspection.status]?.icon || CheckCircle;
+        const isPaid = inspection.paymentStatus === 'paid';
         
         return (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="pt-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <h3 className="font-semibold">{job.title}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{job.description}</p>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                    {inspection.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{inspection.description}</p>
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      {job.clientName}
+                      {inspection.clientName}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {job.location}
+                      {inspection.location}
                     </span>
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {formatDate(job.actualCompletionDate)}
+                      {formatDate(inspection.actualCompletionDate)}
                     </span>
                   </div>
                 </div>
                 
                 <div className="flex flex-col items-end gap-2">
-                  <Badge className={jobStatusConfig[job.status]?.color}>
+                  <Badge className={inspectionStatusConfig[inspection.status]?.color}>
                     <StatusIcon className="h-3 w-3 mr-1" />
-                    {jobStatusConfig[job.status]?.label}
+                    {inspectionStatusConfig[inspection.status]?.label}
                   </Badge>
                   
                   {isPaid ? (
@@ -812,10 +839,10 @@ const CompletedJobsTable = ({ jobs, jobStatusConfig, formatCurrency, formatDate 
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 text-sm">
-                  <span>Job Amount: <strong>{formatCurrency(job.finalQuotedAmount || job.estimatedTotal)}</strong></span>
+                  <span>Inspection Fee: <strong>{formatCurrency(inspection.finalQuotedAmount || inspection.estimatedTotal)}</strong></span>
                   {isPaid && (
                     <span className="text-green-600">
-                      Earned: <strong>{formatCurrency(job.paymentAmount)}</strong>
+                      Earned: <strong>{formatCurrency(inspection.paymentAmount)}</strong>
                     </span>
                   )}
                 </div>
@@ -823,7 +850,7 @@ const CompletedJobsTable = ({ jobs, jobStatusConfig, formatCurrency, formatDate 
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline">
                     <Eye className="h-4 w-4 mr-1" />
-                    View Details
+                    View Report
                   </Button>
                 </div>
               </div>
@@ -835,11 +862,11 @@ const CompletedJobsTable = ({ jobs, jobStatusConfig, formatCurrency, formatDate 
   );
 };
 
-// Analytics Component
-const EarningsAnalytics = ({ balance, withdrawHistory, paymentHistory, formatCurrency }) => {
+// Inspector Analytics Component
+const InspectorEarningsAnalytics = ({ balance, withdrawHistory, paymentHistory, formatCurrency }) => {
   // Calculate analytics data
-  const totalJobs = paymentHistory.length;
-  const averageJobValue = totalJobs > 0 ? balance.totalEarnings / totalJobs : 0;
+  const totalInspections = paymentHistory.length;
+  const averageInspectionValue = totalInspections > 0 ? balance.totalEarnings / totalInspections : 0;
   const totalWithdrawals = withdrawHistory.length;
   const averageWithdrawal = totalWithdrawals > 0 ? balance.totalWithdrawn / totalWithdrawals : 0;
 
@@ -847,16 +874,19 @@ const EarningsAnalytics = ({ balance, withdrawHistory, paymentHistory, formatCur
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Earnings Overview</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Inspection Overview
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between">
-            <span>Total Jobs Completed:</span>
-            <span className="font-semibold">{totalJobs}</span>
+            <span>Total Inspections Completed:</span>
+            <span className="font-semibold">{totalInspections}</span>
           </div>
           <div className="flex justify-between">
-            <span>Average Job Value:</span>
-            <span className="font-semibold">{formatCurrency(averageJobValue)}</span>
+            <span>Average Inspection Value:</span>
+            <span className="font-semibold">{formatCurrency(averageInspectionValue)}</span>
           </div>
           <div className="flex justify-between">
             <span>Total Earnings:</span>
@@ -871,7 +901,10 @@ const EarningsAnalytics = ({ balance, withdrawHistory, paymentHistory, formatCur
 
       <Card>
         <CardHeader>
-          <CardTitle>Withdrawal Overview</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <PiggyBank className="h-5 w-5" />
+            Withdrawal Overview
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between">
@@ -896,4 +929,4 @@ const EarningsAnalytics = ({ balance, withdrawHistory, paymentHistory, formatCur
   );
 };
 
-export default ServiceProviderWithdraw;
+export default InspectorWithdraw;

@@ -23,6 +23,10 @@ import ClientProviderSelection from "./pages/ClientProviderSelection";
 import InspectorJobDashboard from "./pages/InspectorJobDashboard";
 import DownloadReportWrapper from "./pages/DownloadReportWrapper";
 import ServiceProviderWithdraw from "./pages/ServiceProviderWithdraw";
+import InspectorWithdraw from "./pages/InspectorWithdraw";
+import InspectorFeedback from "./pages/InspectorFeedback";
+import ServiceProviderFeedback from "./pages/ServiceProviderFeedback";
+import Loader from "./components/common/Loader";
 
 export default function App() {
    return (
@@ -60,6 +64,10 @@ export default function App() {
             <Route path="/inspector/assigned-jobs" element={<InspectorJobDashboard/>} />
             <Route path="/download-reports" element={<DownloadReportWrapper/>} />
             <Route path="/provider/withdraw" element={<ServiceProviderWithdraw/>} />
+            <Route path="/inspector/withdraw" element={<InspectorWithdraw/>} />
+            <Route path="/inspector/feedback" element={<InspectorFeedback/>} />
+            <Route path="/provider/feedback" element={<ServiceProviderFeedback/>} />
+            <Route path="/loader" element={<Loader />} />
             <Route path="*" element={<NotFound />} />            
 
 

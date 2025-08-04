@@ -568,6 +568,111 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
   );
 });
 
+// @desc    Get inspector balance
+// @route   GET /api/v1/payments/inspector-balance
+// @access  Private (Inspector only)
+export const getInspectorBalance = AsyncHandler(async (req, res) => {
+  const inspectorId = req.user._id;
+
+  // Find or create inspector balance (using same schema as ProviderBalance)
+  let balance = await ProviderBalance.findOne({ providerId: inspectorId });
+  
+  if (!balance) {
+    balance = new ProviderBalance({ providerId: inspectorId });
+    await balance.save();
+  }
+  // Calculate real-time balance from completed inspections
+  const completedInspections = await JobRequest.find({
+    assignedProviderId: inspectorId, // Using provider field for now, can be inspector-specific later
+    status: 'closed',
+    paymentStatus: 'paid'
+  });
+
+  const totalEarnings = completedInspections.reduce((sum, inspection) => {
+    const inspectorShare = inspection.paymentAmount * 0.80; // 80% after 20% platform fee for inspectors
+    return sum + inspectorShare;
+  }, 0);
+
+  // Calculate withdrawn amount
+  const completedWithdrawals = await Withdrawal.find({
+    providerId: inspectorId,
+    status: 'completed'
+  });
+
+  const totalWithdrawn = completedWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+
+  // Calculate pending withdrawals
+  const pendingWithdrawals = await Withdrawal.find({
+    providerId: inspectorId,
+    status: { $in: ['pending', 'processing'] }
+  });
+
+  const pendingBalance = pendingWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0);
+
+  const availableBalance = totalEarnings - totalWithdrawn - pendingBalance;
+
+  // Update balance record
+  balance.totalEarnings = totalEarnings;
+  balance.availableBalance = Math.max(0, availableBalance);
+  balance.pendingBalance = pendingBalance;
+  balance.totalWithdrawn = totalWithdrawn;
+  balance.lastUpdated = new Date();
+  await balance.save();
+
+  res.status(200).json(
+    new ApiResponse(200, balance, 'Inspector balance retrieved successfully')
+  );
+});
+
+// @desc    Get inspector earnings history
+// @route   GET /api/v1/payments/inspector-earnings
+// @access  Private (Inspector only)
+export const getInspectorEarnings = AsyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const inspectorId = req.user._id;
+
+  const pageNumber = parseInt(page);
+  const limitNumber = parseInt(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+  // Get completed and paid inspections
+  const inspections = await JobRequest.find({
+    assignedProviderId: inspectorId, // Using provider field for now, can be inspector-specific later
+    status: 'closed',
+    paymentStatus: 'paid'
+  })
+  .populate('clientId', 'fullName email')
+  .sort({ paidAt: -1 })
+  .skip(skip)
+  .limit(limitNumber);
+
+  // Transform to payment format
+  const payments = inspections.map(inspection => ({
+    jobId: inspection._id,
+    jobTitle: inspection.title,
+    clientName: inspection.clientId.fullName,
+    amount: inspection.paymentAmount * 0.80, // Inspector gets 80% after platform fee
+    paidAt: inspection.paidAt,
+    paymentMethod: 'stripe' // Default payment method
+  }));
+  const total = await JobRequest.countDocuments({
+    assignedProviderId: inspectorId,
+    status: 'closed',
+    paymentStatus: 'paid'
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      payments,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: Math.ceil(total / limitNumber),
+        totalItems: total,
+        itemsPerPage: limitNumber
+      }
+    }, 'Inspector earnings retrieved successfully')
+  );
+});
+
 // @desc    Update withdrawal status (Admin only)
 // @route   PATCH /api/v1/payments/withdraw/:id/status
 // @access  Private (Admin only)

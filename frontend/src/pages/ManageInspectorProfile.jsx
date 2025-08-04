@@ -22,6 +22,10 @@ import {
    AlertCircle,
    Eye,
    EyeOff,
+   Wallet,
+   TrendingUp,
+   ArrowDownLeft,
+   PiggyBank,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
@@ -406,7 +410,10 @@ const CertificationsTab = ({
                                  <div className="flex gap-2">
                                     <button
                                        onClick={() =>
-                                          window.open(cert.certificateImage, "_blank")
+                                          window.open(
+                                             cert.certificateImage,
+                                             "_blank"
+                                          )
                                        }
                                        className="p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors"
                                        title="View full size"
@@ -855,7 +862,6 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                <Clock className="w-5 h-5" />
                Availability
             </h3>
-
             <div className="space-y-6">
                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
@@ -920,8 +926,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         : "Your profile is hidden and you won't receive new job offers."}
                   </p>
                </div>
-            </div>
-
+            </div>{" "}
             <button
                onClick={() => updateField("rates")}
                className="w-full mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -933,10 +938,190 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
    );
 };
 
+const EarningsTab = ({ balance, fetchBalance }) => {
+   const [refreshing, setRefreshing] = useState(false);
+
+   // Format currency function
+   const formatCurrency = (amount) => {
+      if (!amount) return "$0.00";
+      return new Intl.NumberFormat("en-US", {
+         style: "currency",
+         currency: "USD",
+      }).format(amount);
+   };
+
+   const refreshEarnings = async () => {
+      setRefreshing(true);
+      await fetchBalance();
+      setRefreshing(false);
+      toast.success("Earnings data refreshed");
+   };
+
+   return (
+      <div className="space-y-6">
+         {/* Header with refresh button */}
+         <div className="flex items-center justify-between">
+            <div>
+               <h3 className="text-lg font-semibold">Earnings Summary</h3>
+               <p className="text-gray-600">
+                  Overview of your inspection earnings and financial status
+               </p>
+            </div>
+            <button
+               onClick={refreshEarnings}
+               disabled={refreshing}
+               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+               <TrendingUp
+                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+               />
+               Refresh
+            </button>
+         </div>
+
+         {/* Earnings Cards Grid */}
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Available Balance Card */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-green-100 rounded-lg">
+                        <Wallet className="w-5 h-5 text-green-600" />
+                     </div>
+                     <div>
+                        <h4 className="font-semibold text-gray-900">
+                           Available Balance
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                           Ready for withdrawal
+                        </p>
+                     </div>
+                  </div>
+               </div>
+               <div className="text-3xl font-bold text-green-600 mb-2">
+                  {formatCurrency(balance.availableBalance)}
+               </div>
+               <div className="text-sm text-gray-500">
+                  {balance.availableBalance >= 10
+                     ? "Ready to withdraw"
+                     : "Minimum $10 required for withdrawal"}
+               </div>
+            </div>
+
+            {/* Total Earnings Card */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-blue-100 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                     </div>
+                     <div>
+                        <h4 className="font-semibold text-gray-900">
+                           Total Earnings
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                           All-time inspection earnings
+                        </p>
+                     </div>
+                  </div>
+               </div>
+               <div className="text-3xl font-bold text-blue-600 mb-2">
+                  {formatCurrency(balance.totalEarnings)}
+               </div>
+               <div className="text-sm text-gray-500">
+                  Lifetime earnings from inspections
+               </div>
+            </div>
+
+            {/* Pending Balance Card */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-yellow-100 rounded-lg">
+                        <Clock className="w-5 h-5 text-yellow-600" />
+                     </div>
+                     <div>
+                        <h4 className="font-semibold text-gray-900">
+                           Pending Balance
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                           Processing payments
+                        </p>
+                     </div>
+                  </div>
+               </div>
+               <div className="text-3xl font-bold text-yellow-600 mb-2">
+                  {formatCurrency(balance.pendingBalance)}
+               </div>
+               <div className="text-sm text-gray-500">
+                  Will be available soon
+               </div>
+            </div>
+
+            {/* Total Withdrawn Card */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                     <div className="p-2 bg-purple-100 rounded-lg">
+                        <ArrowDownLeft className="w-5 h-5 text-purple-600" />
+                     </div>
+                     <div>
+                        <h4 className="font-semibold text-gray-900">
+                           Total Withdrawn
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                           Successfully withdrawn
+                        </p>
+                     </div>
+                  </div>
+               </div>
+               <div className="text-3xl font-bold text-purple-600 mb-2">
+                  {formatCurrency(balance.totalWithdrawn)}
+               </div>
+               <div className="text-sm text-gray-500">
+                  Total amount withdrawn to date
+               </div>
+            </div>
+         </div>
+
+         {/* Earnings Info */}
+         <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
+            <h4 className="font-semibold text-blue-900 mb-3">
+               💡 About Your Earnings
+            </h4>
+            <div className="space-y-2 text-sm text-blue-800">
+               <p>
+                  • <strong>Available Balance:</strong> Funds ready for
+                  immediate withdrawal
+               </p>
+               <p>
+                  • <strong>Pending Balance:</strong> Payments being processed
+                  (typically 2-3 business days)
+               </p>
+               <p>
+                  • <strong>Total Earnings:</strong> Your lifetime earnings from
+                  all completed inspections
+               </p>
+               <p>
+                  • <strong>Minimum Withdrawal:</strong> $10 minimum required
+                  for withdrawal requests
+               </p>
+            </div>
+         </div>
+      </div>
+   );
+};
+
 const ManageInspectorProfile = () => {
    const { user } = useAuth();
    // State management
    const [profile, setProfile] = useState(null);
+   const [balance, setBalance] = useState({
+      totalEarnings: 0,
+      availableBalance: 0,
+      pendingBalance: 0,
+      totalWithdrawn: 0,
+   });
    const [loading, setLoading] = useState(true);
    const [isEditing, setIsEditing] = useState(false);
    const [activeTab, setActiveTab] = useState("profile");
@@ -946,12 +1131,39 @@ const ManageInspectorProfile = () => {
       level: "",
       expiryDate: "",
       image: null,
-   });
-
-   // Debug profile changes
+   }); // Debug profile changes
    useEffect(() => {
       console.log("Profile state changed:", profile);
-   }, [profile]); // Fetch inspector profile
+   }, [profile]);
+
+   // Fetch balance and earnings data
+   const fetchBalance = useCallback(async () => {
+      try {
+         const token = localStorage.getItem("accessToken");
+
+         if (!token) {
+            return; // Don't show error, just return
+         }
+
+         const response = await api.get("/api/v1/payments/inspector-balance");
+         setBalance(response.data.data);
+      } catch (error) {
+         console.error("Error fetching balance:", error);
+         // Try fallback to provider balance endpoint
+         try {
+            const response = await api.get("/api/v1/payments/provider-balance");
+            setBalance(response.data.data);
+         } catch (fallbackError) {
+            console.error(
+               "Error fetching balance from fallback:",
+               fallbackError
+            );
+            // Keep default balance values, don't show error to user
+         }
+      }
+   }, []);
+
+   // Fetch inspector profile
    const fetchProfile = useCallback(async () => {
       try {
          setLoading(true);
@@ -999,19 +1211,19 @@ const ManageInspectorProfile = () => {
       } finally {
          setLoading(false);
       }
-   }, [user?.name]); // Only depend on user name, not the entire user object  // Load profile on component mount
+   }, [user?.name]); // Only depend on user name, not the entire user object   // Load profile on component mount
    useEffect(() => {
       console.log("ManageInspectorProfile useEffect triggered");
       console.log("User:", user);
       console.log("User exists:", !!user);
 
       if (user) {
-         console.log("User found, calling fetchProfile");
-         fetchProfile();
+         console.log("User found, calling fetchProfile and fetchBalance");
+         Promise.all([fetchProfile(), fetchBalance()]);
       } else {
-         console.log("No user found, skipping fetchProfile");
+         console.log("No user found, skipping data fetch");
       }
-   }, [user, fetchProfile]); // Save profile changes
+   }, [user, fetchProfile, fetchBalance]); // Save profile changes
    const handleSave = async () => {
       try {
          setLoading(true);
@@ -1159,73 +1371,150 @@ const ManageInspectorProfile = () => {
    const ProfileHeader = () => {
       if (!profile) return null;
 
+      // Format currency function
+      const formatCurrency = (amount) => {
+         if (!amount) return "$0.00";
+         return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+         }).format(amount);
+      };
+
       return (
-         <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white mb-8">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-               <div className="flex items-center gap-6">
-                  <div className="relative">
-                     <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold backdrop-blur-sm">
-                           <img src={profile.userId?.avatar} alt={profile.fullName} />
-                     </div>
-                     {profile.verified && (
-                        <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
-                           <CheckCircle className="w-4 h-4" />
+         <>
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-2xl p-8 text-white mb-8">
+               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="flex items-center gap-6">
+                     <div className="relative">
+                        <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold backdrop-blur-sm">
+                           <img
+                              src={profile.userId?.avatar}
+                              alt={profile.fullName}
+                           />
                         </div>
-                     )}
-                  </div>
-                  <div>
-                     <h1 className="text-3xl font-bold mb-2">
-                        {profile.fullName}
-                     </h1>
-                     <div className="flex items-center gap-4 text-blue-100">
-                        <span className="flex items-center gap-2">
-                           <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                           {profile.rating}
-                        </span>
-                        <span className="flex items-center gap-2">
-                           <Building2 className="w-4 h-4" />
-                           {profile.associationType}
-                        </span>
-                        <span
-                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              profile.availability
-                                 ? "bg-green-500/20 text-green-100 border border-green-400/30"
-                                 : "bg-red-500/20 text-red-100 border border-red-400/30"
-                           }`}
-                        >
-                           {profile.availability ? "Available" : "Unavailable"}
-                        </span>
+                        {profile.verified && (
+                           <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
+                              <CheckCircle className="w-4 h-4" />
+                           </div>
+                        )}
+                     </div>
+                     <div>
+                        <h1 className="text-3xl font-bold mb-2">
+                           {profile.fullName}
+                        </h1>
+                        <div className="flex items-center gap-4 text-blue-100">
+                           <span className="flex items-center gap-2">
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              {profile.rating}
+                           </span>
+                           <span className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4" />
+                              {profile.associationType}
+                           </span>
+                           <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                 profile.availability
+                                    ? "bg-green-500/20 text-green-100 border border-green-400/30"
+                                    : "bg-red-500/20 text-red-100 border border-red-400/30"
+                              }`}
+                           >
+                              {profile.availability
+                                 ? "Available"
+                                 : "Unavailable"}
+                           </span>
+                        </div>
                      </div>
                   </div>
-               </div>
-               <div className="flex items-center gap-4">
-                  <div className="text-right">
-                     <div className="text-2xl font-bold">
-                        ${profile.totalEarnings.toLocaleString()}
+                  <div className="flex items-center gap-4">
+                     <div className="text-right">
+                        <div className="text-2xl font-bold">
+                           {formatCurrency(balance.totalEarnings)}
+                        </div>
+                        <div className="text-blue-200 text-sm">
+                           Total Earnings
+                        </div>
                      </div>
-                     <div className="text-blue-200 text-sm">Total Earnings</div>
-                  </div>
-                  <div
-                     className={`px-4 py-2 rounded-lg font-medium ${
-                        profile.subscriptionPlan === "Pro"
-                           ? "bg-yellow-500/20 text-yellow-100 border border-yellow-400/30"
-                           : "bg-gray-500/20 text-gray-100 border border-gray-400/30"
-                     }`}
-                  >
-                     {profile.subscriptionPlan}
+                     <div
+                        className={`px-4 py-2 rounded-lg font-medium ${
+                           profile.subscriptionPlan === "Pro"
+                              ? "bg-yellow-500/20 text-yellow-100 border border-yellow-400/30"
+                              : "bg-gray-500/20 text-gray-100 border border-gray-400/30"
+                        }`}
+                     >
+                        {profile.subscriptionPlan}
+                     </div>
                   </div>
                </div>
             </div>
-         </div>
+
+            {/* Earnings Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+               <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-green-100 text-sm font-medium">
+                           Available Balance
+                        </p>
+                        <div className="text-2xl font-bold">
+                           {formatCurrency(balance.availableBalance)}
+                        </div>
+                     </div>
+                     <Wallet className="h-8 w-8 text-green-100" />
+                  </div>
+               </div>
+
+               <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-blue-100 text-sm font-medium">
+                           Total Earnings
+                        </p>
+                        <div className="text-2xl font-bold">
+                           {formatCurrency(balance.totalEarnings)}
+                        </div>
+                     </div>
+                     <TrendingUp className="h-8 w-8 text-blue-100" />
+                  </div>
+               </div>
+
+               <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-yellow-100 text-sm font-medium">
+                           Pending Balance
+                        </p>
+                        <div className="text-2xl font-bold">
+                           {formatCurrency(balance.pendingBalance)}
+                        </div>
+                     </div>
+                     <Clock className="h-8 w-8 text-yellow-100" />
+                  </div>
+               </div>
+
+               <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-purple-100 text-sm font-medium">
+                           Total Withdrawn
+                        </p>
+                        <div className="text-2xl font-bold">
+                           {formatCurrency(balance.totalWithdrawn)}
+                        </div>
+                     </div>
+                     <ArrowDownLeft className="h-8 w-8 text-purple-100" />
+                  </div>
+               </div>
+            </div>
+         </>
       );
    };
-
    const TabNavigation = () => (
       <div className="flex flex-wrap gap-2 mb-8 p-1 bg-gray-100 rounded-xl">
          {[
             { id: "profile", label: "Profile Info", icon: User },
             { id: "certifications", label: "Certifications", icon: Award },
             { id: "rates", label: "Rates & Availability", icon: DollarSign },
+            { id: "earnings", label: "Earnings Overview", icon: PiggyBank },
          ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1289,11 +1578,8 @@ const ManageInspectorProfile = () => {
    return (
       <div className="min-h-screen bg-gray-50">
          {loading && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-               <div className="bg-white rounded-lg p-6 flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  <span>Loading...</span>
-               </div>
+            <div className="flex items-center justify-center h-64">
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
          )}
 
@@ -1363,12 +1649,18 @@ const ManageInspectorProfile = () => {
                         getExpiryStatus={getExpiryStatus}
                         api={api}
                      />
-                  )}
+                  )}{" "}
                   {activeTab === "rates" && (
                      <RatesTab
                         profile={profile}
                         setProfile={setProfile}
                         updateField={updateField}
+                     />
+                  )}
+                  {activeTab === "earnings" && (
+                     <EarningsTab
+                        balance={balance}
+                        fetchBalance={fetchBalance}
                      />
                   )}
                   {activeTab === "preferences" && (
