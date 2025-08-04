@@ -4,7 +4,6 @@ import { marked } from "marked";
 
 const API_KEYS = [
   "AIzaSyA1iZRWtgcH1f5hGAsvTGytHbGvyHtrTWM",
-  "AIzaSyBXXXXXXXXXXXXXXX",
 ];
 
 let currentKeyIndex = 0;

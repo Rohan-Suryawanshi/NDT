@@ -9,7 +9,7 @@ function EarthModel() {
 
   useFrame(() => {
     if (earthRef.current) {
-      earthRef.current.rotation.y += 0.01; // Smooth slow rotation
+      earthRef.current.rotation.y += 0.05; // Smooth slow rotation
     }
   });
 
@@ -19,7 +19,7 @@ function EarthModel() {
 export default function InteractiveEarth() {
   return (
     <div style={{ width: '100%', height: '80vh' }} className="rounded-2xl bg-black">
-      <Canvas camera={{ position: [0, 0, 3], fov: 45 }} className="rounded-2xl">
+      <Canvas camera={{ position: [0, 0, 2], fov: 45 }} className="rounded-2xl">
         {/* Add background stars for better effect */}
         <Stars radius={100} depth={25} count={5000} factor={4} fade speed={1} />
         <ambientLight intensity={1} />
