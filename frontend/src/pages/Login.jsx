@@ -56,7 +56,7 @@ export default function Login() {
             } else if (data.data.user.role === "inspector") {
                navigate("/dashboard-inspector");
             } else if (data.data.user.role === "admin") {
-               navigate("/dashboard-admin");
+               navigate("/admin/dashboard");
             } else {
                navigate("/dashboard-client");
             }
