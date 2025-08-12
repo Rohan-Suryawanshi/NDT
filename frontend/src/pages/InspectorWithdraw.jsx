@@ -54,10 +54,23 @@ const InspectorWithdraw = () => {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [completedInspections, setCompletedInspections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawMethod, setWithdrawMethod] = useState('bank_transfer');
   const [withdrawNotes, setWithdrawNotes] = useState('');
+  const [bankDetails, setBankDetails] = useState({
+    accountNumber: '',
+    routingNumber: '',
+    bankName: '',
+    accountHolderName: '',
+    swiftCode: ''
+  });
+  const [paypalDetails, setPaypalDetails] = useState({
+    email: ''
+  });
+  const [cryptoDetails, setCryptoDetails] = useState({
+    walletAddress: '',
+    currency: 'BTC'
+  });
   const [processing, setProcessing] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
@@ -67,13 +80,12 @@ const InspectorWithdraw = () => {
     type: 'all'
   });
   const [refreshing, setRefreshing] = useState(false);
-
   // Withdraw status configurations
   const withdrawStatusConfig = {
     pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pending' },
     processing: { color: 'bg-blue-100 text-blue-800', icon: RefreshCw, label: 'Processing' },
     completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Completed' },
-    failed: { color: 'bg-red-100 text-red-800', icon: AlertTriangle, label: 'Failed' },
+    rejected: { color: 'bg-red-100 text-red-800', icon: AlertTriangle, label: 'Rejected' },
     cancelled: { color: 'bg-gray-100 text-gray-800', icon: AlertTriangle, label: 'Cancelled' }
   };
 
@@ -83,13 +95,12 @@ const InspectorWithdraw = () => {
     delivered: { color: 'bg-blue-100 text-blue-800', icon: ClipboardCheck, label: 'Report Delivered' },
     completed: { color: 'bg-green-100 text-green-800', icon: ShieldCheck, label: 'Inspection Done' }
   };
-
   // Withdrawal methods
   const withdrawMethods = [
     { value: 'bank_transfer', label: 'Bank Transfer', icon: Building2 },
     { value: 'paypal', label: 'PayPal', icon: CreditCard },
     { value: 'stripe', label: 'Stripe Transfer', icon: CreditCard },
-    { value: 'wire_transfer', label: 'Wire Transfer', icon: Banknote }
+    { value: 'crypto', label: 'Cryptocurrency', icon: Banknote }
   ];
 
   // Fetch balance and earnings data for inspector
@@ -207,7 +218,6 @@ const InspectorWithdraw = () => {
     setRefreshing(false);
     toast.success('Data refreshed successfully');
   };
-
   // Submit withdrawal request
   const submitWithdrawRequest = async () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
@@ -225,19 +235,47 @@ const InspectorWithdraw = () => {
       return;
     }
 
+    // Validate payment method details
+    if (withdrawMethod === 'bank_transfer') {
+      if (!bankDetails.accountNumber || !bankDetails.routingNumber || !bankDetails.bankName || !bankDetails.accountHolderName) {
+        toast.error('Please fill in all required bank details');
+        return;
+      }
+    } else if (withdrawMethod === 'paypal') {
+      if (!paypalDetails.email) {
+        toast.error('Please enter your PayPal email address');
+        return;
+      }
+    } else if (withdrawMethod === 'crypto') {
+      if (!cryptoDetails.walletAddress || !cryptoDetails.currency) {
+        toast.error('Please enter your crypto wallet details');
+        return;
+      }
+    }
+
     setProcessing(true);
 
     try {
       const token = localStorage.getItem('accessToken');
       
+      const requestData = {
+        amount: parseFloat(withdrawAmount),
+        withdrawalMethod: withdrawMethod,
+        metadata: { notes: withdrawNotes.trim(), role: 'inspector' }
+      };
+
+      // Add payment method specific details
+      if (withdrawMethod === 'bank_transfer') {
+        requestData.bankDetails = bankDetails;
+      } else if (withdrawMethod === 'paypal') {
+        requestData.paypalDetails = paypalDetails;
+      } else if (withdrawMethod === 'crypto') {
+        requestData.cryptoDetails = cryptoDetails;
+      }
+      
       await axios.post(
         `${BACKEND_URL}/api/v1/payments/request-withdrawal`,
-        {
-          amount: parseFloat(withdrawAmount),
-          method: withdrawMethod,
-          notes: withdrawNotes.trim(),
-          role: 'inspector' // Add role identifier
-        },
+        requestData,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -247,6 +285,15 @@ const InspectorWithdraw = () => {
       setWithdrawDialogOpen(false);
       setWithdrawAmount('');
       setWithdrawNotes('');
+      setBankDetails({
+        accountNumber: '',
+        routingNumber: '',
+        bankName: '',
+        accountHolderName: '',
+        swiftCode: ''
+      });
+      setPaypalDetails({ email: '' });
+      setCryptoDetails({ walletAddress: '', currency: 'BTC' });
       fetchAllData(); // Refresh data
     } catch (error) {
       console.error('Error submitting withdrawal:', error);
@@ -255,13 +302,13 @@ const InspectorWithdraw = () => {
       setProcessing(false);
     }
   };
-
   // Filter functions
   const filteredWithdrawals = withdrawHistory.filter(withdrawal => {
     const matchesStatus = filters.status === 'all' || withdrawal.status === filters.status;
     const matchesSearch = !filters.search || 
       withdrawal.amount.toString().includes(filters.search) ||
-      withdrawal.method.toLowerCase().includes(filters.search.toLowerCase());
+      (withdrawal.withdrawalMethod || withdrawal.method)?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      withdrawal.transactionId?.toLowerCase().includes(filters.search.toLowerCase());
     
     return matchesStatus && matchesSearch;
   });
@@ -402,7 +449,23 @@ const InspectorWithdraw = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+                <Dialog open={withdrawDialogOpen} onOpenChange={(open) => {
+                  setWithdrawDialogOpen(open);
+                  if (!open) {
+                    // Reset form when dialog closes
+                    setWithdrawAmount('');
+                    setWithdrawNotes('');
+                    setBankDetails({
+                      accountNumber: '',
+                      routingNumber: '',
+                      bankName: '',
+                      accountHolderName: '',
+                      swiftCode: ''
+                    });
+                    setPaypalDetails({ email: '' });
+                    setCryptoDetails({ walletAddress: '', currency: 'BTC' });
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button 
                       className="flex items-center gap-2"
@@ -418,14 +481,19 @@ const InspectorWithdraw = () => {
                       <DialogDescription>
                         Withdraw funds from your available inspection earnings
                       </DialogDescription>
-                    </DialogHeader>
-                    <InspectorWithdrawForm
+                    </DialogHeader>                    <InspectorWithdrawForm
                       amount={withdrawAmount}
                       setAmount={setWithdrawAmount}
                       method={withdrawMethod}
                       setMethod={setWithdrawMethod}
                       notes={withdrawNotes}
                       setNotes={setWithdrawNotes}
+                      bankDetails={bankDetails}
+                      setBankDetails={setBankDetails}
+                      paypalDetails={paypalDetails}
+                      setPaypalDetails={setPaypalDetails}
+                      cryptoDetails={cryptoDetails}
+                      setCryptoDetails={setCryptoDetails}
                       processing={processing}
                       availableBalance={balance.availableBalance}
                       onSubmit={submitWithdrawRequest}
@@ -478,13 +546,12 @@ const InspectorWithdraw = () => {
                       >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
+                        </SelectTrigger>                        <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="processing">Processing</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="failed">Failed</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
@@ -556,7 +623,9 @@ const InspectorWithdraw = () => {
 // Inspector Withdraw Form Component
 const InspectorWithdrawForm = ({ 
   amount, setAmount, method, setMethod, notes, setNotes, 
-  processing, availableBalance, onSubmit, onCancel, withdrawMethods 
+  bankDetails, setBankDetails, paypalDetails, setPaypalDetails, 
+  cryptoDetails, setCryptoDetails, processing, availableBalance, 
+  onSubmit, onCancel, withdrawMethods 
 }) => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -564,6 +633,13 @@ const InspectorWithdrawForm = ({
       currency: 'USD'
     }).format(amount);
   };
+
+  const cryptoCurrencies = [
+    { value: 'BTC', label: 'Bitcoin (BTC)' },
+    { value: 'ETH', label: 'Ethereum (ETH)' },
+    { value: 'USDT', label: 'Tether (USDT)' },
+    { value: 'USDC', label: 'USD Coin (USDC)' }
+  ];
 
   return (
     <div className="space-y-4">
@@ -615,6 +691,117 @@ const InspectorWithdrawForm = ({
         </Select>
       </div>
 
+      {/* Bank Transfer Details */}
+      {method === 'bank_transfer' && (
+        <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900">Bank Account Details</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="accountNumber">Account Number *</Label>
+              <Input
+                id="accountNumber"
+                value={bankDetails.accountNumber}
+                onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                placeholder="Enter account number"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="routingNumber">Routing Number *</Label>
+              <Input
+                id="routingNumber"
+                value={bankDetails.routingNumber}
+                onChange={(e) => setBankDetails(prev => ({ ...prev, routingNumber: e.target.value }))}
+                placeholder="Enter routing number"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="bankName">Bank Name *</Label>
+            <Input
+              id="bankName"
+              value={bankDetails.bankName}
+              onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
+              placeholder="Enter bank name"
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="accountHolderName">Account Holder Name *</Label>
+            <Input
+              id="accountHolderName"
+              value={bankDetails.accountHolderName}
+              onChange={(e) => setBankDetails(prev => ({ ...prev, accountHolderName: e.target.value }))}
+              placeholder="Enter account holder name"
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="swiftCode">SWIFT Code (Optional)</Label>
+            <Input
+              id="swiftCode"
+              value={bankDetails.swiftCode}
+              onChange={(e) => setBankDetails(prev => ({ ...prev, swiftCode: e.target.value }))}
+              placeholder="Enter SWIFT code (for international transfers)"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* PayPal Details */}
+      {method === 'paypal' && (
+        <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900">PayPal Details</h4>
+          <div>
+            <Label htmlFor="paypalEmail">PayPal Email Address *</Label>
+            <Input
+              id="paypalEmail"
+              type="email"
+              value={paypalDetails.email}
+              onChange={(e) => setPaypalDetails(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="Enter your PayPal email address"
+              required
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Crypto Details */}
+      {method === 'crypto' && (
+        <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-900">Cryptocurrency Details</h4>
+          <div>
+            <Label htmlFor="cryptoCurrency">Currency *</Label>
+            <Select 
+              value={cryptoDetails.currency} 
+              onValueChange={(value) => setCryptoDetails(prev => ({ ...prev, currency: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select cryptocurrency" />
+              </SelectTrigger>
+              <SelectContent>
+                {cryptoCurrencies.map(crypto => (
+                  <SelectItem key={crypto.value} value={crypto.value}>
+                    {crypto.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="walletAddress">Wallet Address *</Label>
+            <Input
+              id="walletAddress"
+              value={cryptoDetails.walletAddress}
+              onChange={(e) => setCryptoDetails(prev => ({ ...prev, walletAddress: e.target.value }))}
+              placeholder="Enter your wallet address"
+              required
+            />
+          </div>
+        </div>
+      )}
+
       <div>
         <Label htmlFor="notes">Notes (Optional)</Label>
         <Textarea
@@ -624,19 +811,6 @@ const InspectorWithdrawForm = ({
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
         />
-      </div>
-
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <div className="flex items-start gap-2">
-          <ShieldCheck className="h-5 w-5 text-blue-600 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-blue-900">Inspector Withdrawal Information</p>
-            <p className="text-xs text-blue-700 mt-1">
-              Inspector withdrawals typically take 3-5 business days to process. You'll receive an email
-              confirmation once your withdrawal has been initiated. All earnings are subject to applicable taxes.
-            </p>
-          </div>
-        </div>
       </div>
 
       <div className="flex gap-2">
@@ -687,13 +861,27 @@ const WithdrawHistoryTable = ({ withdrawals, withdrawStatusConfig, formatCurrenc
                   </div>
                   <div>
                     <p className="font-semibold">{formatCurrency(withdrawal.amount)}</p>
-                    <p className="text-sm text-gray-500 capitalize">{withdrawal.method.replace('_', ' ')}</p>
+                    <p className="text-sm text-gray-500 capitalize">
+                      {withdrawal.withdrawalMethod?.replace('_', ' ') || withdrawal.method?.replace('_', ' ')}
+                    </p>
+                    {withdrawal.processingFee > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Net Amount: {formatCurrency(withdrawal.netAmount || (withdrawal.amount - withdrawal.processingFee))}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Badge className={withdrawStatusConfig[withdrawal.status]?.color}>
-                  <StatusIcon className="h-3 w-3 mr-1" />
-                  {withdrawStatusConfig[withdrawal.status]?.label}
-                </Badge>
+                <div className="text-right">
+                  <Badge className={withdrawStatusConfig[withdrawal.status]?.color}>
+                    <StatusIcon className="h-3 w-3 mr-1" />
+                    {withdrawStatusConfig[withdrawal.status]?.label}
+                  </Badge>
+                  {withdrawal.transactionId && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      ID: {withdrawal.transactionId.slice(-8)}
+                    </p>
+                  )}
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -702,15 +890,66 @@ const WithdrawHistoryTable = ({ withdrawals, withdrawStatusConfig, formatCurrenc
                   <p>{formatDate(withdrawal.requestedAt)}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Status Updated:</span>
-                  <p>{formatDate(withdrawal.updatedAt)}</p>
+                  <span className="text-gray-500">
+                    {withdrawal.status === 'completed' ? 'Completed:' :
+                     withdrawal.status === 'rejected' ? 'Rejected:' :
+                     withdrawal.status === 'processing' ? 'Processing Since:' : 'Status Updated:'}
+                  </span>
+                  <p>{formatDate(
+                    withdrawal.completedAt || 
+                    withdrawal.rejectedAt || 
+                    withdrawal.processedAt || 
+                    withdrawal.updatedAt
+                  )}</p>
                 </div>
               </div>
+
+              {/* Payment Method Details */}
+              {withdrawal.bankDetails && (
+                <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                  <p className="font-medium text-gray-700 mb-2">Bank Details:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <p><span className="text-gray-500">Bank:</span> {withdrawal.bankDetails.bankName}</p>
+                    <p><span className="text-gray-500">Account:</span> ****{withdrawal.bankDetails.accountNumber?.slice(-4)}</p>
+                    <p><span className="text-gray-500">Holder:</span> {withdrawal.bankDetails.accountHolderName}</p>
+                    {withdrawal.bankDetails.swiftCode && (
+                      <p><span className="text-gray-500">SWIFT:</span> {withdrawal.bankDetails.swiftCode}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {withdrawal.paypalDetails && (
+                <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                  <p className="font-medium text-gray-700 mb-1">PayPal Details:</p>
+                  <p><span className="text-gray-500">Email:</span> {withdrawal.paypalDetails.email}</p>
+                </div>
+              )}
+
+              {withdrawal.cryptoDetails && (
+                <div className="mt-3 p-3 bg-gray-50 rounded text-sm">
+                  <p className="font-medium text-gray-700 mb-2">Crypto Details:</p>
+                  <p><span className="text-gray-500">Currency:</span> {withdrawal.cryptoDetails.currency}</p>
+                  <p><span className="text-gray-500">Wallet:</span> {withdrawal.cryptoDetails.walletAddress?.slice(0, 8)}...{withdrawal.cryptoDetails.walletAddress?.slice(-8)}</p>
+                </div>
+              )}
               
-              {withdrawal.notes && (
+              {(withdrawal.metadata?.notes || withdrawal.notes) && (
                 <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
                   <span className="text-gray-500">Notes:</span>
-                  <p>{withdrawal.notes}</p>
+                  <p>{withdrawal.metadata?.notes || withdrawal.notes}</p>
+                </div>
+              )}
+
+              {withdrawal.adminNotes && withdrawal.adminNotes.length > 0 && (
+                <div className="mt-3 p-3 bg-yellow-50 rounded text-sm border border-yellow-200">
+                  <p className="font-medium text-yellow-800 mb-2">Admin Notes:</p>
+                  {withdrawal.adminNotes.map((note, noteIndex) => (
+                    <div key={noteIndex} className="mb-2 last:mb-0">
+                      <p className="text-yellow-700">{note.note}</p>
+                      <p className="text-xs text-yellow-600">{formatDate(note.addedAt)}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

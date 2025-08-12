@@ -213,6 +213,133 @@ const updateAvatarImage = AsyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, updated, "Avatar updated"));
 });
 
+// ✅ Admin: Get All Users
+const getAllUsers = AsyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, role, search, sortBy = 'createdAt', order = 'desc' } = req.query;
+  
+  const filter = {};
+  
+  // Role filter
+  if (role && role !== 'all') {
+    filter.role = role;
+  }
+  
+  // Search filter
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+  }
+  
+  const sortOrder = order === 'desc' ? -1 : 1;
+  const sortOptions = { [sortBy]: sortOrder };
+  
+  const users = await User.find(filter)
+    .select('-password -refreshToken')
+    .sort(sortOptions)
+    .limit(limit * 1)
+    .skip((page - 1) * limit);
+    
+  const total = await User.countDocuments(filter);
+  
+  return res.status(200).json(
+    new ApiResponse(200, {
+      users,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+      total,
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1
+    }, "Users fetched successfully")
+  );
+});
+
+// ✅ Admin: Update User Role or Status
+const updateUserByAdmin = AsyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { role, isVerified, isPremium } = req.body;
+  
+  if (!userId) {
+    throw new ApiError(400, "User ID is required");
+  }
+  
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  
+  const updateData = {};
+  if (role !== undefined) updateData.role = role;
+  if (isVerified !== undefined) updateData.isVerified = isVerified;
+  if (isPremium !== undefined) updateData.isPremium = isPremium;
+  
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    updateData,
+    { new: true }
+  ).select('-password -refreshToken');
+  
+  return res.status(200).json(
+    new ApiResponse(200, updatedUser, "User updated successfully")
+  );
+});
+
+// ✅ Admin: Delete User
+const deleteUserByAdmin = AsyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  
+  if (!userId) {
+    throw new ApiError(400, "User ID is required");
+  }
+  
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  
+  // Don't allow deleting admin users
+  if (user.role === 'admin') {
+    throw new ApiError(403, "Cannot delete admin users");
+  }
+  
+  await User.findByIdAndDelete(userId);
+  
+  return res.status(200).json(
+    new ApiResponse(200, {}, "User deleted successfully")
+  );
+});
+
+// ✅ Admin: Get User Statistics
+const getUserStats = AsyncHandler(async (req, res) => {
+  const stats = await User.aggregate([
+    {
+      $group: {
+        _id: "$role",
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  const verifiedCount = await User.countDocuments({ isVerified: true });
+  const premiumCount = await User.countDocuments({ isPremium: true });
+  const totalUsers = await User.countDocuments();
+  
+  const roleStats = {};
+  stats.forEach(stat => {
+    roleStats[stat._id] = stat.count;
+  });
+  
+  return res.status(200).json(
+    new ApiResponse(200, {
+      roleStats,
+      verifiedCount,
+      premiumCount,
+      totalUsers,
+      unverifiedCount: totalUsers - verifiedCount
+    }, "User statistics fetched successfully")
+  );
+});
 
 export {
   registerUser,
@@ -223,4 +350,8 @@ export {
   changeCurrentUserPassword,
   getCurrentUser,
   updateAvatarImage,
+  getAllUsers,
+  updateUserByAdmin,
+  deleteUserByAdmin,
+  getUserStats,
 };

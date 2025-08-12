@@ -5,146 +5,14 @@ import { AsyncHandler } from '../utils/AsyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import mongoose from 'mongoose';
-
-// Initialize Stripe
+import { Withdrawal } from '../models/Withdrawal.model.js';
+import { Payment } from "../models/Payment.model.js";
+import { ProviderBalance } from '../models/ProviderBalance.model.js';
+import { AdminSettings } from '../models/AdminSettings.model.js';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Payment Schema for tracking payments
-const paymentSchema = new mongoose.Schema({
-  jobId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'JobRequest',
-    required: true
-  },
-  clientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  stripePaymentIntentId: {
-    type: String,
-    required: true
-  },
-  amount: {
-    type: Number,
-    required: true
-  },
-  currency: {
-    type: String,
-    required: true,
-    default: 'usd'
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'succeeded', 'failed', 'cancelled'],
-    default: 'pending'
-  },
-  platformFee: {
-    type: Number,
-    required: true
-  },
-  processingFee: {
-    type: Number,
-    required: true
-  },
-  baseAmount: {
-    type: Number,
-    required: true
-  },
-  totalAmount: {
-    type: Number,
-    required: true
-  },
-  metadata: {
-    type: Object,
-    default: {}
-  }
-}, { timestamps: true });
-
-const Payment = mongoose.model('Payment', paymentSchema);
-
-// Withdrawal Schema for tracking withdrawal requests
-const withdrawalSchema = new mongoose.Schema({
-  providerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 10
-  },
-  method: {
-    type: String,
-    required: true,
-    enum: ['bank_transfer', 'paypal', 'stripe', 'wire_transfer']
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'processing', 'completed', 'failed', 'cancelled'],
-    default: 'pending'
-  },
-  requestedAt: {
-    type: Date,
-    default: Date.now
-  },
-  processedAt: {
-    type: Date
-  },
-  completedAt: {
-    type: Date
-  },
-  notes: {
-    type: String,
-    maxlength: 500
-  },
-  adminNotes: {
-    type: String,
-    maxlength: 1000
-  },
-  transactionId: {
-    type: String
-  },
-  fees: {
-    type: Number,
-    default: 0
-  }
-}, { timestamps: true });
-
-const Withdrawal = mongoose.model('Withdrawal', withdrawalSchema);
-
 // Provider Balance Schema for tracking balances
-const providerBalanceSchema = new mongoose.Schema({
-  providerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    unique: true
-  },
-  totalEarnings: {
-    type: Number,
-    default: 0
-  },
-  availableBalance: {
-    type: Number,
-    default: 0
-  },
-  pendingBalance: {
-    type: Number,
-    default: 0
-  },
-  totalWithdrawn: {
-    type: Number,
-    default: 0
-  },
-  lastUpdated: {
-    type: Date,
-    default: Date.now
-  }
-}, { timestamps: true });
 
-const ProviderBalance = mongoose.model('ProviderBalance', providerBalanceSchema);
 
 // @desc    Create payment intent
 // @route   POST /api/v1/payments/create-payment-intent
@@ -177,16 +45,18 @@ export const createPaymentIntent = AsyncHandler(async (req, res) => {
     jobId, 
     status: { $in: ['succeeded', 'pending'] } 
   });
-  
-  if (existingPayment) {
+    if (existingPayment) {
     throw new ApiError(400, 'Payment already exists for this job');
   }
-
-  // Calculate fees
+  
+  // Get current admin settings for fee calculation
+  const settings = await AdminSettings.getCurrentSettings();
+  
+  // Calculate fees using admin settings
   const baseAmount = job.estimatedTotal;
-  const platformFee = (baseAmount * 5) / 100; // 5% platform fee
-  const processingFee = ((baseAmount + platformFee) * 2.9) / 100 + 0.30; // Stripe fees
-  const totalAmount = baseAmount + platformFee + processingFee;
+  const feeCalculation = settings.calculateTotalFees(baseAmount);
+  
+  const { platformFee, processingFee, totalAmount } = feeCalculation;
 
   // Create payment intent with Stripe
   const paymentIntent = await stripe.paymentIntents.create({
@@ -221,17 +91,11 @@ export const createPaymentIntent = AsyncHandler(async (req, res) => {
 
   await payment.save();
 
-  res.status(201).json(
-    new ApiResponse(201, {
+  res.status(201).json(    new ApiResponse(201, {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
       amount: totalAmount,
-      breakdown: {
-        baseAmount,
-        platformFee,
-        processingFee,
-        totalAmount
-      }
+      breakdown: feeCalculation
     }, 'Payment intent created successfully')
   );
 });
@@ -383,6 +247,9 @@ export const handleStripeWebhook = AsyncHandler(async (req, res) => {
 export const getProviderBalance = AsyncHandler(async (req, res) => {
   const providerId = req.user._id;
 
+  // Get admin settings for commission calculation
+  const settings = await AdminSettings.getCurrentSettings();
+
   // Find or create provider balance
   let balance = await ProviderBalance.findOne({ providerId });
   
@@ -399,13 +266,12 @@ export const getProviderBalance = AsyncHandler(async (req, res) => {
   });
 
   const totalEarnings = completedJobs.reduce((sum, job) => {
-    const providerShare = job.paymentAmount * 0.85; // 85% after 15% platform fee
-    return sum + providerShare;
+    const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
+    return sum + earnings.earnings;
   }, 0);
-
   // Calculate withdrawn amount
   const completedWithdrawals = await Withdrawal.find({
-    providerId,
+    userId: providerId,
     status: 'completed'
   });
 
@@ -413,7 +279,7 @@ export const getProviderBalance = AsyncHandler(async (req, res) => {
 
   // Calculate pending withdrawals
   const pendingWithdrawals = await Withdrawal.find({
-    providerId,
+    userId: providerId,
     status: { $in: ['pending', 'processing'] }
   });
 
@@ -438,15 +304,45 @@ export const getProviderBalance = AsyncHandler(async (req, res) => {
 // @route   POST /api/v1/payments/request-withdrawal
 // @access  Private (Provider only)
 export const requestWithdrawal = AsyncHandler(async (req, res) => {
-  const { amount, method, notes } = req.body;
+  const { 
+    amount, 
+    withdrawalMethod, 
+    method, // Legacy support
+    bankDetails, 
+    paypalDetails, 
+    cryptoDetails, 
+    metadata 
+  } = req.body;
   const providerId = req.user._id;
 
-  if (!amount || amount < 10) {
-    throw new ApiError(400, 'Minimum withdrawal amount is $10');
+  // Get admin settings for validation
+  const settings = await AdminSettings.getCurrentSettings();
+
+  // Support both new and legacy field names
+  const finalMethod = withdrawalMethod || method;
+
+  if (!amount || amount < settings.minimumWithdrawalAmount) {
+    throw new ApiError(400, `Minimum withdrawal amount is $${settings.minimumWithdrawalAmount}`);
   }
 
-  if (!method || !['bank_transfer', 'paypal', 'stripe', 'wire_transfer'].includes(method)) {
+  if (!finalMethod || !['bank_transfer', 'paypal', 'stripe', 'crypto'].includes(finalMethod)) {
     throw new ApiError(400, 'Invalid withdrawal method');
+  }
+
+  // Validate payment method specific details
+  if (finalMethod === 'bank_transfer') {
+    if (!bankDetails || !bankDetails.accountNumber || !bankDetails.routingNumber || 
+        !bankDetails.bankName || !bankDetails.accountHolderName) {
+      throw new ApiError(400, 'Bank transfer requires complete bank details');
+    }
+  } else if (finalMethod === 'paypal') {
+    if (!paypalDetails || !paypalDetails.email) {
+      throw new ApiError(400, 'PayPal withdrawal requires email address');
+    }
+  } else if (finalMethod === 'crypto') {
+    if (!cryptoDetails || !cryptoDetails.walletAddress || !cryptoDetails.currency) {
+      throw new ApiError(400, 'Crypto withdrawal requires wallet address and currency');
+    }
   }
 
   // Get current balance
@@ -454,26 +350,41 @@ export const requestWithdrawal = AsyncHandler(async (req, res) => {
   if (!balance || balance.availableBalance < amount) {
     throw new ApiError(400, 'Insufficient balance for withdrawal');
   }
-
+  
   // Check for existing pending withdrawals
   const existingPending = await Withdrawal.findOne({
-    providerId,
+    userId: providerId,
     status: { $in: ['pending', 'processing'] }
   });
 
   if (existingPending) {
     throw new ApiError(400, 'You have a pending withdrawal request. Please wait for it to be processed.');
   }
-
-  // Create withdrawal request
-  const withdrawal = new Withdrawal({
-    providerId,
+    // Create withdrawal request
+  const withdrawalData = {
+    userId: providerId,
     amount: parseFloat(amount),
-    method,
-    notes: notes?.trim(),
-    status: 'pending'
-  });
+    withdrawalMethod: finalMethod,
+    status: 'pending',
+    metadata: metadata || {}
+  };
 
+  // Calculate withdrawal fee using admin settings
+  const withdrawalFee = settings.calculateWithdrawalFee(amount, finalMethod);
+  if (withdrawalFee > 0) {
+    withdrawalData.processingFee = withdrawalFee;
+  }
+
+  // Add payment method specific details
+  if (finalMethod === 'bank_transfer' && bankDetails) {
+    withdrawalData.bankDetails = bankDetails;
+  } else if (finalMethod === 'paypal' && paypalDetails) {
+    withdrawalData.paypalDetails = paypalDetails;
+  } else if (finalMethod === 'crypto' && cryptoDetails) {
+    withdrawalData.cryptoDetails = cryptoDetails;
+  }
+
+  const withdrawal = new Withdrawal(withdrawalData);
   await withdrawal.save();
 
   // Update balance to reflect pending withdrawal
@@ -496,13 +407,12 @@ export const getWithdrawHistory = AsyncHandler(async (req, res) => {
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
   const skip = (pageNumber - 1) * limitNumber;
-
-  const withdrawals = await Withdrawal.find({ providerId })
+  const withdrawals = await Withdrawal.find({ userId: providerId })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limitNumber);
 
-  const total = await Withdrawal.countDocuments({ providerId });
+  const total = await Withdrawal.countDocuments({ userId: providerId });
 
   res.status(200).json(
     new ApiResponse(200, {
@@ -524,6 +434,9 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const providerId = req.user._id;
 
+  // Get admin settings for commission calculation
+  const settings = await AdminSettings.getCurrentSettings();
+
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
   const skip = (pageNumber - 1) * limitNumber;
@@ -540,14 +453,17 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
   .limit(limitNumber);
 
   // Transform to payment format
-  const payments = jobs.map(job => ({
-    jobId: job._id,
-    jobTitle: job.title,
-    clientName: job.clientId.fullName,
-    amount: job.paymentAmount * 0.85, // Provider gets 85% after platform fee
-    paidAt: job.paidAt,
-    paymentMethod: 'stripe' // Default payment method
-  }));
+  const payments = jobs.map(job => {
+    const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
+    return {
+      jobId: job._id,
+      jobTitle: job.title,
+      clientName: job.clientId.fullName,
+      amount: earnings.earnings,
+      paidAt: job.paidAt,
+      paymentMethod: 'stripe' // Default payment method
+    };
+  });
 
   const total = await JobRequest.countDocuments({
     assignedProviderId: providerId,
@@ -574,6 +490,9 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
 export const getInspectorBalance = AsyncHandler(async (req, res) => {
   const inspectorId = req.user._id;
 
+  // Get admin settings for commission calculation
+  const settings = await AdminSettings.getCurrentSettings();
+
   // Find or create inspector balance (using same schema as ProviderBalance)
   let balance = await ProviderBalance.findOne({ providerId: inspectorId });
   
@@ -581,6 +500,7 @@ export const getInspectorBalance = AsyncHandler(async (req, res) => {
     balance = new ProviderBalance({ providerId: inspectorId });
     await balance.save();
   }
+  
   // Calculate real-time balance from completed inspections
   const completedInspections = await JobRequest.find({
     assignedProviderId: inspectorId, // Using provider field for now, can be inspector-specific later
@@ -589,13 +509,12 @@ export const getInspectorBalance = AsyncHandler(async (req, res) => {
   });
 
   const totalEarnings = completedInspections.reduce((sum, inspection) => {
-    const inspectorShare = inspection.paymentAmount * 0.80; // 80% after 20% platform fee for inspectors
-    return sum + inspectorShare;
+    const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
+    return sum + earnings.earnings;
   }, 0);
-
   // Calculate withdrawn amount
   const completedWithdrawals = await Withdrawal.find({
-    providerId: inspectorId,
+    userId: inspectorId,
     status: 'completed'
   });
 
@@ -603,7 +522,7 @@ export const getInspectorBalance = AsyncHandler(async (req, res) => {
 
   // Calculate pending withdrawals
   const pendingWithdrawals = await Withdrawal.find({
-    providerId: inspectorId,
+    userId: inspectorId,
     status: { $in: ['pending', 'processing'] }
   });
 
@@ -631,9 +550,13 @@ export const getInspectorEarnings = AsyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const inspectorId = req.user._id;
 
+  // Get admin settings for commission calculation
+  const settings = await AdminSettings.getCurrentSettings();
+
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
   const skip = (pageNumber - 1) * limitNumber;
+  
   // Get completed and paid inspections
   const inspections = await JobRequest.find({
     assignedProviderId: inspectorId, // Using provider field for now, can be inspector-specific later
@@ -646,14 +569,17 @@ export const getInspectorEarnings = AsyncHandler(async (req, res) => {
   .limit(limitNumber);
 
   // Transform to payment format
-  const payments = inspections.map(inspection => ({
-    jobId: inspection._id,
-    jobTitle: inspection.title,
-    clientName: inspection.clientId.fullName,
-    amount: inspection.paymentAmount * 0.80, // Inspector gets 80% after platform fee
-    paidAt: inspection.paidAt,
-    paymentMethod: 'stripe' // Default payment method
-  }));
+  const payments = inspections.map(inspection => {
+    const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
+    return {
+      jobId: inspection._id,
+      jobTitle: inspection.title,
+      clientName: inspection.clientId.fullName,
+      amount: earnings.earnings,
+      paidAt: inspection.paidAt,
+      paymentMethod: 'stripe' // Default payment method
+    };
+  });
   const total = await JobRequest.countDocuments({
     assignedProviderId: inspectorId,
     status: 'closed',
@@ -678,7 +604,7 @@ export const getInspectorEarnings = AsyncHandler(async (req, res) => {
 // @access  Private (Admin only)
 export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, adminNotes, transactionId } = req.body;
+  const { status, adminNote, transactionId, processingFee } = req.body;
 
   if (req.user.role !== 'admin') {
     throw new ApiError(403, 'Only admins can update withdrawal status');
@@ -691,31 +617,47 @@ export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
 
   const oldStatus = withdrawal.status;
   withdrawal.status = status;
-  withdrawal.adminNotes = adminNotes;
   withdrawal.transactionId = transactionId;
 
+  // Add admin note if provided
+  if (adminNote) {
+    if (!withdrawal.adminNotes) {
+      withdrawal.adminNotes = [];
+    }
+    withdrawal.adminNotes.push({
+      note: adminNote,
+      addedBy: req.user._id,
+      addedAt: new Date()
+    });
+  }
+
+  // Update processing fee if provided
+  if (processingFee !== undefined) {
+    withdrawal.processingFee = parseFloat(processingFee);
+  }
+
+  // Set appropriate timestamps
   if (status === 'processing' && oldStatus === 'pending') {
     withdrawal.processedAt = new Date();
-  }
-
-  if (status === 'completed' && oldStatus !== 'completed') {
+  } else if (status === 'completed' && oldStatus !== 'completed') {
     withdrawal.completedAt = new Date();
+  } else if (status === 'rejected' && oldStatus !== 'rejected') {
+    withdrawal.rejectedAt = new Date();
   }
 
-  // If withdrawal is cancelled or failed, restore the balance
-  if (['cancelled', 'failed'].includes(status) && ['pending', 'processing'].includes(oldStatus)) {
-    const balance = await ProviderBalance.findOne({ providerId: withdrawal.providerId });
-    if (balance) {
+  // Handle balance updates based on status changes
+  const balance = await ProviderBalance.findOne({ providerId: withdrawal.userId });
+  
+  if (balance) {
+    // If withdrawal is cancelled or rejected, restore the balance
+    if (['cancelled', 'rejected'].includes(status) && ['pending', 'processing'].includes(oldStatus)) {
       balance.availableBalance += withdrawal.amount;
       balance.pendingBalance -= withdrawal.amount;
       await balance.save();
     }
-  }
 
-  // If withdrawal is completed, update total withdrawn
-  if (status === 'completed' && oldStatus !== 'completed') {
-    const balance = await ProviderBalance.findOne({ providerId: withdrawal.providerId });
-    if (balance) {
+    // If withdrawal is completed, update total withdrawn
+    if (status === 'completed' && oldStatus !== 'completed') {
       balance.pendingBalance -= withdrawal.amount;
       balance.totalWithdrawn += withdrawal.amount;
       await balance.save();
@@ -729,4 +671,171 @@ export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
   );
 });
 
-export { Payment, Withdrawal, ProviderBalance };
+// @desc    Get all withdrawals (Admin only)
+// @route   GET /api/v1/payments/admin/withdrawals
+// @access  Private (Admin only)
+export const getAllWithdrawals = AsyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, status, search, dateRange } = req.query;
+
+  if (req.user.role !== 'admin') {
+    throw new ApiError(403, 'Only admins can view all withdrawals');
+  }
+
+  const pageNumber = parseInt(page);
+  const limitNumber = parseInt(limit);
+  const skip = (pageNumber - 1) * limitNumber;
+
+  // Build query filters
+  let query = {};
+  
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  if (search) {
+    // Search in user details or transaction ID
+    query.$or = [
+      { transactionId: { $regex: search, $options: 'i' } },
+      { 'bankDetails.accountHolderName': { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  if (dateRange && dateRange !== 'all') {
+    const now = new Date();
+    let startDate;
+    
+    switch (dateRange) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+        startDate = new Date(now.getFullYear(), quarterStart, 1);
+        break;
+      default:
+        startDate = null;
+    }
+    
+    if (startDate) {
+      query.requestedAt = { $gte: startDate };
+    }
+  }
+
+  // Get withdrawals with user details
+  const withdrawals = await Withdrawal.find(query)
+    .populate('userId', 'name email avatar')
+    .sort({ requestedAt: -1 })
+    .skip(skip)
+    .limit(limitNumber);
+
+  const total = await Withdrawal.countDocuments(query);
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      withdrawals,
+      pagination: {
+        currentPage: pageNumber,
+        totalPages: Math.ceil(total / limitNumber),
+        totalItems: total,
+        itemsPerPage: limitNumber
+      }
+    }, 'All withdrawals retrieved successfully')
+  );
+});
+
+// @desc    Get payment statistics for admin dashboard
+// @route   GET /api/v1/payments/admin/stats
+// @access  Private (Admin only)
+export const getPaymentStats = AsyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    throw new ApiError(403, 'Only admins can view payment statistics');
+  }
+
+  // Get withdrawal statistics
+  const totalWithdrawals = await Withdrawal.aggregate([
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+
+  const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
+  
+  const withdrawalStatusCounts = await Withdrawal.aggregate([
+    { $group: { _id: '$status', count: { $sum: 1 } } }
+  ]);
+
+  // Get payment statistics
+  const totalPayments = await Payment.aggregate([
+    { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+  ]);
+
+  const totalUsers = await User.countDocuments();
+  // Calculate active users based on recent creation instead of lastLogin since lastLogin field doesn't exist
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const activeUsers = await User.countDocuments({ 
+    createdAt: { $gte: thirtyDaysAgo } 
+  });
+
+  // Monthly trends (last 6 months)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const monthlyWithdrawals = await Withdrawal.aggregate([
+    { $match: { requestedAt: { $gte: sixMonthsAgo } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$requestedAt' },
+          month: { $month: '$requestedAt' }
+        },
+        total: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } }
+  ]);
+
+  const monthlyPayments = await Payment.aggregate([
+    { $match: { createdAt: { $gte: sixMonthsAgo } } },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$createdAt' },
+          month: { $month: '$createdAt' }
+        },
+        total: { $sum: '$totalAmount' },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } }
+  ]);
+
+  // Get total withdrawals count for pagination
+  const totalWithdrawalsCount = await Withdrawal.countDocuments();
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      totalWithdrawals: totalWithdrawals[0]?.total || 0,
+      pendingWithdrawals,
+      totalPayments: totalPayments[0]?.total || 0,
+      totalUsers,
+      activeUsers,
+      withdrawalStatusCounts,
+      totalWithdrawalsCount,
+      monthlyTrends: {
+        withdrawals: monthlyWithdrawals,
+        payments: monthlyPayments
+      }
+    }, 'Payment statistics retrieved successfully')
+  );
+});
+
+export { 
+  Payment, 
+  Withdrawal, 
+  ProviderBalance, 
+};

@@ -1,40 +1,3 @@
-// import mongoose from "mongoose";
-
-// const jobRequestSchema = new mongoose.Schema(
-//   {
-//     clientId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-//     title: String,
-//     description: String,
-//     location: String,
-//     region: String,
-//     requiredServices: [
-//       { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
-//     ],
-//     isPremium: { type: Boolean, default: false },
-//     status: {
-//       type: String,
-//       enum: ["open", "in-progress", "completed"],
-//       default: "open",
-//     },
-
-//     assignedProviderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-//     assignedInspectorId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-//     quotationHistory: [
-//       {
-//         revision: Number,
-//         price: Number,
-//         notes: String,
-//         submittedOn: Date,
-//         acceptedOn: Boolean,
-//       },
-//     ],
-//   },
-//   { timestamps: true }
-// );
-
-// export const JobRequest = mongoose.model("JobRequest", jobRequestSchema);
-
 import mongoose from "mongoose";
 
 // Service Cost Breakdown Schema
@@ -251,7 +214,6 @@ const quotationHistorySchema = new mongoose.Schema({
 // Main Job Request Schema
 const jobRequestSchema = new mongoose.Schema(
   {
-    // Basic Job Information
     title: {
       type: String,
       required: true,
@@ -712,77 +674,3 @@ jobRequestSchema.statics.findByClient = function(clientId, filters = {}) {
 
 // Export the model
 export const JobRequest = mongoose.model('JobRequest', jobRequestSchema);
-
-
-// Example usage:
-/*
-
-// Creating a new job request
-const newJobRequest = new JobRequest({
-  title: "Industrial Pipeline Inspection",
-  description: "NDT inspection of 500m pipeline using RT and UT methods",
-  location: "Mumbai",
-  region: "West India",
-  clientId: "60f1b2e4c8a2b123456789ab",
-  clientName: "ABC Industries",
-  clientEmail: "contact@abc-industries.com",
-  assignedProviderId: "60f1b2e4c8a2b123456789cd",
-  providerName: "XYZ NDT Services",
-  requiredServices: ["60f1b2e4c8a2b123456789ef", "60f1b2e4c8a2b123456789gh"],
-  serviceQuantities: new Map([
-    ["60f1b2e4c8a2b123456789ef", 2],
-    ["60f1b2e4c8a2b123456789gh", 1]
-  ]),
-  projectDuration: 3,
-  numInspectors: 2,
-  costDetails: {
-    services: [
-      {
-        serviceId: "60f1b2e4c8a2b123456789ef",
-        serviceName: "Radiographic Testing (RT)",
-        serviceCode: "RT",
-        charge: 100,
-        unit: "Per Day",
-        quantity: 2,
-        multiplier: 3,
-        baseCost: 600,
-        taxRate: 15,
-        taxAmount: 90,
-        subtotal: 690
-      }
-    ],
-    additional: [],
-    totals: {
-      baseCost: 600,
-      tax: 90,
-      additional: 0,
-      grandTotal: 690
-    },
-    currency: "USD"
-  },
-  estimatedTotal: 690,
-  isPremium: false,
-  createdBy: "60f1b2e4c8a2b123456789ab"
-});
-
-// Save the job request
-await newJobRequest.save();
-
-// Find jobs by provider
-const providerJobs = await JobRequest.findByProvider("60f1b2e4c8a2b123456789cd", {
-  status: "open",
-  region: "West India"
-});
-
-// Update job status
-await jobRequest.updateStatus("in_progress", "60f1b2e4c8a2b123456789ab");
-
-// Add quotation
-await jobRequest.addQuotation({
-  providerId: "60f1b2e4c8a2b123456789cd",
-  quotedAmount: 750,
-  quotationDetails: "Updated pricing with premium service",
-  validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-});
-
-*/

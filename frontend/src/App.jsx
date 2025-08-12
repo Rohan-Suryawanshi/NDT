@@ -27,6 +27,13 @@ import InspectorWithdraw from "./pages/InspectorWithdraw";
 import InspectorFeedback from "./pages/InspectorFeedback";
 import ServiceProviderFeedback from "./pages/ServiceProviderFeedback";
 import Loader from "./components/common/Loader";
+import AdminSettings from "./pages/AdminSettings";
+import ServiceManager from "./pages/ServiceManager";
+import AdminUserManagement from "./pages/AdminUserManagement";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminWithdrawManagement from "./pages/AdminWithdrawManagement";
+import AdminRevenue from "./pages/AdminRevenue";
+import AdminJobManagement from "./pages/AdminJobManagement";
 
 export default function App() {
    return (
@@ -67,8 +74,17 @@ export default function App() {
             <Route path="/inspector/withdraw" element={<InspectorWithdraw/>} />
             <Route path="/inspector/feedback" element={<InspectorFeedback/>} />
             <Route path="/provider/feedback" element={<ServiceProviderFeedback/>} />
+            <Route path="/admin/settings" element={<AdminSettings/>}/>
+            <Route path="/admin/service-manager" element={<ServiceManager/>}/>
+            <Route path="/admin/user-management" element={<AdminUserManagement/>}/>
+            <Route path="/dashboard-admin" element={<AdminDashboard/>}/>
+            <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
             <Route path="/loader" element={<Loader />} />
+             <Route path="/admin/payments" element={<AdminWithdrawManagement/>}/>
+             <Route path="/admin/revenue" element={<AdminRevenue/>} />
+             <Route path="/admin/job-management" element={<AdminJobManagement/>}/>
             <Route path="*" element={<NotFound />} />            
+           
 
 
          </Routes>

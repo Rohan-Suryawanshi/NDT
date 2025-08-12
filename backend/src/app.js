@@ -29,7 +29,7 @@ import offeredServices from "./routes/serviceOffered.routes.js";
 import geminiRoutes from "./routes/gemini.routes.js";
 import jobRequestRoutes from "./routes/jobRequest.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
-import feedbackRoutes from "./routes/feedback.routes.js";
+import adminSettingsRoutes from "./routes/adminSettings.routes.js";
 
 //http://localhost:8000/api/v1/users/register
 app.use('/api/v1/users', userRoutes);
@@ -44,7 +44,7 @@ app.use("/api/v1/offered-services", offeredServices);
 app.use("/api/v1/gemini", geminiRoutes);
 app.use("/api/v1/job-requests", jobRequestRoutes);
 app.use("/api/v1/payments", paymentRoutes);
-app.use("/api/v1/feedback", feedbackRoutes);
+app.use("/api/v1/admin/settings", adminSettingsRoutes);
 
 //Error Handling middleware
 app.use((err, req, res, next) => {
