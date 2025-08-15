@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BACKEND_URL } from '@/constant/Global';
 import NavbarSection from '@/features/NavbarSection/NavbarSection';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const GetRecommendations = () => {
   // State Management
@@ -405,7 +406,7 @@ const GetRecommendations = () => {
                   <div className="space-y-2 mt-2">
                     {Object.entries(recommendationCriteria).map(([key, value]) => (
                       <label key={key} className="flex items-center space-x-2">
-                        <input
+                        <Checkbox
                           type="checkbox"
                           checked={value}
                           onChange={(e) => setRecommendationCriteria(prev => ({
