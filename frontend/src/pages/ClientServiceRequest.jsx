@@ -702,12 +702,10 @@ const ClientServiceRequest = () => {
    }, [user?._id, selectedRequest]);
 
    // Add online/offline detection
-   const [isOnline, setIsOnline] = useState(navigator.onLine);
+   const [, setIsOnline] = useState(navigator.onLine);
 
    useEffect(() => {
       const handleOnline = () => {
-         setIsOnline(true);
-         toast.success("Connection restored");
          fetchRequests(); // Refresh data when back online
       };
 
@@ -745,8 +743,8 @@ const ClientServiceRequest = () => {
                <div className="flex justify-between items-center py-6">
                   <div className="flex items-center space-x-4">
                      <div className="flex items-center space-x-2">
-                        <Building2 className="h-8 w-8 text-blue-600" />
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <Building2 className="h-8 w-8 text-[#004aad]" />
+                        <h1 className="text-3xl font-bold text-[#004aad]">
                            My Service Requests
                         </h1>
                      </div>
@@ -782,7 +780,7 @@ const ClientServiceRequest = () => {
                         Refresh
                      </Button>
                      <Button
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-[#004aad] hover:bg-blue-700"
                         disabled={actionLoading}
                      >
                         <Plus className="h-4 w-4 mr-2" />
@@ -815,29 +813,7 @@ const ClientServiceRequest = () => {
                   </AlertDescription>
                </Alert>
             )}{" "}
-            {/* Keyboard Shortcuts Info */}
-            <div className="flex items-center justify-between mb-6">
-               <Alert className="flex-1 border-blue-200 bg-blue-50 mr-4">
-                  <AlertDescription className="text-sm">
-                     <strong>Keyboard shortcuts:</strong> Ctrl+R (Refresh) •
-                     Ctrl+E (Export) • Ctrl+F (Search)
-                  </AlertDescription>
-               </Alert>
-
-               {/* Online/Offline Indicator */}
-               <Badge
-                  variant={isOnline ? "secondary" : "destructive"}
-                  className="px-3 py-1"
-               >
-                  <div
-                     className={`w-2 h-2 rounded-full mr-2 ${
-                        isOnline ? "bg-green-500" : "bg-red-500"
-                     }`}
-                  ></div>
-                  {isOnline ? "Online" : "Offline"}
-               </Badge>
-            </div>{" "}
-            {/* Stats Cards */}
+            
             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
                {Object.entries(stats).map(([key, value]) => {
                   let config, displayLabel;
@@ -1242,9 +1218,9 @@ const ClientServiceRequest = () => {
          </div>
          {/* Request Details Modal */}
          <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="!max-w-6xl max-h-[90vh] overflow-y-auto">
                <DialogHeader>
-                  <DialogTitle className="flex items-center justify-between">
+                  <DialogTitle className="flex items-center justify-between pr-5">
                      <span>Request Details: {selectedRequest?.title}</span>
                      <Badge
                         className={
@@ -1800,7 +1776,7 @@ const ClientServiceRequest = () => {
                                  </p>
                               </div>
 
-                              <div className="flex items-center space-x-2">
+                              <div className="flex items-center space-x-2 hidden">
                                  <input
                                     type="checkbox"
                                     id="isInternal"

@@ -6,8 +6,10 @@ import { Separator } from "@/components/ui/separator";
 // Lucide Icons
 import { Search, Bot, ClipboardList, Settings } from "lucide-react";
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardClient() {
+   const { user,loading } = useAuth();
    const navigate = useNavigate();
 
    const features = [
@@ -62,12 +64,12 @@ export default function DashboardClient() {
                {/* Header */}
                <div className="text-center space-y-3">
                   <h1 className="text-3xl md:text-4xl font-bold text-[#004aad]">
-                     Welcome to your Dashboard, Rohan Suryawanshi!
+                     Welcome to your Dashboard, {!loading&&user.name}
                   </h1>
                   <p className="text-lg text-gray-600">
                      You are logged in as a{" "}
                      <span className="font-semibold text-[#004aad]">
-                        client
+                        {!loading&&user.role}
                      </span>
                      .
                   </p>

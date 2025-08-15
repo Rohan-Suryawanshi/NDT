@@ -74,36 +74,75 @@ const NavbarSection = () => {
                         Find Providers
                      </Link>
                      <Link
-                        to="/recommendations"
-                        className={navLinkClasses("/recommendations")}
-                     >
-                        Recommendations
-                     </Link>
-                     <Link
-                        to="/my-requests"
-                        className={navLinkClasses("/my-requests")}
+                        to="/client-requests"
+                        className={navLinkClasses("/client-requests")}
                      >
                         My Requests
+                     </Link>
+                     <Link
+                        to="/find-inspectors"
+                        className={navLinkClasses("/find-inspectors")}
+                     >
+                        Find Inspectors
                      </Link>
                   </>
                )}
 
                {user?.role === "provider" && (
-                  <Link
-                     to="/dashboard-provider"
-                     className={navLinkClasses("/dashboard-provider")}
-                  >
-                     Provider Dashboard
-                  </Link>
+                  <>
+                     <Link
+                        to="/dashboard-provider"
+                        className={navLinkClasses("/dashboard-provider")}
+                     >
+                        Provider Dashboard
+                     </Link>
+                     <Link
+                        to="/service-request"
+                        className={navLinkClasses("/service-request")}
+                     >
+                        Service Requests
+                     </Link>
+                  </>
+               )}
+
+               {user?.role === "inspector" && (
+                  <>
+                     <Link
+                        to="/dashboard-inspector"
+                        className={navLinkClasses("/dashboard-inspector")}
+                     >
+                        Inspector Dashboard
+                     </Link>
+                     <Link
+                        to="/inspector/assigned-jobs"
+                        className={navLinkClasses("/inspector/assigned-jobs")}
+                     >
+                        Assigned Jobs
+                     </Link>
+                  </>
                )}
 
                {user?.role === "admin" && (
-                  <Link
-                     to="/admin/dashboard"
-                     className={navLinkClasses("/admin/dashboard")}
-                  >
-                     Admin Dashboard
-                  </Link>
+                  <>
+                     <Link
+                        to="/dashboard-admin"
+                        className={navLinkClasses("/dashboard-admin")}
+                     >
+                        Admin Dashboard
+                     </Link>
+                     <Link
+                        to="/admin/user-management"
+                        className={navLinkClasses("/admin/user-management")}
+                     >
+                        User Management
+                     </Link>
+                     <Link
+                        to="/admin/service-manager"
+                        className={navLinkClasses("/admin/service-manager")}
+                     >
+                        Service Manager
+                     </Link>
+                  </>
                )}
 
                {loading ? (
@@ -137,6 +176,8 @@ const NavbarSection = () => {
                                  navigate("/dashboard-client");
                               } else if (user.role === "provider") {
                                  navigate("/dashboard-provider");
+                              } else if (user.role === "inspector") {
+                                 navigate("/dashboard-inspector");
                               } else if (user.role === "admin") {
                                  navigate("/dashboard-admin");
                               } else {
@@ -151,6 +192,14 @@ const NavbarSection = () => {
                         {user.role === "provider" && (
                            <DropdownMenuItem
                               onClick={() => navigate("/provider-profile")}
+                           >
+                              <UserCircle className="mr-2 h-4 w-4" /> My Profile
+                           </DropdownMenuItem>
+                        )}
+
+                        {user.role === "inspector" && (
+                           <DropdownMenuItem
+                              onClick={() => navigate("/inspector-profile")}
                            >
                               <UserCircle className="mr-2 h-4 w-4" /> My Profile
                            </DropdownMenuItem>
@@ -171,6 +220,14 @@ const NavbarSection = () => {
                            }}
                            >
                               <Settings className="mr-2 h-4 w-4" /> Settings
+                           </DropdownMenuItem>
+                        )}
+
+                        {user.role === "admin" && (
+                           <DropdownMenuItem
+                              onClick={() => navigate("/admin/settings")}
+                           >
+                              <Settings className="mr-2 h-4 w-4" /> Admin Settings
                            </DropdownMenuItem>
                         )}
 
@@ -211,32 +268,54 @@ const NavbarSection = () => {
                   </SheetHeader>
 
                   <nav className="space-y-4 mt-6 text-gray-700">
-
-
                      {user?.role === "client" && (
                         <>
                            <Link to="/find-providers" className="block">
                               Find Providers
                            </Link>
-                           <Link to="/recommendations" className="block">
-                              Recommendations
-                           </Link>
-                           <Link to="/my-requests" className="block">
+                           <Link to="/client-requests" className="block">
                               My Requests
+                           </Link>
+                           <Link to="/find-inspectors" className="block">
+                              Find Inspectors
                            </Link>
                         </>
                      )}
 
                      {user?.role === "provider" && (
-                        <Link to="/provider-dashboard" className="block">
-                           Provider Dashboard
-                        </Link>
+                        <>
+                           <Link to="/dashboard-provider" className="block">
+                              Provider Dashboard
+                           </Link>
+                           <Link to="/service-request" className="block">
+                              Service Requests
+                           </Link>
+                        </>
+                     )}
+
+                     {user?.role === "inspector" && (
+                        <>
+                           <Link to="/dashboard-inspector" className="block">
+                              Inspector Dashboard
+                           </Link>
+                           <Link to="/inspector/assigned-jobs" className="block">
+                              Assigned Jobs
+                           </Link>
+                        </>
                      )}
 
                      {user?.role === "admin" && (
-                        <Link to="/admin/dashboard" className="block">
-                           Admin Dashboard
-                        </Link>
+                        <>
+                           <Link to="/dashboard-admin" className="block">
+                              Admin Dashboard
+                           </Link>
+                           <Link to="/admin/user-management" className="block">
+                              User Management
+                           </Link>
+                           <Link to="/admin/service-manager" className="block">
+                              Service Manager
+                           </Link>
+                        </>
                      )}
 
                      {user ? (

@@ -34,6 +34,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminWithdrawManagement from "./pages/AdminWithdrawManagement";
 import AdminRevenue from "./pages/AdminRevenue";
 import AdminJobManagement from "./pages/AdminJobManagement";
+import GetRecommendations from "./pages/GetRecommendations";
 
 export default function App() {
    return (
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/client-requests" element={<ClientServiceRequest/>} />
 
             <Route path="/find-inspectors" element={<ClientProviderSelection/>} />
+            <Route path="/get-recommendations" element={<GetRecommendations/>}/>
             
             <Route path="/inspector/assigned-jobs" element={<InspectorJobDashboard/>} />
             <Route path="/download-reports" element={<DownloadReportWrapper/>} />
