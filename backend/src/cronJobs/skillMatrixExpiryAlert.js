@@ -43,7 +43,7 @@ cron.schedule("0 9 * * *", async () => {
     <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
       
       <!-- Header -->
-      <div style="background: #2563eb; color: white; padding: 20px; text-align: center;">
+      <div style="background: #004aad; color: white; padding: 20px; text-align: center;">
         <h2 style="margin: 0; font-size: 20px;">SkillMatrix Certification Expiry Alert</h2>
       </div>
 
@@ -86,7 +86,7 @@ cron.schedule("0 9 * * *", async () => {
 
       <!-- Footer -->
       <div style="background: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280;">
-        <p>This is an automated reminder from <strong>Your Company</strong>.</p>
+        <p>This is an automated reminder from <strong>NDT Connect</strong>.</p>
         <p>Please do not reply to this email.</p>
       </div>
     </div>

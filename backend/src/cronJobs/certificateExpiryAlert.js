@@ -75,7 +75,7 @@ cron.schedule("0 9 * * *", async () => {
 
       <!-- Footer -->
       <div style="background: #f3f4f6; padding: 15px; text-align: center; font-size: 12px; color: #6b7280;">
-        <p>This is an automated reminder from <strong>Your Company</strong>.</p>
+        <p>This is an automated reminder from <strong>NDT Connect</strong>.</p>
         <p>Please do not reply to this email.</p>
       </div>
     </div>

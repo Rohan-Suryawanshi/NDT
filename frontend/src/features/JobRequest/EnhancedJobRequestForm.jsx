@@ -175,7 +175,7 @@ const EnhancedJobRequestForm = () => {
    const [providerInfo, setProviderInfo] = useState({
       _id: providerId,
       companyName: providerName || "Selected Provider",
-      companyLocation: "Pune, Maharashtra",
+      companyLocation: "",
       companyLogoUrl: "",
       rating: 4.5,
       specializations: ["RT", "UT", "MT"],

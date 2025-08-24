@@ -11,9 +11,9 @@ const HeroSection = () => {
                animate={{ opacity: 1, y: 0 }}
                transition={{ duration: 0.8 }}
             >
-               <h2 className="text-4xl font-bold mb-4 text-[#004aad]">
+               <h1 className="text-4xl font-bold mb-4 text-[#004aad]">
                   Welcome to NDT Connect
-               </h2>
+               </h1>
                <p className="mb-6 text-gray-600">
                   Your trusted platform for Non-Destructive Testing services.
                   Find expert providers or offer your specialized NDT skills.

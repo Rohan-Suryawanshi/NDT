@@ -610,7 +610,7 @@ const CertificationsTab = ({
                               }));
                            }}
                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
-                           placeholder="e.g., AWS, Microsoft, Google"
+                           placeholder="Enter Certification Body"
                         />
                      </div>
 
