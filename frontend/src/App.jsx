@@ -36,10 +36,8 @@ import AdminRevenue from "./pages/AdminRevenue";
 import AdminJobManagement from "./pages/AdminJobManagement";
 import GetRecommendations from "./pages/GetRecommendations";
 import ProtectedRoute from "./ProtectedRoute";
-import { HelmetProvider } from "react-helmet-async";
 export default function App() {
    return (
-      <HelmetProvider>
          <Router>
             <Routes>
                <Route path="/" element={<LandingPage />} />
@@ -304,6 +302,5 @@ export default function App() {
                <Route path="*" element={<NotFound />} />
             </Routes>
          </Router>
-      </HelmetProvider>
    );
 }

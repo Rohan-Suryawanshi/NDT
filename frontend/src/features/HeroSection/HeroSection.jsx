@@ -1,23 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Helmet } from "react-helmet-async";
 
 const HeroSection = () => {
   return (
     <section className="bg-white py-20">
-      {/* Helmet for SEO */}
-      <Helmet>
-        <title>NDT Connect - Non-Destructive Testing Platform</title>
-        <meta
-          name="description"
-          content="NDT Connect is a platform for Non-Destructive Testing professionals to connect, collaborate, and manage inspections efficiently."
-        />
-        <meta
-          name="keywords"
-          content="NDT, Non-Destructive Testing, Inspections, Engineers, Connect, Industry"
-        />
-        <meta name="author" content="NDT Connect Team" />
-      </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-10">
         <motion.div
