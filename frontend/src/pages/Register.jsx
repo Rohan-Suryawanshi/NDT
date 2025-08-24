@@ -12,8 +12,10 @@ import { agreementTexts } from "@/constant/agreements";
 import { BACKEND_URL } from "@/constant/Global";
 import { Location } from "@/constant/Location";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
+   const navigate=useNavigate();
    const [form, setForm] = useState({
       name: "",
       email: "",
@@ -87,6 +89,7 @@ export default function Register() {
          const data = await res.json();
          if (data.success) {
             toast.success(data.message||"Please Verify Your Email");
+              navigate("/login");
          } else {
             toast.error(data.message||"Unable To Login");
          }

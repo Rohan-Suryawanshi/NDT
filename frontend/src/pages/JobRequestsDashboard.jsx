@@ -63,7 +63,6 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
-
 const STATUS_OPTIONS = [
    {
       value: "draft",
@@ -195,8 +194,8 @@ const JobRequestsDashboard = () => {
    const [showNotesModal, setShowNotesModal] = useState(false);
    const [showAttachmentModal, setShowAttachmentModal] = useState(false);
    const [expandedCostBreakdown, setExpandedCostBreakdown] = useState({});
-  
-   const currency=JSON.parse(localStorage.getItem('user')).currency;
+
+   const currency = JSON.parse(localStorage.getItem("user")).currency;
    // Form states
    const [quotationForm, setQuotationForm] = useState({
       amount: "",
@@ -256,8 +255,13 @@ const JobRequestsDashboard = () => {
             }));
          }
       } catch (error) {
-         console.error("Error fetching job requests:", error.response.data.message);
-         toast.error(error.response.data.message||"Failed To Fetch the Profile");
+         console.error(
+            "Error fetching job requests:",
+            error.response.data.message
+         );
+         toast.error(
+            error.response.data.message || "Failed To Fetch the Profile"
+         );
       } finally {
          setLoading(false);
       }
@@ -613,7 +617,7 @@ const JobRequestsDashboard = () => {
 
    return (
       <>
-         <NavbarSection/>
+         <NavbarSection />
          <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
             {/* Header */}
             <header className="bg-white shadow-sm border-b border-gray-200 mt-4">
@@ -715,7 +719,10 @@ const JobRequestsDashboard = () => {
                            <SelectContent>
                               <SelectItem value="all">All Cities</SelectItem>
                               {Location.map((location) => (
-                                 <SelectItem key={location.id} value={location.country}>
+                                 <SelectItem
+                                    key={location.id}
+                                    value={location.country}
+                                 >
                                     {location.country}
                                  </SelectItem>
                               ))}
@@ -917,9 +924,7 @@ const JobRequestsDashboard = () => {
                                  <div className="flex justify-between text-sm">
                                     <span>Total Cost:</span>
                                     <span className="font-semibold text-green-600">
-                                       {formatCurrency(
-                                          job.estimatedTotal
-                                       )}
+                                       {formatCurrency(job.estimatedTotal)}
                                     </span>
                                  </div>
                                  <div className="flex justify-between text-sm text-gray-600">
@@ -958,16 +963,16 @@ const JobRequestsDashboard = () => {
                                           </div>
                                           {job.costDetails.totals.additional >
                                              0 && (
-                                                <div className="flex justify-between">
-                                                   <span>Additional:</span>
-                                                   <span>
-                                                      {formatCurrency(
-                                                         job.costDetails.totals
-                                                            .additional
-                                                      )}
-                                                   </span>
-                                                </div>
-                                             )}
+                                             <div className="flex justify-between">
+                                                <span>Additional:</span>
+                                                <span>
+                                                   {formatCurrency(
+                                                      job.costDetails.totals
+                                                         .additional
+                                                   )}
+                                                </span>
+                                             </div>
+                                          )}
                                           <div className="flex justify-between border-t pt-1 font-semibold">
                                              <span>Total:</span>
                                              <span>
@@ -1007,40 +1012,40 @@ const JobRequestsDashboard = () => {
                                        q.negotiations &&
                                        q.negotiations.length > 0
                                  ) && (
-                                       <div className="flex items-center mt-2 text-xs text-orange-600">
-                                          <Handshake className="h-3 w-3 mr-1" />
-                                          <span>Has negotiations</span>
-                                       </div>
-                                    )}{" "}
+                                    <div className="flex items-center mt-2 text-xs text-orange-600">
+                                       <Handshake className="h-3 w-3 mr-1" />
+                                       <span>Has negotiations</span>
+                                    </div>
+                                 )}{" "}
                                  {/* Show negotiating status */}
                                  {job.quotationHistory.some(
                                     (q) => q.status === "negotiating"
                                  ) && (
-                                       <div className="flex items-center justify-between mt-1">
-                                          <Badge className="bg-yellow-100 text-yellow-800 text-xs">
-                                             <MessageSquare className="h-3 w-3 mr-1" />
-                                             Negotiating
-                                          </Badge>
-                                          {/* Show if provider needs to respond */}
-                                          {user?.role === "provider" &&
-                                             job.quotationHistory.some(
-                                                (q) =>
-                                                   q.providerId === user._id &&
-                                                   q.status === "negotiating" &&
-                                                   q.negotiations?.some(
-                                                      (n) => n.fromClient
-                                                   ) &&
-                                                   !q.negotiations
-                                                      ?.slice()
-                                                      .reverse()
-                                                      .find((n) => !n.fromClient)
-                                             ) && (
-                                                <Badge className="bg-red-500 text-white text-xs animate-pulse">
-                                                   Response Needed
-                                                </Badge>
-                                             )}
-                                       </div>
-                                    )}
+                                    <div className="flex items-center justify-between mt-1">
+                                       <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                          <MessageSquare className="h-3 w-3 mr-1" />
+                                          Negotiating
+                                       </Badge>
+                                       {/* Show if provider needs to respond */}
+                                       {user?.role === "provider" &&
+                                          job.quotationHistory.some(
+                                             (q) =>
+                                                q.providerId === user._id &&
+                                                q.status === "negotiating" &&
+                                                q.negotiations?.some(
+                                                   (n) => n.fromClient
+                                                ) &&
+                                                !q.negotiations
+                                                   ?.slice()
+                                                   .reverse()
+                                                   .find((n) => !n.fromClient)
+                                          ) && (
+                                             <Badge className="bg-red-500 text-white text-xs animate-pulse">
+                                                Response Needed
+                                             </Badge>
+                                          )}
+                                    </div>
+                                 )}
                               </div>
                            )}
                            {/* Actions */}
@@ -1160,113 +1165,121 @@ const JobRequestsDashboard = () => {
             </div>
             {/* Job Details Modal */}
             {selectedJob && (
-               <div className="fixed inset-0 backdrop-blur-md bg-opacity-50 flex items-center justify-center p-4 z-50">
-                  <div className="bg-white rounded-xl max-w-4xl w-full max-h-screen overflow-y-auto">
-                     <div className="p-6">
-                        <div className="flex items-center justify-between mb-6">
-                           <h2 className="text-2xl font-bold text-gray-900">
-                              Job Details
-                           </h2>
-                           <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedJob(null)}
-                           >
-                              <X className="h-4 w-4" />
-                           </Button>
-                        </div>
+               <div>
+                  <div className="fixed inset-0 bg-blue-50 bg-opacity-50 flex items-center justify-center p-4 z-50 ">
+                     <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh]  overflow-y-auto">
+                        <div className="p-6">
+                           <div className="flex items-center justify-between mb-6">
+                              <h2 className="text-2xl font-bold text-gray-900">
+                                 Job Details
+                              </h2>
+                              <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => setSelectedJob(null)}
+                              >
+                                 <X className="h-4 w-4" />
+                              </Button>
+                           </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                           {/* Main Details */}
-                           <div className="lg:col-span-2 space-y-6">
-                              {/* Job Info */}
-                              <Card>
-                                 <CardHeader>
-                                    <CardTitle className="flex items-center justify-between">
-                                       <span>{selectedJob.title}</span>
-                                       <Badge
-                                          className={
-                                             getStatusConfig(selectedJob.status)
-                                                .color
-                                          }
-                                       >
-                                          {
-                                             getStatusConfig(selectedJob.status)
-                                                .label
-                                          }
-                                       </Badge>
-                                    </CardTitle>
-                                 </CardHeader>
-                                 <CardContent>
-                                    <p className="text-gray-600 mb-4">
-                                       {selectedJob.description}
-                                    </p>
-                                    <div className="grid grid-cols-2 gap-4">
-                                       <div>
-                                          <Label>Location</Label>
-                                          <p className="font-medium">
-                                             {selectedJob.location},{" "}
-                                             {selectedJob.region}
-                                          </p>
-                                       </div>
-                                       <div>
-                                          <Label>Duration</Label>
-                                          <p className="font-medium">
-                                             {selectedJob.projectDuration} day
-                                             {selectedJob.projectDuration > 1
-                                                ? "s"
-                                                : ""}
-                                          </p>
-                                       </div>
-                                       <div>
-                                          <Label>Inspectors Required</Label>
-                                          <p className="font-medium">
-                                             {selectedJob.numInspectors}
-                                          </p>
-                                       </div>
-                                       <div>
-                                          <Label>Created</Label>
-                                          <p className="font-medium">
-                                             {formatDate(selectedJob.createdAt)}
-                                          </p>
-                                       </div>
-                                    </div>
-                                 </CardContent>
-                              </Card>
-                              {/* Detailed Cost Breakdown */}
-                              {selectedJob.costDetails && (
+                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                              {/* Main Details */}
+                              <div className="lg:col-span-2 space-y-6">
+                                 {/* Job Info */}
                                  <Card>
                                     <CardHeader>
-                                       <CardTitle>Cost Breakdown</CardTitle>
+                                       <CardTitle className="flex items-center justify-between">
+                                          <span>{selectedJob.title}</span>
+                                          <Badge
+                                             className={
+                                                getStatusConfig(
+                                                   selectedJob.status
+                                                ).color
+                                             }
+                                          >
+                                             {
+                                                getStatusConfig(
+                                                   selectedJob.status
+                                                ).label
+                                             }
+                                          </Badge>
+                                       </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                       <div className="space-y-4">
-                                          {/* Services */}
+                                       <p className="text-gray-600 mb-4">
+                                          {selectedJob.description}
+                                       </p>
+                                       <div className="grid grid-cols-2 gap-4">
                                           <div>
-                                             <h4 className="font-semibold mb-3">
-                                                Services
-                                             </h4>
-                                             <div className="space-y-2">
-                                                {selectedJob.costDetails.services?.map(
-                                                   (service, index) => (
-                                                      <div
-                                                         key={index}
-                                                         className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                                                      >
-                                                         <div>
-                                                            <p className="font-medium">
-                                                               {service.serviceName}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                               {formatCurrency(
-                                                                  service.charge
-                                                               )}{" "}
-                                                               ×{" "}
-                                                               {
-                                                                  service.quantity
-                                                               }
-                                                               {service.multiplier >
-                                                                  service.quantity && (
+                                             <Label>Location</Label>
+                                             <p className="font-medium">
+                                                {selectedJob.location},{" "}
+                                                {selectedJob.region}
+                                             </p>
+                                          </div>
+                                          <div>
+                                             <Label>Duration</Label>
+                                             <p className="font-medium">
+                                                {selectedJob.projectDuration}{" "}
+                                                day
+                                                {selectedJob.projectDuration > 1
+                                                   ? "s"
+                                                   : ""}
+                                             </p>
+                                          </div>
+                                          <div>
+                                             <Label>Inspectors Required</Label>
+                                             <p className="font-medium">
+                                                {selectedJob.numInspectors}
+                                             </p>
+                                          </div>
+                                          <div>
+                                             <Label>Created</Label>
+                                             <p className="font-medium">
+                                                {formatDate(
+                                                   selectedJob.createdAt
+                                                )}
+                                             </p>
+                                          </div>
+                                       </div>
+                                    </CardContent>
+                                 </Card>
+                                 {/* Detailed Cost Breakdown */}
+                                 {selectedJob.costDetails && (
+                                    <Card>
+                                       <CardHeader>
+                                          <CardTitle>Cost Breakdown</CardTitle>
+                                       </CardHeader>
+                                       <CardContent>
+                                          <div className="space-y-4">
+                                             {/* Services */}
+                                             <div>
+                                                <h4 className="font-semibold mb-3">
+                                                   Services
+                                                </h4>
+                                                <div className="space-y-2">
+                                                   {selectedJob.costDetails.services?.map(
+                                                      (service, index) => (
+                                                         <div
+                                                            key={index}
+                                                            className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                                                         >
+                                                            <div>
+                                                               <p className="font-medium">
+                                                                  {
+                                                                     service.serviceName
+                                                                  }
+                                                               </p>
+                                                               <p className="text-sm text-gray-600">
+                                                                  {formatCurrency(
+                                                                     service.charge
+                                                                  )}{" "}
+                                                                  ×{" "}
+                                                                  {
+                                                                     service.quantity
+                                                                  }
+                                                                  {service.multiplier >
+                                                                     service.quantity && (
                                                                      <span>
                                                                         {" "}
                                                                         ×{" "}
@@ -1274,31 +1287,31 @@ const JobRequestsDashboard = () => {
                                                                            service.quantity}
                                                                      </span>
                                                                   )}
-                                                            </p>
+                                                               </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                               <p className="font-medium">
+                                                                  {formatCurrency(
+                                                                     service.baseCost
+                                                                  )}
+                                                               </p>
+                                                               <p className="text-sm text-gray-600">
+                                                                  +
+                                                                  {formatCurrency(
+                                                                     service.taxAmount
+                                                                  )}{" "}
+                                                                  tax
+                                                               </p>
+                                                            </div>
                                                          </div>
-                                                         <div className="text-right">
-                                                            <p className="font-medium">
-                                                               {formatCurrency(
-                                                                  service.baseCost
-                                                               )}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                               +
-                                                               {formatCurrency(
-                                                                  service.taxAmount
-                                                               )}{" "}
-                                                               tax
-                                                            </p>
-                                                         </div>
-                                                      </div>
-                                                   )
-                                                )}
+                                                      )
+                                                   )}
+                                                </div>
                                              </div>
-                                          </div>
 
-                                          {/* Additional Costs */}
-                                          {selectedJob.costDetails.additional
-                                             ?.length > 0 && (
+                                             {/* Additional Costs */}
+                                             {selectedJob.costDetails.additional
+                                                ?.length > 0 && (
                                                 <div>
                                                    <h4 className="font-semibold mb-3">
                                                       Additional Costs
@@ -1325,492 +1338,504 @@ const JobRequestsDashboard = () => {
                                                 </div>
                                              )}
 
-                                          {/* Totals */}
-                                          <div className="border-t pt-4 space-y-2">
-                                             <div className="flex justify-between">
-                                                <span>Subtotal:</span>
-                                                <span>
-                                                   {formatCurrency(
-                                                      selectedJob.costDetails
-                                                         .totals.baseCost
-                                                   )}
-                                                </span>
-                                             </div>
-                                             <div className="flex justify-between">
-                                                <span>Tax:</span>
-                                                <span>
-                                                   {formatCurrency(
-                                                      selectedJob.costDetails
-                                                         .totals.tax
-                                                   )}
-                                                </span>
-                                             </div>
-                                             {selectedJob.costDetails.totals
-                                                .additional > 0 && (
+                                             {/* Totals */}
+                                             <div className="border-t pt-4 space-y-2">
+                                                <div className="flex justify-between">
+                                                   <span>Subtotal:</span>
+                                                   <span>
+                                                      {formatCurrency(
+                                                         selectedJob.costDetails
+                                                            .totals.baseCost
+                                                      )}
+                                                   </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                   <span>Tax:</span>
+                                                   <span>
+                                                      {formatCurrency(
+                                                         selectedJob.costDetails
+                                                            .totals.tax
+                                                      )}
+                                                   </span>
+                                                </div>
+                                                {selectedJob.costDetails.totals
+                                                   .additional > 0 && (
                                                    <div className="flex justify-between">
                                                       <span>Additional:</span>
                                                       <span>
                                                          {formatCurrency(
-                                                            selectedJob.costDetails
-                                                               .totals.additional
+                                                            selectedJob
+                                                               .costDetails
+                                                               .totals
+                                                               .additional
                                                          )}
                                                       </span>
                                                    </div>
                                                 )}
-                                             <div className="flex justify-between text-lg font-bold border-t pt-2">
-                                                <span>Total:</span>
-                                                <span className="text-green-600">
-                                                   {formatCurrency(
-                                                      selectedJob.costDetails
-                                                         .totals.grandTotal
-                                                   )}
-                                                </span>
+                                                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                                                   <span>Total:</span>
+                                                   <span className="text-green-600">
+                                                      {formatCurrency(
+                                                         selectedJob.costDetails
+                                                            .totals.grandTotal
+                                                      )}
+                                                   </span>
+                                                </div>
                                              </div>
+                                          </div>
+                                       </CardContent>
+                                    </Card>
+                                 )}{" "}
+                                 {/* Quotations */}
+                                 {selectedJob.quotationHistory?.length > 0 && (
+                                    <Card>
+                                       <CardHeader>
+                                          <CardTitle>Quotations</CardTitle>
+                                       </CardHeader>
+                                       <CardContent>
+                                          <div className="space-y-4">
+                                             {selectedJob.quotationHistory.map(
+                                                (quotation, index) => {
+                                                   const quotationStatusConfig =
+                                                      QUOTATION_STATUS[
+                                                         quotation.status
+                                                      ] ||
+                                                      QUOTATION_STATUS.pending;
+                                                   const StatusIcon =
+                                                      quotationStatusConfig.icon;
+
+                                                   return (
+                                                      <div
+                                                         key={index}
+                                                         className="p-4 border rounded-lg border-l-4 border-l-[#004aad]"
+                                                      >
+                                                         <div className="flex justify-between items-start mb-4">
+                                                            <div>
+                                                               <div className="flex items-center space-x-2 mb-2">
+                                                                  <p className="font-semibold text-lg text-green-600">
+                                                                     {formatCurrency(
+                                                                        quotation.quotedAmount,
+                                                                        quotation.currency
+                                                                     )}
+                                                                  </p>
+                                                                  <Badge
+                                                                     className={
+                                                                        quotationStatusConfig.color
+                                                                     }
+                                                                  >
+                                                                     <StatusIcon className="h-3 w-3 mr-1" />
+                                                                     {
+                                                                        quotationStatusConfig.label
+                                                                     }
+                                                                  </Badge>
+                                                               </div>
+                                                               <p className="text-sm text-gray-600">
+                                                                  Valid until:{" "}
+                                                                  {quotation.validUntil
+                                                                     ? formatDate(
+                                                                          quotation.validUntil
+                                                                       )
+                                                                     : "No expiry"}
+                                                               </p>
+                                                               <p className="text-sm text-gray-600">
+                                                                  Submitted:{" "}
+                                                                  {formatDate(
+                                                                     quotation.quotedAt
+                                                                  )}
+                                                               </p>
+                                                            </div>
+
+                                                            {/* Provider Info */}
+                                                            <div className="text-right">
+                                                               <p className="font-medium">
+                                                                  {
+                                                                     quotation
+                                                                        .providerId
+                                                                        ?.companyName
+                                                                  }
+                                                               </p>
+                                                               <p className="text-sm text-gray-600">
+                                                                  {
+                                                                     quotation
+                                                                        .providerId
+                                                                        ?.email
+                                                                  }
+                                                               </p>
+                                                            </div>
+                                                         </div>
+                                                         {quotation.quotationDetails && (
+                                                            <div className="mb-4">
+                                                               <Label>
+                                                                  Description
+                                                               </Label>
+                                                               <p className="text-gray-700">
+                                                                  {
+                                                                     quotation.quotationDetails
+                                                                  }
+                                                               </p>
+                                                            </div>
+                                                         )}
+                                                         {quotation.terms && (
+                                                            <div className="mb-4">
+                                                               <Label>
+                                                                  Terms &
+                                                                  Conditions
+                                                               </Label>
+                                                               <p className="text-gray-700 text-sm">
+                                                                  {
+                                                                     quotation.terms
+                                                                  }
+                                                               </p>
+                                                            </div>
+                                                         )}{" "}
+                                                         {/* Quotation Actions */}
+                                                         {user?.role ===
+                                                            "client" &&
+                                                            quotation.status ===
+                                                               "pending" && (
+                                                               <div className="flex space-x-3 mt-4">
+                                                                  <Button
+                                                                     onClick={() =>
+                                                                        handleQuotationAction(
+                                                                           quotation._id,
+                                                                           "accepted"
+                                                                        )
+                                                                     }
+                                                                     className="bg-green-600 hover:bg-green-700"
+                                                                     disabled={
+                                                                        actionLoading
+                                                                     }
+                                                                     size="sm"
+                                                                  >
+                                                                     {actionLoading ? (
+                                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                     ) : (
+                                                                        <ThumbsUp className="h-4 w-4 mr-2" />
+                                                                     )}
+                                                                     Accept
+                                                                  </Button>
+                                                                  <Button
+                                                                     variant="outline"
+                                                                     onClick={() => {
+                                                                        setSelectedQuotation(
+                                                                           quotation
+                                                                        );
+                                                                        setShowNegotiationModal(
+                                                                           true
+                                                                        );
+                                                                     }}
+                                                                     className="border-[#004aad]  text-[#004aad]"
+                                                                     disabled={
+                                                                        actionLoading
+                                                                     }
+                                                                     size="sm"
+                                                                  >
+                                                                     <Handshake className="h-4 w-4 mr-2" />
+                                                                     Negotiate
+                                                                  </Button>
+                                                                  <Button
+                                                                     variant="outline"
+                                                                     onClick={() =>
+                                                                        handleQuotationAction(
+                                                                           quotation._id,
+                                                                           "rejected"
+                                                                        )
+                                                                     }
+                                                                     className="border-red-500 text-red-600 hover:bg-red-50"
+                                                                     disabled={
+                                                                        actionLoading
+                                                                     }
+                                                                     size="sm"
+                                                                  >
+                                                                     {actionLoading ? (
+                                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                     ) : (
+                                                                        <ThumbsDown className="h-4 w-4 mr-2" />
+                                                                     )}
+                                                                     Reject
+                                                                  </Button>
+                                                               </div>
+                                                            )}{" "}
+                                                         {/* Provider Negotiation Actions */}
+                                                         {user?.role ===
+                                                            "provider" &&
+                                                            quotation.providerId
+                                                               ?._id ===
+                                                               user._id &&
+                                                            (quotation.status ===
+                                                               "pending" ||
+                                                               quotation.status ===
+                                                                  "negotiating") && (
+                                                               <div className="flex space-x-3 mt-4">
+                                                                  {" "}
+                                                                  {(() => {
+                                                                     const hasClientMessages =
+                                                                        quotation.negotiations?.some(
+                                                                           (
+                                                                              n
+                                                                           ) =>
+                                                                              n.fromClient
+                                                                        );
+                                                                     const needsResponse =
+                                                                        hasClientMessages &&
+                                                                        quotation.status ===
+                                                                           "negotiating";
+
+                                                                     return (
+                                                                        <Button
+                                                                           variant={
+                                                                              needsResponse
+                                                                                 ? "default"
+                                                                                 : "outline"
+                                                                           }
+                                                                           onClick={() => {
+                                                                              setSelectedQuotation(
+                                                                                 quotation
+                                                                              );
+                                                                              setShowNegotiationModal(
+                                                                                 true
+                                                                              );
+                                                                           }}
+                                                                           className={
+                                                                              needsResponse
+                                                                                 ? "bg-orange-600 hover:bg-orange-700 text-white"
+                                                                                 : "border-[#004aad] text-[#004aad] "
+                                                                           }
+                                                                           disabled={
+                                                                              actionLoading
+                                                                           }
+                                                                           size="sm"
+                                                                        >
+                                                                           <MessageSquare className="h-4 w-4 mr-2" />
+                                                                           {needsResponse
+                                                                              ? "Respond to Client"
+                                                                              : quotation.status ===
+                                                                                "negotiating"
+                                                                              ? "Continue Negotiation"
+                                                                              : "Start Negotiation"}
+                                                                           {needsResponse && (
+                                                                              <Badge className="ml-2 bg-red-500 text-white text-xs px-1">
+                                                                                 New
+                                                                              </Badge>
+                                                                           )}
+                                                                        </Button>
+                                                                     );
+                                                                  })()}
+                                                               </div>
+                                                            )}
+                                                         {/* Negotiation Messages */}
+                                                         {quotation.negotiations &&
+                                                            quotation
+                                                               .negotiations
+                                                               .length > 0 && (
+                                                               <div className="mt-4 border-t pt-4">
+                                                                  <Label>
+                                                                     Negotiation
+                                                                     History
+                                                                  </Label>
+                                                                  <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+                                                                     {quotation.negotiations.map(
+                                                                        (
+                                                                           negotiation,
+                                                                           negIndex
+                                                                        ) => (
+                                                                           <div
+                                                                              key={
+                                                                                 negIndex
+                                                                              }
+                                                                              className="p-3 bg-gray-50 rounded-lg"
+                                                                           >
+                                                                              <div className="flex justify-between items-start mb-2">
+                                                                                 <span className="font-medium text-sm">
+                                                                                    {negotiation.fromClient
+                                                                                       ? "Client"
+                                                                                       : "Provider"}
+                                                                                 </span>
+                                                                                 <span className="text-xs text-gray-500">
+                                                                                    {formatDate(
+                                                                                       negotiation.createdAt
+                                                                                    )}
+                                                                                 </span>
+                                                                              </div>
+                                                                              <p className="text-sm">
+                                                                                 {
+                                                                                    negotiation.message
+                                                                                 }
+                                                                              </p>
+                                                                              {negotiation.proposedAmount && (
+                                                                                 <p className="text-sm font-medium text-green-600 mt-1">
+                                                                                    Proposed:{" "}
+                                                                                    {formatCurrency(
+                                                                                       negotiation.proposedAmount
+                                                                                    )}
+                                                                                 </p>
+                                                                              )}
+                                                                              {negotiation.counterOffer && (
+                                                                                 <p className="text-sm text-gray-600 mt-1">
+                                                                                    Terms:{" "}
+                                                                                    {
+                                                                                       negotiation.counterOffer
+                                                                                    }
+                                                                                 </p>
+                                                                              )}
+                                                                           </div>
+                                                                        )
+                                                                     )}
+                                                                  </div>
+                                                               </div>
+                                                            )}
+                                                      </div>
+                                                   );
+                                                }
+                                             )}
+                                          </div>
+                                       </CardContent>
+                                    </Card>
+                                 )}
+                                 {/* Notes */}
+                                 {selectedJob.internalNotes?.length > 0 && (
+                                    <Card>
+                                       <CardHeader>
+                                          <CardTitle>Notes</CardTitle>
+                                       </CardHeader>
+                                       <CardContent>
+                                          <div className="space-y-3">
+                                             {selectedJob.internalNotes.map(
+                                                (note, index) => (
+                                                   <div
+                                                      key={index}
+                                                      className="p-3 border-l-4 border-[#004aad] bg-blue-50"
+                                                   >
+                                                      <div className="flex items-center justify-between mb-1">
+                                                         <Badge variant="outline">
+                                                            {note.noteType}
+                                                         </Badge>
+                                                         <span className="text-xs text-gray-500">
+                                                            {formatDate(
+                                                               note.addedAt
+                                                            )}
+                                                         </span>
+                                                      </div>
+                                                      <p className="text-sm">
+                                                         {note.note}
+                                                      </p>
+                                                      <p className="text-xs text-gray-600 mt-1">
+                                                         By{" "}
+                                                         {note.addedBy?.name ||
+                                                            "Unknown"}
+                                                      </p>
+                                                   </div>
+                                                )
+                                             )}
+                                          </div>
+                                       </CardContent>
+                                    </Card>
+                                 )}
+                              </div>
+
+                              {/* Sidebar */}
+                              <div className="space-y-6">
+                                 {/* Status Update */}
+                                 {canEditJob(selectedJob) && (
+                                    <Card>
+                                       <CardHeader>
+                                          <CardTitle>Update Status</CardTitle>
+                                       </CardHeader>
+                                       <CardContent>
+                                          <Select
+                                             value={selectedJob.status}
+                                             onValueChange={(value) =>
+                                                handleStatusUpdate(
+                                                   selectedJob._id,
+                                                   value
+                                                )
+                                             }
+                                          >
+                                             <SelectTrigger>
+                                                <SelectValue />
+                                             </SelectTrigger>
+                                             <SelectContent>
+                                                {STATUS_OPTIONS.map(
+                                                   (status) => (
+                                                      <SelectItem
+                                                         key={status.value}
+                                                         value={status.value}
+                                                      >
+                                                         {status.label}
+                                                      </SelectItem>
+                                                   )
+                                                )}
+                                             </SelectContent>
+                                          </Select>
+                                       </CardContent>
+                                    </Card>
+                                 )}
+
+                                 {/* Client Info */}
+                                 <Card>
+                                    <CardHeader>
+                                       <CardTitle>Client Information</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                       <div className="space-y-2">
+                                          <div>
+                                             <Label>Name</Label>
+                                             <p className="font-medium">
+                                                {selectedJob.clientName}
+                                             </p>
+                                          </div>
+                                          <div>
+                                             <Label>Email</Label>
+                                             <p className="font-medium">
+                                                {selectedJob.clientEmail}
+                                             </p>
                                           </div>
                                        </div>
                                     </CardContent>
                                  </Card>
-                              )}{" "}
-                              {/* Quotations */}
-                              {selectedJob.quotationHistory?.length > 0 && (
+
+                                 {/* Actions */}
                                  <Card>
                                     <CardHeader>
-                                       <CardTitle>Quotations</CardTitle>
+                                       <CardTitle>Actions</CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                       <div className="space-y-4">
-                                          {selectedJob.quotationHistory.map(
-                                             (quotation, index) => {
-                                                const quotationStatusConfig =
-                                                   QUOTATION_STATUS[
-                                                   quotation.status
-                                                   ] ||
-                                                   QUOTATION_STATUS.pending;
-                                                const StatusIcon =
-                                                   quotationStatusConfig.icon;
-
-                                                return (
-                                                   <div
-                                                      key={index}
-                                                      className="p-4 border rounded-lg border-l-4 border-l-[#004aad]"
-                                                   >
-                                                      <div className="flex justify-between items-start mb-4">
-                                                         <div>
-                                                            <div className="flex items-center space-x-2 mb-2">
-                                                               <p className="font-semibold text-lg text-green-600">
-                                                                  {formatCurrency(
-                                                                     quotation.quotedAmount,
-                                                                     quotation.currency
-                                                                  )}
-                                                               </p>
-                                                               <Badge
-                                                                  className={
-                                                                     quotationStatusConfig.color
-                                                                  }
-                                                               >
-                                                                  <StatusIcon className="h-3 w-3 mr-1" />
-                                                                  {
-                                                                     quotationStatusConfig.label
-                                                                  }
-                                                               </Badge>
-                                                            </div>
-                                                            <p className="text-sm text-gray-600">
-                                                               Valid until:{" "}
-                                                               {quotation.validUntil
-                                                                  ? formatDate(
-                                                                     quotation.validUntil
-                                                                  )
-                                                                  : "No expiry"}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                               Submitted:{" "}
-                                                               {formatDate(
-                                                                  quotation.quotedAt
-                                                               )}
-                                                            </p>
-                                                         </div>
-
-                                                         {/* Provider Info */}
-                                                         <div className="text-right">
-                                                            <p className="font-medium">
-                                                               {
-                                                                  quotation
-                                                                     .providerId
-                                                                     ?.companyName
-                                                               }
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">
-                                                               {
-                                                                  quotation
-                                                                     .providerId
-                                                                     ?.email
-                                                               }
-                                                            </p>
-                                                         </div>
-                                                      </div>
-                                                      {quotation.quotationDetails && (
-                                                         <div className="mb-4">
-                                                            <Label>
-                                                               Description
-                                                            </Label>
-                                                            <p className="text-gray-700">
-                                                               {
-                                                                  quotation.quotationDetails
-                                                               }
-                                                            </p>
-                                                         </div>
-                                                      )}
-                                                      {quotation.terms && (
-                                                         <div className="mb-4">
-                                                            <Label>
-                                                               Terms &
-                                                               Conditions
-                                                            </Label>
-                                                            <p className="text-gray-700 text-sm">
-                                                               {quotation.terms}
-                                                            </p>
-                                                         </div>
-                                                      )}{" "}
-                                                      {/* Quotation Actions */}
-                                                      {user?.role ===
-                                                         "client" &&
-                                                         quotation.status ===
-                                                         "pending" && (
-                                                            <div className="flex space-x-3 mt-4">
-                                                               <Button
-                                                                  onClick={() =>
-                                                                     handleQuotationAction(
-                                                                        quotation._id,
-                                                                        "accepted"
-                                                                     )
-                                                                  }
-                                                                  className="bg-green-600 hover:bg-green-700"
-                                                                  disabled={
-                                                                     actionLoading
-                                                                  }
-                                                                  size="sm"
-                                                               >
-                                                                  {actionLoading ? (
-                                                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                  ) : (
-                                                                     <ThumbsUp className="h-4 w-4 mr-2" />
-                                                                  )}
-                                                                  Accept
-                                                               </Button>
-                                                               <Button
-                                                                  variant="outline"
-                                                                  onClick={() => {
-                                                                     setSelectedQuotation(
-                                                                        quotation
-                                                                     );
-                                                                     setShowNegotiationModal(
-                                                                        true
-                                                                     );
-                                                                  }}
-                                                                  className="border-[#004aad]  text-[#004aad]"
-                                                                  disabled={
-                                                                     actionLoading
-                                                                  }
-                                                                  size="sm"
-                                                               >
-                                                                  <Handshake className="h-4 w-4 mr-2" />
-                                                                  Negotiate
-                                                               </Button>
-                                                               <Button
-                                                                  variant="outline"
-                                                                  onClick={() =>
-                                                                     handleQuotationAction(
-                                                                        quotation._id,
-                                                                        "rejected"
-                                                                     )
-                                                                  }
-                                                                  className="border-red-500 text-red-600 hover:bg-red-50"
-                                                                  disabled={
-                                                                     actionLoading
-                                                                  }
-                                                                  size="sm"
-                                                               >
-                                                                  {actionLoading ? (
-                                                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                  ) : (
-                                                                     <ThumbsDown className="h-4 w-4 mr-2" />
-                                                                  )}
-                                                                  Reject
-                                                               </Button>
-                                                            </div>
-                                                         )}{" "}
-                                                      {/* Provider Negotiation Actions */}
-                                                      {user?.role ===
-                                                         "provider" &&
-                                                         quotation.providerId
-                                                            ?._id ===
-                                                         user._id &&
-                                                         (quotation.status ===
-                                                            "pending" ||
-                                                            quotation.status ===
-                                                            "negotiating") && (
-                                                            <div className="flex space-x-3 mt-4">
-                                                               {" "}
-                                                               {(() => {
-                                                                  const hasClientMessages =
-                                                                     quotation.negotiations?.some(
-                                                                        (n) =>
-                                                                           n.fromClient
-                                                                     );
-                                                                  const needsResponse =
-                                                                     hasClientMessages &&
-                                                                     quotation.status ===
-                                                                     "negotiating";
-
-                                                                  return (
-                                                                     <Button
-                                                                        variant={
-                                                                           needsResponse
-                                                                              ? "default"
-                                                                              : "outline"
-                                                                        }
-                                                                        onClick={() => {
-                                                                           setSelectedQuotation(
-                                                                              quotation
-                                                                           );
-                                                                           setShowNegotiationModal(
-                                                                              true
-                                                                           );
-                                                                        }}
-                                                                        className={
-                                                                           needsResponse
-                                                                              ? "bg-orange-600 hover:bg-orange-700 text-white"
-                                                                              : "border-[#004aad] text-[#004aad] "
-                                                                        }
-                                                                        disabled={
-                                                                           actionLoading
-                                                                        }
-                                                                        size="sm"
-                                                                     >
-                                                                        <MessageSquare className="h-4 w-4 mr-2" />
-                                                                        {needsResponse
-                                                                           ? "Respond to Client"
-                                                                           : quotation.status ===
-                                                                              "negotiating"
-                                                                              ? "Continue Negotiation"
-                                                                              : "Start Negotiation"}
-                                                                        {needsResponse && (
-                                                                           <Badge className="ml-2 bg-red-500 text-white text-xs px-1">
-                                                                              New
-                                                                           </Badge>
-                                                                        )}
-                                                                     </Button>
-                                                                  );
-                                                               })()}
-                                                            </div>
-                                                         )}
-                                                      {/* Negotiation Messages */}
-                                                      {quotation.negotiations &&
-                                                         quotation.negotiations
-                                                            .length > 0 && (
-                                                            <div className="mt-4 border-t pt-4">
-                                                               <Label>
-                                                                  Negotiation
-                                                                  History
-                                                               </Label>
-                                                               <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
-                                                                  {quotation.negotiations.map(
-                                                                     (
-                                                                        negotiation,
-                                                                        negIndex
-                                                                     ) => (
-                                                                        <div
-                                                                           key={
-                                                                              negIndex
-                                                                           }
-                                                                           className="p-3 bg-gray-50 rounded-lg"
-                                                                        >
-                                                                           <div className="flex justify-between items-start mb-2">
-                                                                              <span className="font-medium text-sm">
-                                                                                 {negotiation.fromClient
-                                                                                    ? "Client"
-                                                                                    : "Provider"}
-                                                                              </span>
-                                                                              <span className="text-xs text-gray-500">
-                                                                                 {formatDate(
-                                                                                    negotiation.createdAt
-                                                                                 )}
-                                                                              </span>
-                                                                           </div>
-                                                                           <p className="text-sm">
-                                                                              {
-                                                                                 negotiation.message
-                                                                              }
-                                                                           </p>
-                                                                           {negotiation.proposedAmount && (
-                                                                              <p className="text-sm font-medium text-green-600 mt-1">
-                                                                                 Proposed:{" "}
-                                                                                 {formatCurrency(
-                                                                                    negotiation.proposedAmount
-                                                                                 )}
-                                                                              </p>
-                                                                           )}
-                                                                           {negotiation.counterOffer && (
-                                                                              <p className="text-sm text-gray-600 mt-1">
-                                                                                 Terms:{" "}
-                                                                                 {
-                                                                                    negotiation.counterOffer
-                                                                                 }
-                                                                              </p>
-                                                                           )}
-                                                                        </div>
-                                                                     )
-                                                                  )}
-                                                               </div>
-                                                            </div>
-                                                         )}
-                                                   </div>
-                                                );
+                                    <CardContent className="space-y-3">
+                                       {canAddQuotation(selectedJob) && (
+                                          <Button
+                                             className="w-full"
+                                             onClick={() =>
+                                                setShowQuotationModal(true)
                                              }
-                                          )}
-                                       </div>
-                                    </CardContent>
-                                 </Card>
-                              )}
-                              {/* Notes */}
-                              {selectedJob.internalNotes?.length > 0 && (
-                                 <Card>
-                                    <CardHeader>
-                                       <CardTitle>Notes</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                       <div className="space-y-3">
-                                          {selectedJob.internalNotes.map(
-                                             (note, index) => (
-                                                <div
-                                                   key={index}
-                                                   className="p-3 border-l-4 border-[#004aad] bg-blue-50"
-                                                >
-                                                   <div className="flex items-center justify-between mb-1">
-                                                      <Badge variant="outline">
-                                                         {note.noteType}
-                                                      </Badge>
-                                                      <span className="text-xs text-gray-500">
-                                                         {formatDate(
-                                                            note.addedAt
-                                                         )}
-                                                      </span>
-                                                   </div>
-                                                   <p className="text-sm">
-                                                      {note.note}
-                                                   </p>
-                                                   <p className="text-xs text-gray-600 mt-1">
-                                                      By{" "}
-                                                      {note.addedBy?.name ||
-                                                         "Unknown"}
-                                                   </p>
-                                                </div>
-                                             )
-                                          )}
-                                       </div>
-                                    </CardContent>
-                                 </Card>
-                              )}
-                           </div>
+                                          >
+                                             <Quote className="h-4 w-4 mr-2" />
+                                             Add Quotation
+                                          </Button>
+                                       )}
 
-                           {/* Sidebar */}
-                           <div className="space-y-6">
-                              {/* Status Update */}
-                              {canEditJob(selectedJob) && (
-                                 <Card>
-                                    <CardHeader>
-                                       <CardTitle>Update Status</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                       <Select
-                                          value={selectedJob.status}
-                                          onValueChange={(value) =>
-                                             handleStatusUpdate(
-                                                selectedJob._id,
-                                                value
-                                             )
-                                          }
-                                       >
-                                          <SelectTrigger>
-                                             <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                             {STATUS_OPTIONS.map((status) => (
-                                                <SelectItem
-                                                   key={status.value}
-                                                   value={status.value}
-                                                >
-                                                   {status.label}
-                                                </SelectItem>
-                                             ))}
-                                          </SelectContent>
-                                       </Select>
-                                    </CardContent>
-                                 </Card>
-                              )}
-
-                              {/* Client Info */}
-                              <Card>
-                                 <CardHeader>
-                                    <CardTitle>Client Information</CardTitle>
-                                 </CardHeader>
-                                 <CardContent>
-                                    <div className="space-y-2">
-                                       <div>
-                                          <Label>Name</Label>
-                                          <p className="font-medium">
-                                             {selectedJob.clientName}
-                                          </p>
-                                       </div>
-                                       <div>
-                                          <Label>Email</Label>
-                                          <p className="font-medium">
-                                             {selectedJob.clientEmail}
-                                          </p>
-                                       </div>
-                                    </div>
-                                 </CardContent>
-                              </Card>
-
-                              {/* Actions */}
-                              <Card>
-                                 <CardHeader>
-                                    <CardTitle>Actions</CardTitle>
-                                 </CardHeader>
-                                 <CardContent className="space-y-3">
-                                    {canAddQuotation(selectedJob) && (
                                        <Button
+                                          variant="outline"
                                           className="w-full"
                                           onClick={() =>
-                                             setShowQuotationModal(true)
+                                             setShowNotesModal(true)
                                           }
                                        >
-                                          <Quote className="h-4 w-4 mr-2" />
-                                          Add Quotation
+                                          <MessageSquare className="h-4 w-4 mr-2" />
+                                          Add Note
                                        </Button>
-                                    )}
 
-                                    <Button
-                                       variant="outline"
-                                       className="w-full"
-                                       onClick={() => setShowNotesModal(true)}
-                                    >
-                                       <MessageSquare className="h-4 w-4 mr-2" />
-                                       Add Note
-                                    </Button>
-
-                                    <Button
-                                       variant="outline"
-                                       className="w-full"
-                                       onClick={() =>
-                                          setShowAttachmentModal(true)
-                                       }
-                                    >
-                                       <Paperclip className="h-4 w-4 mr-2" />
-                                       Add Attachment
-                                    </Button>
-                                 </CardContent>
-                              </Card>
+                                       <Button
+                                          variant="outline"
+                                          className="w-full"
+                                          onClick={() =>
+                                             setShowAttachmentModal(true)
+                                          }
+                                       >
+                                          <Paperclip className="h-4 w-4 mr-2" />
+                                          Add Attachment
+                                       </Button>
+                                    </CardContent>
+                                 </Card>
+                              </div>
                            </div>
                         </div>
                      </div>
@@ -1862,12 +1887,14 @@ const JobRequestsDashboard = () => {
                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                       {
-                                          Location.map((location,index)=>(
-                                             <SelectItem value={location.currencyCode} key={index}>{location.currencyCode}</SelectItem>
-                                          ))
-                                       }
-                           
+                                       {Location.map((location, index) => (
+                                          <SelectItem
+                                             value={location.currencyCode}
+                                             key={index}
+                                          >
+                                             {location.currencyCode}
+                                          </SelectItem>
+                                       ))}
                                     </SelectContent>
                                  </Select>
                               </div>
@@ -1994,7 +2021,7 @@ const JobRequestsDashboard = () => {
                               />
                            </div>
 
-                           <div className="flex items-center space-x-2 ">
+                           {/* <div className="flex items-center space-x-2 ">
                               <input
                                  type="checkbox"
                                  id="isInternal"
@@ -2009,7 +2036,7 @@ const JobRequestsDashboard = () => {
                               <Label htmlFor="isInternal" className="mb-0">
                                  Internal note (not visible to client)
                               </Label>
-                           </div>
+                           </div> */}
 
                            <div className="flex space-x-3 pt-4">
                               <Button
@@ -2218,10 +2245,11 @@ const JobRequestsDashboard = () => {
                                                 (negotiation, index) => (
                                                    <div
                                                       key={index}
-                                                      className={`p-3 rounded-lg ${negotiation.fromClient
+                                                      className={`p-3 rounded-lg ${
+                                                         negotiation.fromClient
                                                             ? "bg-blue-50 border-l-4 border-blue-500"
                                                             : "bg-green-50 border-l-4 border-green-500"
-                                                         }`}
+                                                      }`}
                                                    >
                                                       <div className="flex justify-between items-start mb-2">
                                                          <div className="flex items-center space-x-2">
