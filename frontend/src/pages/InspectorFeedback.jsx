@@ -175,14 +175,13 @@ const InspectorFeedback = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
-      <Toaster position="top-right" />
       
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="h-8 w-8 text-blue-600" />
+              <MessageCircle className="h-8 w-8 text-[#004aad]" />
               Inspector Feedback
             </h1>
             <p className="text-gray-600 mt-1">View feedback and ratings from your clients</p>
@@ -203,7 +202,7 @@ const InspectorFeedback = () => {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
         </div>
       ) : (
         <>
@@ -367,13 +366,13 @@ const FeedbackList = ({ feedbacks, ratingConfig, formatDate, renderStars }) => {
         const RatingIcon = ratingConfig[feedback.rating]?.icon || Star;
         
         return (
-          <Card key={job._id || index} className="border-l-4 border-l-blue-500">
+          <Card key={job._id || index} className="border-l-4 border-l-[#004aad]">
             <CardContent className="pt-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="p-2 bg-blue-100 rounded-full">
-                      <ShieldCheck className="h-4 w-4 text-blue-600" />
+                      <ShieldCheck className="h-4 w-4 text-[#004aad]" />
                     </div>
                     <div>
                       <h3 className="font-semibold">{jobTitle}</h3>
@@ -447,7 +446,7 @@ const CompletedJobsList = ({ jobs, formatDate }) => {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                    <ShieldCheck className="h-4 w-4 text-[#004aad]" />
                     {jobTitle}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">{job.description || 'Inspection request'}</p>
@@ -475,7 +474,7 @@ const CompletedJobsList = ({ jobs, formatDate }) => {
                   
                   {hasFeedback ? (
                     <div className="flex flex-col gap-1">
-                      <Badge className="bg-blue-100 text-blue-800">
+                      <Badge className="bg-blue-100 text-[#004aad]">
                         <MessageCircle className="h-3 w-3 mr-1" />
                         Feedback Received
                       </Badge>
@@ -500,10 +499,10 @@ const CompletedJobsList = ({ jobs, formatDate }) => {
                   Status: <strong>Inspection Complete</strong>
                 </div>
                 
-                <Button size="sm" variant="outline">
+                {/* <Button size="sm" variant="outline">
                   <Eye className="h-4 w-4 mr-1" />
                   View Details
-                </Button>
+                </Button> */}
               </div>
             </CardContent>
           </Card>

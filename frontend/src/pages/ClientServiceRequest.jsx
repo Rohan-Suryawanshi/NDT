@@ -357,7 +357,7 @@ const ClientServiceRequest = () => {
             }));
             // Calculate stats from all requests
             const requestData = data.jobRequests || [];
-            console.log("Fetched requests:", requestData);
+
             const newStats = {
                total: requestData.length,
                open: requestData.filter((r) =>
@@ -589,11 +589,17 @@ const ClientServiceRequest = () => {
    }, [selectedQuotation, loadDraft]);
 
    // Format currency
-   const formatCurrency = (amount, currency = "USD") => {
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: currency,
-      }).format(amount);
+   // const formatCurrency = (amount, currency = "USD") => {
+   //    return new Intl.NumberFormat("en-US", {
+   //       style: "currency",
+   //       currency: currency,
+   //    }).format(amount);
+   // };
+   const formatCurrency = (amount,currency="USD") => {
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`;
    };
 
    // Format date
@@ -727,7 +733,7 @@ const ClientServiceRequest = () => {
       return (
          <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
             <div className="text-center">
-               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#004aad] mx-auto mb-4"></div>
                <p className="text-gray-600">Loading your service requests...</p>
             </div>
          </div>
@@ -740,24 +746,31 @@ const ClientServiceRequest = () => {
          {/* Header */}
          <header className="bg-white shadow-sm border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-               <div className="flex justify-between items-center py-6">
-                  <div className="flex items-center space-x-4">
+               <div className="flex flex-col md:flex-row md:justify-between md:items-center py-6 space-y-4 md:space-y-0">
+                  {/* Left Section */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
                      <div className="flex items-center space-x-2">
                         <Building2 className="h-8 w-8 text-[#004aad]" />
-                        <h1 className="text-3xl font-bold text-[#004aad]">
-                           My Service Requests
+                        <h1 className="text-lg sm:text-xl md:text-3xl font-bold text-[#004aad]">
+                           My Service Request
                         </h1>
                      </div>
-                     <Badge variant="secondary" className="text-sm">
+                     <Badge
+                        variant="secondary"
+                        className="text-sm self-start sm:self-center"
+                     >
                         {stats.total} Total Requests
                      </Badge>
                   </div>
-                  <div className="flex items-center space-x-3">
+
+                  {/* Right Section */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                      <Button
                         onClick={handleExportRequests}
                         variant="outline"
                         size="sm"
                         disabled={actionLoading || requests.length === 0}
+                        className="flex items-center"
                      >
                         {actionLoading ? (
                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -766,11 +779,13 @@ const ClientServiceRequest = () => {
                         )}
                         Export
                      </Button>
+
                      <Button
                         onClick={fetchRequests}
                         variant="outline"
                         size="sm"
                         disabled={actionLoading}
+                        className="flex items-center"
                      >
                         <RefreshCw
                            className={`h-4 w-4 mr-2 ${
@@ -779,8 +794,9 @@ const ClientServiceRequest = () => {
                         />
                         Refresh
                      </Button>
+
                      <Button
-                        className="bg-[#004aad] hover:bg-blue-700"
+                        className="bg-[#004aad]  flex items-center"
                         disabled={actionLoading}
                      >
                         <Plus className="h-4 w-4 mr-2" />
@@ -813,7 +829,6 @@ const ClientServiceRequest = () => {
                   </AlertDescription>
                </Alert>
             )}{" "}
-            
             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
                {Object.entries(stats).map(([key, value]) => {
                   let config, displayLabel;
@@ -874,7 +889,7 @@ const ClientServiceRequest = () => {
                                     {value}
                                  </p>
                               </div>
-                              <Icon className="h-8 w-8 text-blue-600" />
+                              <Icon className="h-8 w-8 text-[#004aad]" />
                            </div>
                         </CardContent>
                      </Card>
@@ -911,7 +926,7 @@ const ClientServiceRequest = () => {
                            setFilters((prev) => ({ ...prev, status: value }))
                         }
                      >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                            <SelectValue placeholder="All Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1039,24 +1054,24 @@ const ClientServiceRequest = () => {
                                  {formatCurrency(
                                     request.estimatedTotal,
                                     request.costDetails?.currency
-                                 )}
+               )}
                               </span>
                            </div>
                            {/* Quotations Summary */}
                            {hasQuotations && (
                               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-blue-900">
+                                    <span className="text-sm font-medium text-[#004aad]">
                                        {request.quotationHistory.length}{" "}
                                        Quotation
                                        {request.quotationHistory.length > 1
                                           ? "s"
                                           : ""}
                                     </span>
-                                    <Quote className="h-4 w-4 text-blue-600" />
+                                    <Quote className="h-4 w-4 text-[#004aad]" />
                                  </div>
                                  {request.quotationHistory.length > 0 && (
-                                    <div className="text-xs text-blue-700 mt-1">
+                                    <div className="text-xs text-[#004aad] mt-1">
                                        Latest:{" "}
                                        {formatCurrency(
                                           request.quotationHistory[
@@ -1143,7 +1158,7 @@ const ClientServiceRequest = () => {
                   <p className="text-gray-500 mb-4">
                      You haven't created any service requests yet.
                   </p>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button className="bg-[#004aad]">
                      <FileText className="h-4 w-4 mr-2" />
                      Create Your First Request
                   </Button>
@@ -1316,7 +1331,7 @@ const ClientServiceRequest = () => {
                                  </CardHeader>
                                  <CardContent>
                                     <div className="flex items-center space-x-4">
-                                       <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                                       <div className="w-12 h-12 bg-[#004aad] rounded-lg flex items-center justify-center">
                                           <Building2 className="w-6 h-6 text-white" />
                                        </div>
                                        <div>
@@ -1377,7 +1392,7 @@ const ClientServiceRequest = () => {
                                     return (
                                        <Card
                                           key={index}
-                                          className="border-l-4 border-l-blue-500"
+                                          className="border-l-4 border-l-[#004aad]"
                                        >
                                           <CardContent className="p-6">
                                              <div className="flex items-start justify-between mb-4">
@@ -1483,7 +1498,7 @@ const ClientServiceRequest = () => {
                                                             true
                                                          );
                                                       }}
-                                                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                                                      className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
                                                       disabled={actionLoading}
                                                    >
                                                       <Handshake className="h-4 w-4 mr-2" />
@@ -1803,7 +1818,7 @@ const ClientServiceRequest = () => {
                                  disabled={
                                     !noteForm.content.trim() || actionLoading
                                  }
-                                 className="w-full bg-blue-600 hover:bg-blue-700"
+                                 className="w-full bg-[#004aad]"
                               >
                                  {actionLoading ? (
                                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -1955,7 +1970,7 @@ const ClientServiceRequest = () => {
                                  <p className="text-sm text-gray-600">
                                     Current Quotation
                                  </p>
-                                 <p className="text-2xl font-bold text-blue-600">
+                                 <p className="text-2xl font-bold text-[#004aad]">
                                     {formatCurrency(
                                        selectedQuotation.quotedAmount,
                                        selectedQuotation.quotedCurrency
@@ -2039,7 +2054,7 @@ const ClientServiceRequest = () => {
                            disabled={
                               !negotiationForm.message.trim() || actionLoading
                            }
-                           className="flex-1 bg-blue-600 hover:bg-blue-700"
+                           className="flex-1 bg-[#004aad]"
                         >
                            {actionLoading ? (
                               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

@@ -35,6 +35,7 @@ import AdminWithdrawManagement from "./pages/AdminWithdrawManagement";
 import AdminRevenue from "./pages/AdminRevenue";
 import AdminJobManagement from "./pages/AdminJobManagement";
 import GetRecommendations from "./pages/GetRecommendations";
+import ProtectedRoute from "./ProtectedRoute";
 
 export default function App() {
    return (
@@ -44,51 +45,262 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard-client" element={<DashboardClient />} />
-             <Route path="/dashboard-inspector" element={<DashboardInspector />} />
-            <Route path="/find-providers" element={<FindProviders />} />
+            <Route
+               path="/dashboard-client"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <DashboardClient />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/dashboard-inspector"
+               element={
+                  <ProtectedRoute allowedRoles={["inspector","admin"]}>
+                     <DashboardInspector />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/find-providers"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <FindProviders />
+                  </ProtectedRoute>
+               }
+            />
             <Route
                path="/account-settings"
-               element={<ClientAccountSettings />}
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <ClientAccountSettings />
+                  </ProtectedRoute>
+               }
             />
-            <Route path="/dashboard-provider" element={<DashboardProvider />} />
+            <Route
+               path="/dashboard-provider"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <DashboardProvider />
+                  </ProtectedRoute>
+               }
+            />
             {/* <Route
                path="/provider-profile"
                element={<ServiceProviderProfile />}
             /> */}
-            <Route path="/certificate" element={<CertificateManager />} />
-            <Route path="/equipment" element={<EquipmentManager />} />
-            <Route path="/skill-matrix" element={<SkillMatrixManager />} />
-            <Route path="/provider-profile" element={<ServiceProviderProfileManage />} />
-            <Route path="/offered-services-manager" element={<OfferedServicesManager />} />
-            <Route path="/gemini" element={<GeminiForm/>} />
-            <Route path="/inspector-profile" element={<ManageInspectorProfile/>} />
-            <Route path="/request-service/:providerId" element={<EnhancedJobRequestForm />} />
-            <Route path="/service-request" element={<JobRequestsDashboard/>} />
-            <Route path="/client-requests" element={<ClientServiceRequest/>} />
+            <Route
+               path="/certificate"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <CertificateManager />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/equipment"
+               element={
+                  <ProtectedRoute allowedRoles={["provider","admin"]}>
+                     <EquipmentManager />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/skill-matrix"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <SkillMatrixManager />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/provider-profile"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <ServiceProviderProfileManage />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/offered-services-manager"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <OfferedServicesManager />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/gemini"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <GeminiForm />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/inspector-profile"
+               element={
+                  <ProtectedRoute allowedRoles={["inspector","admin"]}>
+                     <ManageInspectorProfile />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/request-service/:providerId"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <EnhancedJobRequestForm />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/service-request"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <JobRequestsDashboard />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/client-requests"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <ClientServiceRequest />
+                  </ProtectedRoute>
+               }
+            />
 
-            <Route path="/find-inspectors" element={<ClientProviderSelection/>} />
-            <Route path="/get-recommendations" element={<GetRecommendations/>}/>
-            
-            <Route path="/inspector/assigned-jobs" element={<InspectorJobDashboard/>} />
-            <Route path="/download-reports" element={<DownloadReportWrapper/>} />
-            <Route path="/provider/withdraw" element={<ServiceProviderWithdraw/>} />
-            <Route path="/inspector/withdraw" element={<InspectorWithdraw/>} />
-            <Route path="/inspector/feedback" element={<InspectorFeedback/>} />
-            <Route path="/provider/feedback" element={<ServiceProviderFeedback/>} />
-            <Route path="/admin/settings" element={<AdminSettings/>}/>
-            <Route path="/admin/service-manager" element={<ServiceManager/>}/>
-            <Route path="/admin/user-management" element={<AdminUserManagement/>}/>
-            <Route path="/dashboard-admin" element={<AdminDashboard/>}/>
-            <Route path="/admin/dashboard" element={<AdminDashboard/>}/>
+            <Route
+               path="/find-inspectors"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <ClientProviderSelection />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/get-recommendations"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <GetRecommendations />
+                  </ProtectedRoute>
+               }
+            />
+
+            <Route
+               path="/inspector/assigned-jobs"
+               element={
+                  <ProtectedRoute allowedRoles={["inspector","admin"]}>
+                     <InspectorJobDashboard />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/download-reports"
+               element={
+                  <ProtectedRoute allowedRoles={["client","admin"]}>
+                     <DownloadReportWrapper />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/provider/withdraw"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <ServiceProviderWithdraw />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/inspector/withdraw"
+               element={
+                  <ProtectedRoute allowedRoles={["inspector","admin"]}>
+                     <InspectorWithdraw />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/inspector/feedback"
+               element={
+                  <ProtectedRoute allowedRoles={["inspector","admin"]}>
+                     <InspectorFeedback />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/provider/feedback"
+               element={
+                  <ProtectedRoute allowedRoles={["provider", "admin"]}>
+                     <ServiceProviderFeedback />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/settings"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminSettings />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/service-manager"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <ServiceManager />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/user-management"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminUserManagement />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/dashboard-admin"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminDashboard />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/dashboard"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminDashboard />
+                  </ProtectedRoute>
+               }
+            />
             <Route path="/loader" element={<Loader />} />
-             <Route path="/admin/payments" element={<AdminWithdrawManagement/>}/>
-             <Route path="/admin/revenue" element={<AdminRevenue/>} />
-             <Route path="/admin/job-management" element={<AdminJobManagement/>}/>
-            <Route path="*" element={<NotFound />} />            
-           
-
-
+            <Route
+               path="/admin/payments"
+               element={
+                  <ProtectedRoute allowedRoles={["finance","admin"]}>
+                     <AdminWithdrawManagement />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/revenue"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminRevenue />
+                  </ProtectedRoute>
+               }
+            />
+            <Route
+               path="/admin/job-management"
+               element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                     <AdminJobManagement />
+                  </ProtectedRoute>
+               }
+            />
+            <Route path="*" element={<NotFound />} />
          </Routes>
       </Router>
    );

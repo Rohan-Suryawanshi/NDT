@@ -36,6 +36,7 @@ import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "@/constant/Global";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { Location } from "@/constant/Location";
 
 // Mock data - replace with your actual API calls
 const MOCK_SERVICES = [
@@ -111,42 +112,6 @@ const MOCK_SERVICES = [
    },
 ];
 
-const INDIAN_REGIONS = [
-   "North India",
-   "South India",
-   "East India",
-   "West India",
-   "Central India",
-   "Northeast India",
-];
-
-const MAJOR_CITIES = [
-   "Mumbai",
-   "Delhi",
-   "Bengaluru",
-   "Hyderabad",
-   "Ahmedabad",
-   "Chennai",
-   "Kolkata",
-   "Surat",
-   "Pune",
-   "Jaipur",
-   "Lucknow",
-   "Kanpur",
-   "Nagpur",
-   "Indore",
-   "Thane",
-   "Bhopal",
-   "Visakhapatnam",
-   "Pimpri-Chinchwad",
-   "Patna",
-   "Vadodara",
-   "Ghaziabad",
-   "Ludhiana",
-   "Agra",
-   "Nashik",
-];
-
 const ADDITIONAL_COST_FACTORS = [
    {
       id: "travel",
@@ -204,6 +169,7 @@ const EnhancedJobRequestForm = () => {
    const [services, setServices] = useState([]);
    const [servicesLoading, setServicesLoading] = useState(true);
    const [errors, setErrors] = useState({});
+   const [currency, setCurrency] = useState("");
 
    // Mock provider data - replace with actual API call
    const [providerInfo, setProviderInfo] = useState({
@@ -216,7 +182,7 @@ const EnhancedJobRequestForm = () => {
       isVerified: true,
    });
 
-   const user=JSON.parse(localStorage.getItem("user"));
+   const user = JSON.parse(localStorage.getItem("user"));
 
    useEffect(() => {
       const fetchData = async () => {
@@ -243,10 +209,16 @@ const EnhancedJobRequestForm = () => {
       const fetchServices = async () => {
          try {
             const accessToken = localStorage.getItem("accessToken");
-            const res = await axios.get(`${BACKEND_URL}/api/v1/offered-services/provider/${providerId}`, {
-               headers: { Authorization: `Bearer ${accessToken}` },
-            });
+            const res = await axios.get(
+               `${BACKEND_URL}/api/v1/offered-services/provider/${providerId}`,
+               {
+                  headers: { Authorization: `Bearer ${accessToken}` },
+               }
+            );
             setServices(res.data?.data || MOCK_SERVICES);
+            if (res.data?.data.length > 0) {
+               setCurrency(res.data?.data[0].currency);
+            }
          } catch (err) {
             console.error("Failed to fetch services:", err);
             // Fallback to mock data if API fails
@@ -322,9 +294,11 @@ const EnhancedJobRequestForm = () => {
 
          let totalBaseCost = 0;
          let totalTax = 0;
-         let serviceBreakdown = [];         // Calculate base service costs
+         let serviceBreakdown = []; // Calculate base service costs
          formData.requiredServices.forEach((serviceId) => {
-            const service = services.find((s) => s.serviceId?._id === serviceId);
+            const service = services.find(
+               (s) => s.serviceId?._id === serviceId
+            );
 
             if (service) {
                const quantity = quantities[serviceId] || 1;
@@ -394,6 +368,7 @@ const EnhancedJobRequestForm = () => {
          setCostBreakdown({
             services: serviceBreakdown,
             additional: additionalBreakdown,
+            currency,
             totals: {
                baseCost: totalBaseCost,
                tax: totalTax,
@@ -462,11 +437,9 @@ const EnhancedJobRequestForm = () => {
             serviceQuantities: quantities,
             additionalCostFactors: additionalCosts,
             estimatedTotal: costBreakdown?.totals?.grandTotal || 0,
-            clientName:user.name,
+            clientName: user.name,
             providerName: providerInfo.companyName,
          };
-
-         console.log(jobRequest)
 
          // Make API call to create job request
          const accessToken = localStorage.getItem("accessToken");
@@ -480,7 +453,6 @@ const EnhancedJobRequestForm = () => {
                },
             }
          );
-         console.log("Job Request Submitted:", response.data);
 
          // Show success message
          toast.success("Job request submitted successfully!");
@@ -501,11 +473,18 @@ const EnhancedJobRequestForm = () => {
          setLoading(false);
       }
    };
-   const formatCurrency = (amount, currency = "USD") => {
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: currency,
-      }).format(amount);
+   // const formatCurrency = (amount) => {
+   //    return new Intl.NumberFormat("en-US", {
+   //       style: "currency",
+   //       currency: currency,
+   //    }).format(amount);
+   // };
+
+   const formatCurrency = (amount) => {
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`;
    };
 
    const getRatingStars = (rating) => {
@@ -557,9 +536,6 @@ const EnhancedJobRequestForm = () => {
                      <h1 className="text-3xl font-bold text-gray-900">
                         Request Service
                      </h1>
-                     <p className="text-gray-600 mt-1">
-                        Submit a job request with cost estimation
-                     </p>
                   </div>
                </div>
             </div>
@@ -623,15 +599,17 @@ const EnhancedJobRequestForm = () => {
                               Specializations
                            </h4>
                            <div className="flex flex-wrap gap-2">
-                              {providerInfo.companySpecialization?.map((spec, i) => (
-                                 <Badge
-                                    key={i}
-                                    variant="secondary"
-                                    className="text-xs"
-                                 >
-                                    {spec}
-                                 </Badge>
-                              ))}
+                              {providerInfo.companySpecialization?.map(
+                                 (spec, i) => (
+                                    <Badge
+                                       key={i}
+                                       variant="secondary"
+                                       className="text-xs"
+                                    >
+                                       {spec}
+                                    </Badge>
+                                 )
+                              )}
                            </div>
                         </div>
 
@@ -663,7 +641,7 @@ const EnhancedJobRequestForm = () => {
                      <Card>
                         <CardHeader>
                            <CardTitle className="flex items-center gap-2">
-                              <FileText className="w-5 h-5 text-blue-600" />
+                              <FileText className="w-5 h-5 text-[#004aad]" />
                               Job Request Details
                            </CardTitle>
                         </CardHeader>
@@ -718,7 +696,6 @@ const EnhancedJobRequestForm = () => {
                               )}
                            </div>
 
-                           {/* Location and Region */}
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                  <Label htmlFor="location">
@@ -733,16 +710,19 @@ const EnhancedJobRequestForm = () => {
                                     <SelectTrigger
                                        className={
                                           errors.location
-                                             ? "border-red-500"
-                                             : ""
+                                             ? "border-red-500 w-full"
+                                             : "w-full"
                                        }
                                     >
                                        <SelectValue placeholder="Select city" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                       {MAJOR_CITIES.map((city) => (
-                                          <SelectItem key={city} value={city}>
-                                             {city}
+                                       {Location.map((location) => (
+                                          <SelectItem
+                                             key={location.id}
+                                             value={location.country}
+                                          >
+                                             {location.country}
                                           </SelectItem>
                                        ))}
                                     </SelectContent>
@@ -757,30 +737,20 @@ const EnhancedJobRequestForm = () => {
 
                               <div className="space-y-2">
                                  <Label htmlFor="region">Region *</Label>
-                                 <Select
+                                 <Input
+                                    id="region"
+                                    placeholder="Enter region"
                                     value={formData.region}
-                                    onValueChange={(value) =>
-                                       handleInputChange("region", value)
+                                    onChange={(e) =>
+                                       handleInputChange(
+                                          "region",
+                                          e.target.value
+                                       )
                                     }
-                                 >
-                                    <SelectTrigger
-                                       className={
-                                          errors.region ? "border-red-500" : ""
-                                       }
-                                    >
-                                       <SelectValue placeholder="Select region" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                       {INDIAN_REGIONS.map((region) => (
-                                          <SelectItem
-                                             key={region}
-                                             value={region}
-                                          >
-                                             {region}
-                                          </SelectItem>
-                                       ))}
-                                    </SelectContent>
-                                 </Select>
+                                    className={
+                                       errors.region ? "border-red-500" : ""
+                                    }
+                                 />
                                  {errors.region && (
                                     <p className="text-sm text-red-600 flex items-center gap-1">
                                        <AlertCircle className="w-4 h-4" />
@@ -809,7 +779,7 @@ const EnhancedJobRequestForm = () => {
                                     }
                                  />
                               </div>
-                              <div className="space-y-2">
+                              <div className="space-y-2 hidden">
                                  <Label htmlFor="inspectors">
                                     Number of Inspectors
                                  </Label>
@@ -899,9 +869,8 @@ const EnhancedJobRequestForm = () => {
                                                          variant="outline"
                                                          className="text-xs"
                                                       >
-                                                         {formatCurrency(
-                                                            service.charge
-                                                         )}{" "}
+                                                         {service.charge}{" "}
+                                                         {service.currency}{" "}
                                                          {service.unit}
                                                       </Badge>
                                                       <Badge
@@ -927,9 +896,11 @@ const EnhancedJobRequestForm = () => {
                                                       variant="outline"
                                                       onClick={() =>
                                                          updateQuantity(
-                                                            service.serviceId?._id,
+                                                            service.serviceId
+                                                               ?._id,
                                                             (quantities[
-                                                               service.serviceId?._id
+                                                               service.serviceId
+                                                                  ?._id
                                                             ] || 1) - 1
                                                          )
                                                       }
@@ -947,9 +918,11 @@ const EnhancedJobRequestForm = () => {
                                                       variant="outline"
                                                       onClick={() =>
                                                          updateQuantity(
-                                                            service.serviceId?._id,
+                                                            service.serviceId
+                                                               ?._id,
                                                             (quantities[
-                                                               service.serviceId?._id
+                                                               service.serviceId
+                                                                  ?._id
                                                             ] || 1) + 1
                                                          )
                                                       }
@@ -1075,13 +1048,14 @@ const EnhancedJobRequestForm = () => {
                                  type="button"
                                  variant="outline"
                                  disabled={loading}
+                                 onClick={() => navigate("/find-providers")}
                               >
                                  Cancel
                               </Button>
                               <Button
                                  type="submit"
                                  disabled={loading}
-                                 className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
+                                 className="bg-[#004aad] min-w-[140px]"
                               >
                                  {loading ? (
                                     <>
@@ -1122,7 +1096,9 @@ const EnhancedJobRequestForm = () => {
                                     {costBreakdown.services.map(
                                        (service, index) => (
                                           <div key={index} className="text-sm">
-                                             <div className="flex justify-between items-start">                                                <div className="flex-1">
+                                             <div className="flex justify-between items-start">
+                                                {" "}
+                                                <div className="flex-1">
                                                    <p className="font-medium">
                                                       {service.name}
                                                    </p>

@@ -36,7 +36,8 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     type
   } = req.body;
 
-  console.log("This is the body "+req.body);
+  console.log(req.body);
+
 
   if (
     !title ||
@@ -62,7 +63,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
         userId: assignedProviderId,
       });
     }
-    console.log(provider)
+
     if (!provider) {
       throw new ApiError(404, "Service provider not found");
     }
@@ -80,7 +81,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     throw new ApiError(404, "Client not found");
   }
 
-  console.log("This is the assing " + assignedProviderId);
+ 
 
   // Create job request
   const jobRequestData = {
@@ -150,7 +151,7 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
 
   // Build query
   let query = {};
-
+  console.log(req.user.role);
   // Role-based filtering
   let providerProfile;
   if (req.user.role === "client") {
@@ -168,10 +169,17 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
      providerProfile = await InspectorProfile.findOne({
       userId: req.user._id,
     });
+
+    
+    
     if (providerProfile) {
       query.assignedProviderId = req.user._id;
     }
   }
+ if (req.user.role !== "admin" && !query.assignedProviderId) {
+   throw new ApiError(404, "Create the Profile First");
+ }
+
   // Admin can see all jobs
 
   // Apply filters
@@ -252,7 +260,6 @@ export const getJobRequestById = AsyncHandler(async (req, res) => {
     throw new ApiError(404, "Job request not found");
   }
 
-  console.log(jobRequest);
 
   // Check authorization
   const isAuthorized =
@@ -407,7 +414,6 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status, reason } = req.body;
 
-  console.log(req.body);
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
@@ -464,6 +470,7 @@ export const updateJobStatus = AsyncHandler(async (req, res) => {
       const acceptedQuotation = jobRequest.quotationHistory.id(jobRequest.finalQuotationId);
       if (acceptedQuotation) {
       acceptedQuotation.status = "accepted";
+
       }
       await jobRequest.save();
     }
@@ -513,7 +520,6 @@ export const addQuotation = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { amount, quotationDetails, validUntil, attachments } = req.body;
 
-  console.log(req.body);
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
@@ -580,7 +586,7 @@ export const getQuotationHistory = AsyncHandler(async (req, res) => {
   const jobRequest = await JobRequest.findById(id);
   // .populate("quotationHistory.providerId", "fullName email")
   // .select("quotationHistory clientId assignedProviderId");
-  console.log(jobRequest);
+
 
   if (!jobRequest) {
     throw new ApiError(404, "Job request not found");
@@ -615,7 +621,7 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { content, noteType = "general" } = req.body;
 
-  console.log(req.body);
+  
 
   if (!mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "Invalid job request ID");
@@ -630,8 +636,7 @@ export const addInternalNote = AsyncHandler(async (req, res) => {
     throw new ApiError(404, "Job request not found");
   }
 
-  console.log(jobRequest.assignedProviderId.toString());
-  console.log(req.user._id.toString());
+ 
 
   // Check authorization
   const isAuthorized =
@@ -894,6 +899,7 @@ export const updateQuotationStatus = AsyncHandler(async (req, res) => {
   if (status === "accepted") {
     jobRequest.status = "accepted";
     jobRequest.finalQuotationId = quotationId;
+    jobRequest.estimatedTotal = quotation.quotedAmount;
   } else if (status === "negotiating") {
     jobRequest.status = "negotiating";
   }
@@ -1090,7 +1096,7 @@ export const addClientRating = AsyncHandler(async (req, res) => {
     throw new ApiError(400, "Rating already submitted for this job");
   }
 
-  // Add rating
+  // Add rating to job request
   jobRequest.clientRating = {
     rating: parseInt(rating),
     review: review ? review.trim() : "",
@@ -1099,6 +1105,39 @@ export const addClientRating = AsyncHandler(async (req, res) => {
   };
 
   await jobRequest.save();
+
+  // Update provider's profile rating
+  if (jobRequest.assignedProviderId) {
+    try {
+      // Try to find ServiceProvider profile first
+      let providerProfile = await ServiceProviderProfile.findOne({
+        userId: jobRequest.assignedProviderId
+      });
+
+      // If not found, try Inspector profile
+      if (!providerProfile) {
+        providerProfile = await InspectorProfile.findOne({
+          userId: jobRequest.assignedProviderId
+        });
+      }
+
+      if (providerProfile) {
+        // Update rating statistics
+        const newTotalRatings = providerProfile.totalRatings + 1;
+        const newRatingSum = providerProfile.ratingSum + parseInt(rating);
+        const newAverageRating = newRatingSum / newTotalRatings;
+
+        providerProfile.totalRatings = newTotalRatings;
+        providerProfile.ratingSum = newRatingSum;
+        providerProfile.rating = Math.round(newAverageRating * 100) / 100; // Round to 2 decimal places
+
+        await providerProfile.save();
+      }
+    } catch (error) {
+      console.error("Error updating provider rating:", error);
+      // Don't throw error here to avoid affecting the main rating submission
+    }
+  }
 
   const updatedJobRequest = await JobRequest.findById(id)
     .populate("clientId", "fullName")

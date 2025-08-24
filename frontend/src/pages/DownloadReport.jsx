@@ -65,27 +65,62 @@ const DownloadReport = () => {
    const [review, setReview] = useState("");
    const [hoveredStar, setHoveredStar] = useState(0);
    const [refreshing, setRefreshing] = useState(false);
+   const [feeSettings, setFeeSettings] = useState({
+      platformFeePercentage: 5,
+      processingFeePercentage: 2.9,
+      fixedProcessingFee: 0.3
+   });
 
-   // Platform fee configuration (5% platform fee)
-   const PLATFORM_FEE_PERCENTAGE = 5;
-   const PAYMENT_PROCESSING_FEE = 2.9; // Stripe fee percentage
-   const FIXED_FEE = 0.3; // Stripe fixed fee in USD
+   // Fetch fee settings from admin settings
+   const fetchFeeSettings = useCallback(async () => {
+      try {
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/settings/public`
+         );
+         setFeeSettings(response.data.data);
+      } catch (error) {
+         console.error("Error fetching fee settings:", error);
+         // Keep default values if API fails
+         toast.error("Failed to fetch fee settings, using defaults");
+      }
+   }, []);
 
+   // // Calculate total payment amount
+   // const calculatePaymentAmount = (estimatedAmount) => {
+   //    const platformFee = (estimatedAmount * feeSettings.platformFeePercentage) / 100;
+   //    const stripeFee =
+   //       ((estimatedAmount + platformFee) * feeSettings.processingFeePercentage) / 100 +
+   //       feeSettings.fixedProcessingFee;
+   //    const totalAmount = estimatedAmount + platformFee +stripeFee;
+
+   //    return {
+   //       baseAmount: estimatedAmount,
+   //       platformFee: platformFee,
+   //       processingFee: stripeFee,
+   //       totalAmount: totalAmount,
+   //    };
+   // };
    // Calculate total payment amount
-   const calculatePaymentAmount = (estimatedAmount) => {
-      const platformFee = (estimatedAmount * PLATFORM_FEE_PERCENTAGE) / 100;
-      const stripeFee =
-         ((estimatedAmount + platformFee) * PAYMENT_PROCESSING_FEE) / 100 +
-         FIXED_FEE;
-      const totalAmount = estimatedAmount + platformFee + stripeFee;
+const calculatePaymentAmount = (estimatedAmount) => {
+   const platformFee = (estimatedAmount * feeSettings.platformFeePercentage) / 100;
 
-      return {
-         baseAmount: estimatedAmount,
-         platformFee: platformFee,
-         processingFee: stripeFee,
-         totalAmount: totalAmount,
-      };
+   // Stripe fee is calculated on (baseAmount + platformFee + stripeFee itself)
+   // To ensure provider gets full baseAmount, we "gross up" the payment.
+   const stripeFee =
+      ((estimatedAmount + platformFee) * feeSettings.processingFeePercentage) / (100 - feeSettings.processingFeePercentage) +
+      feeSettings.fixedProcessingFee;
+
+   const totalAmount = estimatedAmount + platformFee + stripeFee;
+
+   return {
+      baseAmount: estimatedAmount,   // Provider always receives this
+      platformFee: platformFee,      // Platform commission
+      processingFee: stripeFee,      // Stripe fee added on top
+      totalAmount: totalAmount,      // Final amount customer pays
    };
+};
+
+
 
    // Fetch closed jobs
    const fetchClosedJobs = useCallback(async () => {
@@ -231,12 +266,18 @@ const DownloadReport = () => {
    };
 
    // Format currency
-   const formatCurrency = (amount) => {
-      if (!amount) return "$0.00";
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: "USD",
-      }).format(amount);
+   // const formatCurrency = (amount) => {
+   //    if (!amount) return "$0.00";
+   //    return new Intl.NumberFormat("en-US", {
+   //       style: "currency",
+   //       currency: "USD",
+   //    }).format(amount);
+   // };
+  const formatCurrency = (amount,currency="USD") => {
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`;
    };
 
    // Star rating component
@@ -261,8 +302,9 @@ const DownloadReport = () => {
    };
 
    useEffect(() => {
+      fetchFeeSettings();
       fetchClosedJobs();
-   }, [fetchClosedJobs]);
+   }, [fetchFeeSettings, fetchClosedJobs]);
 
    return (
       <>
@@ -367,7 +409,7 @@ const DownloadReport = () => {
             {/* Jobs Grid */}
             {loading ? (
                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
                </div>
             ) : filteredJobs.length === 0 ? (
                <Card>
@@ -413,7 +455,7 @@ const DownloadReport = () => {
                                        Completed
                                     </Badge>
                                     {isPaid && (
-                                       <Badge className="bg-blue-100 text-blue-800">
+                                       <Badge className="bg-blue-100 text-[#004aad]">
                                           <Shield className="h-3 w-3 mr-1" />
                                           Paid
                                        </Badge>
@@ -476,15 +518,16 @@ const DownloadReport = () => {
                                        <span>Base Amount:</span>
                                        <span>
                                           {formatCurrency(
-                                             paymentDetails.baseAmount
+                                             paymentDetails.baseAmount,
+                                             job.costDetails.currency
                                           )}
                                        </span>
                                     </div>
                                     <div className="flex justify-between">
-                                       <span>Platform Fee (5%):</span>
+                                       <span>Platform Fee ({feeSettings.platformFeePercentage}%):</span>
                                        <span>
                                           {formatCurrency(
-                                             paymentDetails.platformFee
+                                             paymentDetails.platformFee, job.costDetails.currency
                                           )}
                                        </span>
                                     </div>
@@ -492,7 +535,7 @@ const DownloadReport = () => {
                                        <span>Processing Fee:</span>
                                        <span>
                                           {formatCurrency(
-                                             paymentDetails.processingFee
+                                             paymentDetails.processingFee, job.costDetails.currency
                                           )}
                                        </span>
                                     </div>
@@ -502,6 +545,7 @@ const DownloadReport = () => {
                                        <span>
                                           {formatCurrency(
                                              paymentDetails.totalAmount
+                                             , job.costDetails.currency
                                           )}
                                        </span>
                                     </div>
@@ -543,6 +587,7 @@ const DownloadReport = () => {
                                        Pay & Download (
                                        {formatCurrency(
                                           paymentDetails.totalAmount
+                                          , job.costDetails.currency
                                        )}
                                        )
                                     </Button>
@@ -616,13 +661,13 @@ const DownloadReport = () => {
                open={paymentDialogOpen}
                onOpenChange={setPaymentDialogOpen}
             >
-               <DialogContent className="max-w-md">
+               <DialogContent className="w-full max-w-md sm:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                     <DialogTitle className="flex items-center gap-2">
+                     <DialogTitle className="flex items-center justify-center gap-2">
                         <CreditCard className="h-5 w-5" />
                         Complete Payment
                      </DialogTitle>
-                     <DialogDescription>
+                     <DialogDescription className="text-center">
                         Pay to access reports and attachments for:{" "}
                         {selectedJob?.title}
                      </DialogDescription>
@@ -632,7 +677,7 @@ const DownloadReport = () => {
                         job={selectedJob}
                         paymentDetails={calculatePaymentAmount(
                            selectedJob.estimatedTotal
-                        )}
+                        ) }
                         onSuccess={() => {
                            setPaymentDialogOpen(false);
                            fetchClosedJobs();

@@ -41,6 +41,14 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    location: {
+      type: String,
+      default: "",
+    },
+    currency: {
+      type: String,
+      default: "",
+    },
     acceptedTerms: { type: Boolean, default: false },
   },
   { timestamps: true }

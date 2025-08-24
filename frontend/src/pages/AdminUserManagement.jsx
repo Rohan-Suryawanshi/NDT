@@ -17,7 +17,8 @@ import {
   UserX,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  DollarSign
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
 export default function AdminUserManagement() {
   const [users, setUsers] = useState([]);
@@ -220,6 +222,7 @@ export default function AdminUserManagement() {
       case "provider": return "bg-blue-100 text-blue-800 border-blue-200";
       case "inspector": return "bg-green-100 text-green-800 border-green-200";
       case "client": return "bg-gray-100 text-gray-800 border-gray-200";
+      case "finance": return "bg-yellow-100 text-yellow-800 border-yellow-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
@@ -231,6 +234,7 @@ export default function AdminUserManagement() {
       case "provider": return <Users className="w-3 h-3" />;
       case "inspector": return <UserCheck className="w-3 h-3" />;
       case "client": return <Users className="w-3 h-3" />;
+      case "finance": return <DollarSign className="w-3 h-3" />;
       default: return <Users className="w-3 h-3" />;
     }
   };
@@ -244,7 +248,9 @@ export default function AdminUserManagement() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+    <NavbarSection/>
+    <div className="min-h-screen bg-gray-50 p-6 mt-3">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -345,6 +351,7 @@ export default function AdminUserManagement() {
                   <SelectItem value="provider">Provider</SelectItem>
                   <SelectItem value="inspector">Inspector</SelectItem>
                   <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="finance">Finance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -359,7 +366,7 @@ export default function AdminUserManagement() {
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004aad]"></div>
               </div>
             ) : (
               <>
@@ -529,6 +536,7 @@ export default function AdminUserManagement() {
                     <SelectItem value="provider">Provider</SelectItem>
                     <SelectItem value="inspector">Inspector</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -587,5 +595,6 @@ export default function AdminUserManagement() {
         </Dialog>
       </div>
     </div>
+    </>
   );
 }

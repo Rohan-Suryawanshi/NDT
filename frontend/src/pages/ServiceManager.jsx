@@ -24,6 +24,7 @@ import {
    SelectTrigger,
    SelectValue,
 } from "@/components/ui/select";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
 export default function ServiceManager() {
    const [services, setServices] = useState([]);
@@ -178,7 +179,9 @@ export default function ServiceManager() {
    };
 
    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <>
+      <NavbarSection/>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-3">
          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
                <h1 className="text-3xl font-bold text-gray-900">
@@ -432,5 +435,6 @@ export default function ServiceManager() {
             </div>
          )}
       </div>
+      </>
    );
 }

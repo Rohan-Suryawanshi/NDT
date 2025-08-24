@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, RotateCcw, Calculator, DollarSign, Settings, Shield } from 'lucide-react';
 import { BACKEND_URL } from '@/constant/Global';
+import NavbarSection from '@/features/NavbarSection/NavbarSection';
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState(null);
@@ -127,13 +128,15 @@ const AdminSettings = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+    <>
+    <NavbarSection/>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6 lg:p-8 mt-3">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -146,7 +149,7 @@ const AdminSettings = () => {
           <Button 
             onClick={updateSettings} 
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-[#004aad] text-white"
           >
             <Save className="w-4 h-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
@@ -154,10 +157,10 @@ const AdminSettings = () => {
           
           <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+              {/* <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Reset to Defaults
-              </Button>
+              </Button> */}
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -183,10 +186,10 @@ const AdminSettings = () => {
 
           <Dialog open={showCalculator} onOpenChange={setShowCalculator}>
             <DialogTrigger asChild>
-              <Button variant="outline">
+              {/* <Button variant="outline">
                 <Calculator className="w-4 h-4 mr-2" />
                 Fee Calculator
-              </Button>
+              </Button> */}
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
@@ -344,7 +347,7 @@ const AdminSettings = () => {
                   </div>
                 </div>
               </Card>
-
+{/* 
               <Card className="p-6">
                 <h3 className="text-xl font-semibold mb-4 flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-blue-600" />
@@ -379,7 +382,7 @@ const AdminSettings = () => {
                     <p className="text-sm text-gray-500 mt-1">Percentage inspectors keep</p>
                   </div>
                 </div>
-              </Card>
+              </Card> */}
             </div>
           </TabsContent>
 
@@ -451,6 +454,7 @@ const AdminSettings = () => {
         </Tabs>
       </div>
     </div>
+    </>
   );
 };
 

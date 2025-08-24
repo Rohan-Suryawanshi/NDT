@@ -18,10 +18,10 @@ const deleteLocalFile = (filePath) => {
 
 // ✅ Register User & Send Verification Email
 const registerUser = AsyncHandler(async (req, res) => {
-  const { name, email, password, role, acceptedTerms } = req.body;
+  const { name, email, password, role, acceptedTerms,location,currency } = req.body;
   const avatarPath =  req.file?.path;
 
-  if (!name || !email || !password || !role || !avatarPath || !acceptedTerms) {
+  if (!name || !email || !password || !role || !avatarPath || !acceptedTerms||!location||!currency) {
     throw new ApiError(400, "All fields and avatar are required");
   }
 
@@ -37,6 +37,8 @@ const registerUser = AsyncHandler(async (req, res) => {
     password,
     role,
     avatar: avatar.url,
+    location,
+    currency,
     acceptedTerms
   });
 

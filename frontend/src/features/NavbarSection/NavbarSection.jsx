@@ -57,7 +57,7 @@ const NavbarSection = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center">
                <img
-                  src="./Logo.png"
+                  src="/Logo.png"
                   alt="NDT Connect Logo"
                   className="h-8 w-auto"
                />
@@ -191,7 +191,9 @@ const NavbarSection = () => {
 
                         {user.role === "provider" && (
                            <DropdownMenuItem
-                              onClick={() => navigate("/provider-profile")}
+                              onClick={() => navigate("/provider-profile")
+                              }
+                              
                            >
                               <UserCircle className="mr-2 h-4 w-4" /> My Profile
                            </DropdownMenuItem>

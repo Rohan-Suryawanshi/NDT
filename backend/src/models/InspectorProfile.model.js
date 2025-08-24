@@ -71,7 +71,7 @@ const InspectorProfileSchema = new Schema(
     hourlyRate: { type: Number },
     monthlyRate: { type: Number },
     marginRate: { type: Number, default: 0 }, // Admin controlled margin %
-
+    currency:{type:String},
     availability: {
       type: Boolean,
       default: true,
@@ -91,6 +91,14 @@ const InspectorProfileSchema = new Schema(
     },
 
     rating: {
+      type: Number,
+      default: 0,
+    },
+    totalRatings: {
+      type: Number,
+      default: 0,
+    },
+    ratingSum: {
       type: Number,
       default: 0,
     },

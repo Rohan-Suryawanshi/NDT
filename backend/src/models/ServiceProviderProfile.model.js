@@ -15,7 +15,9 @@ const serviceProviderProfileSchema = new mongoose.Schema(
     companySpecialization: [{ type: String }],
     companyLogoUrl: { type: String },
     proceduresUrl: { type: String },
-    rating:{type:Number,default:0},
+    rating: { type: Number, default: 0 },
+    totalRatings: { type: Number, default: 0 },
+    ratingSum: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

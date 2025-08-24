@@ -236,14 +236,6 @@ const jobRequestSchema = new mongoose.Schema(
     region: {
       type: String,
       required: true,
-      enum: [
-        "North India",
-        "South India",
-        "East India",
-        "West India",
-        "Central India",
-        "Northeast India",
-      ],
     },
 
     // Client Information

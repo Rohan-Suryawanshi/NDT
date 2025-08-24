@@ -42,8 +42,10 @@ import {
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 import { BACKEND_URL } from '@/constant/Global';
+import NavbarSection from '@/features/NavbarSection/NavbarSection';
 
 const InspectorWithdraw = () => {
+  const currency=JSON.parse(localStorage.getItem('user')).currency;
   const [balance, setBalance] = useState({
     totalEarnings: 0,
     availableBalance: 0,
@@ -257,11 +259,12 @@ const InspectorWithdraw = () => {
 
     try {
       const token = localStorage.getItem('accessToken');
-      
+      console.log("this is the currency"+currency);
       const requestData = {
         amount: parseFloat(withdrawAmount),
         withdrawalMethod: withdrawMethod,
-        metadata: { notes: withdrawNotes.trim(), role: 'inspector' }
+        metadata: { notes: withdrawNotes.trim(), role: 'inspector' },
+        currency
       };
 
       // Add payment method specific details
@@ -330,13 +333,19 @@ const InspectorWithdraw = () => {
   });
 
   // Format currency
+  // const formatCurrency = (amount) => {
+  //   if (!amount) return '$0.00';
+  //   return new Intl.NumberFormat('en-US', {
+  //     style: 'currency',
+  //     currency: 'USD'
+  //   }).format(amount);
+  // };
   const formatCurrency = (amount) => {
-    if (!amount) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`
+   };
 
   // Format date
   const formatDate = (date) => {
@@ -355,15 +364,14 @@ const InspectorWithdraw = () => {
   }, [fetchAllData]);
 
   return (
+    <>
+    <NavbarSection/>
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
-      <Toaster position="top-right" />
-      
-      {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="h-8 w-8 text-blue-600" />
+              <ShieldCheck className="h-8 w-8 text-[#004aad]" />
               Inspector Earnings & Withdrawals
             </h1>
             <p className="text-gray-600 mt-1">Manage your inspection earnings, withdrawals, and payment history</p>
@@ -384,7 +392,7 @@ const InspectorWithdraw = () => {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
         </div>
       ) : (
         <>
@@ -475,7 +483,7 @@ const InspectorWithdraw = () => {
                       Request Withdrawal
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Request Withdrawal</DialogTitle>
                       <DialogDescription>
@@ -506,7 +514,7 @@ const InspectorWithdraw = () => {
               
               {balance.availableBalance < 10 && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Minimum withdrawal amount is $10. Complete more inspections to increase your balance.
+                  Minimum withdrawal amount is 10 {currency}. Complete more inspections to increase your balance.
                 </p>
               )}
             </CardContent>
@@ -617,6 +625,7 @@ const InspectorWithdraw = () => {
         </>
       )}
     </div>
+    </>
   );
 };
 
@@ -627,12 +636,13 @@ const InspectorWithdrawForm = ({
   cryptoDetails, setCryptoDetails, processing, availableBalance, 
   onSubmit, onCancel, withdrawMethods 
 }) => {
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
+  const currency=JSON.parse(localStorage.getItem('user')).currency;
+   const formatCurrency = (amount) => {
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`
+   };
 
   const cryptoCurrencies = [
     { value: 'BTC', label: 'Bitcoin (BTC)' },
@@ -665,7 +675,7 @@ const InspectorWithdrawForm = ({
           step="0.01"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Minimum: $10.00 | Maximum: {formatCurrency(availableBalance)}
+          Minimum: 10.00 {currency} | Maximum: {formatCurrency(availableBalance)}
         </p>
       </div>
 
@@ -852,7 +862,7 @@ const WithdrawHistoryTable = ({ withdrawals, withdrawStatusConfig, formatCurrenc
       {withdrawals.map((withdrawal, index) => {
         const StatusIcon = withdrawStatusConfig[withdrawal.status]?.icon || Clock;
         return (
-          <Card key={index} className="border-l-4 border-l-blue-500">
+          <Card key={index} className="border-l-4 border-l-[#004aad]">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -1034,7 +1044,7 @@ const CompletedInspectionsTable = ({ inspections, inspectionStatusConfig, format
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                    <ShieldCheck className="h-4 w-4 text-[#004aad]" />
                     {inspection.title}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">{inspection.description}</p>

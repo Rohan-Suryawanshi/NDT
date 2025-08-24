@@ -9,7 +9,7 @@ function EarthModel() {
 
   useFrame(() => {
     if (earthRef.current) {
-      earthRef.current.rotation.y += 0.05; // Smooth slow rotation
+      earthRef.current.rotation.y += 0.03; // Smooth slow rotation
     }
   });
 

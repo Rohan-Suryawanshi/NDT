@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Pencil, Trash2, PlusCircle } from "lucide-react";
 import { BACKEND_URL } from "@/constant/Global";
+import { Location } from "@/constant/Location";
+import NavbarSection from "../NavbarSection/NavbarSection";
 
 export default function CertificateManager() {
    const [certificates, setCertificates] = useState([]);
@@ -49,6 +51,8 @@ export default function CertificateManager() {
    }, []);
 
    return (
+      <>
+      <NavbarSection/>
       <div className="p-6 max-w-7xl mx-auto">
          <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-800">
@@ -113,7 +117,7 @@ export default function CertificateManager() {
                            {cert.certificateUrl ? (
                               <a
                                  href={cert.certificateUrl}
-                                 className="text-blue-600 underline"
+                                 className="text-[#004aad] underline"
                                  target="_blank"
                                  rel="noreferrer"
                               >
@@ -160,5 +164,6 @@ export default function CertificateManager() {
             </table>
          </div>
       </div>
+   </>
    );
 }

@@ -59,17 +59,6 @@ const PREDEFINED_CERTIFICATIONS = [
    "NAS 410",
 ];
 
-const PREDEFINED_PERSONNEL_CERTS = [
-   "ACCP",
-   "ASNT",
-   "CGSB",
-   "CSWIP",
-   "EN 4179",
-   "ISO 9712",
-   "NAS 410",
-   "PCN",
-   "SNT-TC-1A",
-];
 
 const FindProvider = () => {
    const [profiles, setProfiles] = useState([]);
@@ -196,7 +185,7 @@ const FindProvider = () => {
       });
       // <JobRequestForm providerId={providerId} providerName={providerName} onBack={handleBack}/>
        <EnhancedJobRequestForm providerId={12121121212} providerName={"Rohan"} onBack={handleBack}/>
-      console.log("Requesting service from provider:", providerId);
+
 
    };
 
@@ -478,7 +467,7 @@ const FindProvider = () => {
                                                 <span className="text-gray-700">{service.name}</span>
                                                 {serviceCharge && (
                                                    <span className="font-medium text-[#004aad]">
-                                                      ${serviceCharge.charge} {serviceCharge.unit}
+                                                     {serviceCharge.charge} {serviceCharge.currency} {serviceCharge.unit}
                                                    </span>
                                                 )}
                                              </div>

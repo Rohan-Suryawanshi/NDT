@@ -31,6 +31,14 @@ import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { BACKEND_URL } from "@/constant/Global";
+import { Location } from "@/constant/Location.js";
+import {
+   Select,
+   SelectContent,
+   SelectTrigger,
+   SelectValue,
+   SelectItem,
+} from "@/components/ui/select";
 
 // Create axios instance with default config
 const api = axios.create({
@@ -43,8 +51,6 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
    const token = localStorage.getItem("accessToken");
-   console.log("API Request:", config.method?.toUpperCase(), config.url);
-   console.log("Auth token exists:", !!token);
    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
    }
@@ -54,13 +60,10 @@ api.interceptors.request.use((config) => {
 // Add response interceptor for error handling
 api.interceptors.response.use(
    (response) => {
-      console.log("API Response:", response.status, response.data);
       return response;
    },
    (error) => {
-      console.log("API Error:", error.response?.status, error.response?.data);
       if (error.response?.status === 401) {
-         console.log("Unauthorized - redirecting to login");
          localStorage.removeItem("accessToken");
          localStorage.removeItem("user");
          window.location.href = "/login";
@@ -91,7 +94,7 @@ const ProfileInfoTab = ({
                   </h3>
                   <button
                      onClick={() => setIsEditing(!isEditing)}
-                     className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                     className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-[#004aad] rounded-lg hover:bg-blue-100 transition-colors"
                   >
                      <Edit className="w-4 h-4" />
                      {isEditing ? "Cancel" : "Edit"}
@@ -108,16 +111,13 @@ const ProfileInfoTab = ({
                            type="text"
                            value={profile.fullName || ""}
                            onChange={(e) => {
-                              console.log(
-                                 "Full name changing to:",
-                                 e.target.value
-                              );
+                              
                               setProfile((prev) => ({
                                  ...prev,
                                  fullName: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         />
                      ) : (
                         <div className="px-3 py-2 bg-gray-50 rounded-lg">
@@ -135,16 +135,13 @@ const ProfileInfoTab = ({
                            type="tel"
                            value={profile.contactNumber || ""}
                            onChange={(e) => {
-                              console.log(
-                                 "Contact number changing to:",
-                                 e.target.value
-                              );
+                             
                               setProfile((prev) => ({
                                  ...prev,
                                  contactNumber: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         />
                      ) : (
                         <div className="px-3 py-2 bg-gray-50 rounded-lg flex items-center gap-2">
@@ -162,16 +159,13 @@ const ProfileInfoTab = ({
                         <select
                            value={profile.associationType || "Freelancer"}
                            onChange={(e) => {
-                              console.log(
-                                 "Association type changing to:",
-                                 e.target.value
-                              );
+                            
                               setProfile((prev) => ({
                                  ...prev,
                                  associationType: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         >
                            <option value="Freelancer">Freelancer</option>
                            <option value="Company Employee">
@@ -196,16 +190,13 @@ const ProfileInfoTab = ({
                               type="text"
                               value={profile.companyName || ""}
                               onChange={(e) => {
-                                 console.log(
-                                    "Company name changing to:",
-                                    e.target.value
-                                 );
+                                
                                  setProfile((prev) => ({
                                     ...prev,
                                     companyName: e.target.value,
                                  }));
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                               placeholder="Enter company name"
                            />
                         ) : (
@@ -221,7 +212,7 @@ const ProfileInfoTab = ({
                   <div className="flex gap-3 mt-6 pt-6 border-t">
                      <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
                      >
                         <Save className="w-4 h-4" />
                         Save Changes
@@ -265,7 +256,7 @@ const ProfileInfoTab = ({
                            onClick={() =>
                               window.open(profile.resume.url, "_blank")
                            }
-                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                           className="p-2 text-[#004aad]   hover:bg-blue-50 rounded-lg transition-colors"
                         >
                            <Eye className="w-4 h-4" />
                         </button>{" "}
@@ -289,7 +280,7 @@ const ProfileInfoTab = ({
                      <div className="text-sm text-gray-500 mb-4">
                         PDF files up to 10MB
                      </div>
-                     <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                     <label className="px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors cursor-pointer">
                         Choose File{" "}
                         <input
                            type="file"
@@ -366,7 +357,7 @@ const CertificationsTab = ({
             <h3 className="text-lg font-semibold">Certifications</h3>
             <button
                onClick={() => setShowCertModal(true)}
-               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+               className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
             >
                <Plus className="w-4 h-4" />
                Add Certification
@@ -496,7 +487,7 @@ const CertificationsTab = ({
                            <p className="text-xs text-gray-500 mb-3">
                               No certificate image uploaded
                            </p>
-                           <label className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                           <label className="px-3 py-1.5 bg-[#004aad] text-white text-xs rounded-lg transition-colors cursor-pointer">
                               Add Image
                               <input
                                  type="file"
@@ -612,16 +603,13 @@ const CertificationsTab = ({
                            type="text"
                            value={newCert.certificationBody}
                            onChange={(e) => {
-                              console.log(
-                                 "Certification body changing to:",
-                                 e.target.value
-                              );
+                            
                               setNewCert((prev) => ({
                                  ...prev,
                                  certificationBody: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                            placeholder="e.g., AWS, Microsoft, Google"
                         />
                      </div>
@@ -634,16 +622,13 @@ const CertificationsTab = ({
                            type="text"
                            value={newCert.level}
                            onChange={(e) => {
-                              console.log(
-                                 "Certification level changing to:",
-                                 e.target.value
-                              );
+                           
                               setNewCert((prev) => ({
                                  ...prev,
                                  level: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                            placeholder="e.g., Solutions Architect Professional"
                         />
                      </div>
@@ -655,16 +640,13 @@ const CertificationsTab = ({
                            type="date"
                            value={newCert.expiryDate}
                            onChange={(e) => {
-                              console.log(
-                                 "Certification expiry date changing to:",
-                                 e.target.value
-                              );
+                            
                               setNewCert((prev) => ({
                                  ...prev,
                                  expiryDate: e.target.value,
                               }));
                            }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         />
                      </div>
 
@@ -708,10 +690,7 @@ const CertificationsTab = ({
                                              );
                                              return;
                                           }
-                                          console.log(
-                                             "Certificate image selected:",
-                                             file.name
-                                          );
+                                       
                                           setNewCert((prev) => ({
                                              ...prev,
                                              image: file,
@@ -731,7 +710,7 @@ const CertificationsTab = ({
                               <div className="text-xs text-gray-500 mb-3">
                                  JPG, PNG or GIF up to 5MB
                               </div>
-                              <label className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                              <label className="px-3 py-1.5 bg-[#004aad] text-white text-sm rounded-lg  transition-colors cursor-pointer">
                                  Choose File
                                  <input
                                     type="file"
@@ -746,10 +725,7 @@ const CertificationsTab = ({
                                              );
                                              return;
                                           }
-                                          console.log(
-                                             "Certificate image selected:",
-                                             file.name
-                                          );
+                                        
                                           setNewCert((prev) => ({
                                              ...prev,
                                              image: file,
@@ -767,7 +743,7 @@ const CertificationsTab = ({
                   <div className="flex gap-3 mt-6">
                      <button
                         onClick={addCertification}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex-1 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
                      >
                         Add Certification
                      </button>{" "}
@@ -815,16 +791,13 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         type="number"
                         value={profile.hourlyRate || 0}
                         onChange={(e) => {
-                           console.log(
-                              "Hourly rate changing to:",
-                              e.target.value
-                           );
+                         
                            setProfile((prev) => ({
                               ...prev,
                               hourlyRate: Number(e.target.value),
                            }));
                         }}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         placeholder="0"
                      />
                   </div>
@@ -832,7 +805,34 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
 
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                     Monthly Rate
+                     Currency
+                  </label>
+                  <div className="relative">
+                     <Select
+                        value={profile.currency}
+                        onValueChange={(val) =>
+                           setProfile((prev) => ({
+                              ...prev,
+                              currency: val,
+                           }))
+                        }
+                     >
+                        <SelectTrigger className="w-full">
+                           <SelectValue placeholder="Select Currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           {Location.map((loc) => (
+                              <SelectItem key={loc.id} value={loc.currencyCode}>
+                                 {loc.currencyCode}-{loc.country}
+                              </SelectItem>
+                           ))}
+                        </SelectContent>
+                     </Select>
+                  </div>
+               </div>
+               <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                     Monthly Rate 
                   </label>
                   <div className="relative">
                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -840,16 +840,12 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         type="number"
                         value={profile.monthlyRate || 0}
                         onChange={(e) => {
-                           console.log(
-                              "Monthly rate changing to:",
-                              e.target.value
-                           );
                            setProfile((prev) => ({
                               ...prev,
                               monthlyRate: Number(e.target.value),
                            }));
                         }}
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
                         placeholder="0"
                      />
                   </div>
@@ -880,7 +876,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         await updateField("availability", newAvailability);
                      }}
                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        profile.availability ? "bg-blue-600" : "bg-gray-300"
+                        profile.availability ? "bg-[#004aad]" : "bg-gray-300"
                      }`}
                   >
                      <span
@@ -929,7 +925,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
             </div>{" "}
             <button
                onClick={() => updateField("rates")}
-               className="w-full mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+               className="w-full mt-6 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
             >
                Save Changes
             </button>
@@ -940,14 +936,22 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
 
 const EarningsTab = ({ balance, fetchBalance }) => {
    const [refreshing, setRefreshing] = useState(false);
+   const currency = JSON.parse(localStorage.getItem("user")).currency;
 
    // Format currency function
+   // const formatCurrency = (amount) => {
+   //    if (!amount) return "$0.00";
+   //    return new Intl.NumberFormat("en-US", {
+   //       style: "currency",
+   //       currency: "USD",
+   //    }).format(amount);
+   // };
+
    const formatCurrency = (amount) => {
-      if (!amount) return "$0.00";
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: "USD",
-      }).format(amount);
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`;
    };
 
    const refreshEarnings = async () => {
@@ -970,7 +974,7 @@ const EarningsTab = ({ balance, fetchBalance }) => {
             <button
                onClick={refreshEarnings}
                disabled={refreshing}
-               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+               className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors disabled:opacity-50"
             >
                <TrendingUp
                   className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -1004,7 +1008,7 @@ const EarningsTab = ({ balance, fetchBalance }) => {
                <div className="text-sm text-gray-500">
                   {balance.availableBalance >= 10
                      ? "Ready to withdraw"
-                     : "Minimum $10 required for withdrawal"}
+                     : `Minimum 10 ${currency} required for withdrawal`}
                </div>
             </div>
 
@@ -1013,7 +1017,7 @@ const EarningsTab = ({ balance, fetchBalance }) => {
                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                        <TrendingUp className="w-5 h-5 text-[#004aad]" />
                      </div>
                      <div>
                         <h4 className="font-semibold text-gray-900">
@@ -1025,7 +1029,7 @@ const EarningsTab = ({ balance, fetchBalance }) => {
                      </div>
                   </div>
                </div>
-               <div className="text-3xl font-bold text-blue-600 mb-2">
+               <div className="text-3xl font-bold text-[#004aad] mb-2">
                   {formatCurrency(balance.totalEarnings)}
                </div>
                <div className="text-sm text-gray-500">
@@ -1086,10 +1090,10 @@ const EarningsTab = ({ balance, fetchBalance }) => {
 
          {/* Earnings Info */}
          <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-3">
+            <h4 className="font-semibold text-[#004aad] mb-3">
                💡 About Your Earnings
             </h4>
-            <div className="space-y-2 text-sm text-blue-800">
+            <div className="space-y-2 text-sm text-[#004aad]">
                <p>
                   • <strong>Available Balance:</strong> Funds ready for
                   immediate withdrawal
@@ -1103,7 +1107,7 @@ const EarningsTab = ({ balance, fetchBalance }) => {
                   all completed inspections
                </p>
                <p>
-                  • <strong>Minimum Withdrawal:</strong> $10 minimum required
+                  • <strong>Minimum Withdrawal:</strong> 10 {currency} minimum required
                   for withdrawal requests
                </p>
             </div>
@@ -1132,9 +1136,6 @@ const ManageInspectorProfile = () => {
       expiryDate: "",
       image: null,
    }); // Debug profile changes
-   useEffect(() => {
-      console.log("Profile state changed:", profile);
-   }, [profile]);
 
    // Fetch balance and earnings data
    const fetchBalance = useCallback(async () => {
@@ -1167,14 +1168,8 @@ const ManageInspectorProfile = () => {
    const fetchProfile = useCallback(async () => {
       try {
          setLoading(true);
-         console.log(
-            "Fetching profile from:",
-            `${BACKEND_URL}/api/v1/inspectors/profile`
-         );
-         console.log("Auth token:", localStorage.getItem("accessToken"));
 
          const response = await api.get("/api/v1/inspectors/profile");
-         console.log("Profile response:", response.data);
          setProfile(response.data.data);
       } catch (error) {
          console.error("Error fetching profile:", error);
@@ -1182,7 +1177,6 @@ const ManageInspectorProfile = () => {
 
          // Only set default profile if it's a 404 (no profile exists)
          if (error.response?.status === 404) {
-            console.log("No profile found, setting default");
             setProfile({
                fullName: user?.name || "",
                contactNumber: "",
@@ -1191,6 +1185,7 @@ const ManageInspectorProfile = () => {
                hourlyRate: 0,
                monthlyRate: 0,
                marginRate: 0,
+               currency: "",
                availability: true,
                verified: false,
                subscriptionPlan: "Free",
@@ -1211,14 +1206,10 @@ const ManageInspectorProfile = () => {
       } finally {
          setLoading(false);
       }
-   }, [user?.name]); // Only depend on user name, not the entire user object   // Load profile on component mount
-   useEffect(() => {
-      console.log("ManageInspectorProfile useEffect triggered");
-      console.log("User:", user);
-      console.log("User exists:", !!user);
+   }, [user?.name]); 
 
+   useEffect(() => {
       if (user) {
-         console.log("User found, calling fetchProfile and fetchBalance");
          Promise.all([fetchProfile(), fetchBalance()]);
       } else {
          console.log("No user found, skipping data fetch");
@@ -1280,6 +1271,7 @@ const ManageInspectorProfile = () => {
                body = {
                   hourlyRate: profile.hourlyRate,
                   monthlyRate: profile.monthlyRate,
+                  currency: profile.currency,
                };
                break;
             case "notifications":
@@ -1370,14 +1362,14 @@ const ManageInspectorProfile = () => {
    };
    const ProfileHeader = () => {
       if (!profile) return null;
+      const currency=JSON.parse(localStorage.getItem('user')).currency;
 
       // Format currency function
       const formatCurrency = (amount) => {
-         if (!amount) return "$0.00";
-         return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-         }).format(amount);
+         return `${new Intl.NumberFormat("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+         }).format(amount)} ${currency}`;
       };
 
       return (
@@ -1523,7 +1515,7 @@ const ManageInspectorProfile = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                      activeTab === tab.id
-                        ? "bg-white text-blue-600 shadow-sm"
+                        ? "bg-white text-[#004aad] shadow-sm"
                         : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
                   }`}
                >
@@ -1579,7 +1571,7 @@ const ManageInspectorProfile = () => {
       <div className="min-h-screen bg-gray-50">
          {loading && (
             <div className="flex items-center justify-center h-64">
-               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>
             </div>
          )}
 
@@ -1602,6 +1594,7 @@ const ManageInspectorProfile = () => {
                            hourlyRate: 0,
                            monthlyRate: 0,
                            marginRate: 0,
+                           currency: "",
                            availability: true,
                            verified: false,
                            subscriptionPlan: "Free",
@@ -1614,7 +1607,7 @@ const ManageInspectorProfile = () => {
                            resume: null,
                         })
                      }
-                     className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                     className="px-6 py-3 bg-[#004aad]  text-white rounded-lg  transition-colors"
                   >
                      Create Profile
                   </button>

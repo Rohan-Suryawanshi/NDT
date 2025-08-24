@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import toast from "react-hot-toast";
 import { BACKEND_URL } from "@/constant/Global";
+import { Location } from "@/constant/Location";
+import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 
 export default function ClientAccountSettings() {
    const [form, setForm] = useState({
@@ -43,18 +45,21 @@ export default function ClientAccountSettings() {
                throw new Error("Failed to fetch profile");
             }
          } catch (err) {
-            toast.error(err.message);
+            console.error("Profile fetch error:", err);
+            toast.error("Failed to fetch profile. Please try again.");
          }
       };
 
       fetchProfile();
    }, []);
-   
-    
 
    const handleChange = (e) => {
       const { name, value } = e.target;
       setForm((prev) => ({ ...prev, [name]: value }));
+   };
+
+   const handlePrimaryLocationChange = (value) => {
+      setForm((prev) => ({ ...prev, primaryLocation: value }));
    };
 
    const handleSubmit = async (e) => {
@@ -62,10 +67,10 @@ export default function ClientAccountSettings() {
       setLoading(true);
 
       try {
-         const method = isExistingProfile ? "PUT" : "POST";
+         const method =  "POST";
 
          const res = await fetch(
-            "http://localhost:3000/api/v1/client-routes/profile",
+            `${BACKEND_URL}/api/v1/client-routes/profile`,
             {
                method,
                headers: {
@@ -101,7 +106,9 @@ export default function ClientAccountSettings() {
          <div className="max-w-2xl mx-auto">
             <Card>
                <CardHeader>
-                  <CardTitle className="text-xl text-center">Account Settings</CardTitle>
+                  <CardTitle className="text-xl text-center">
+                     Account Settings
+                  </CardTitle>
                   <p className="text-sm text-gray-500 text-center">
                      {isExistingProfile
                         ? "Update your business information"
@@ -141,13 +148,21 @@ export default function ClientAccountSettings() {
                         <label className="text-sm font-medium text-gray-700">
                            Primary Location
                         </label>
-                        <Input
-                           name="primaryLocation"
+                        <Select
                            value={form.primaryLocation}
-                           onChange={handleChange}
-                           placeholder="Enter your primary location"
-                           required
-                        />
+                           onValueChange={handlePrimaryLocationChange}
+                        >
+                           <SelectTrigger className="w-full mt-1 px-3 py-2 border rounded focus:outline-none focus:ring">
+                              <SelectValue placeholder="Select your primary location" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              {Location.map((loc) => (
+                                 <SelectItem key={loc.id} value={loc.country}>
+                                    {loc.country}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
                      </div>
 
                      <div>

@@ -30,6 +30,8 @@ import geminiRoutes from "./routes/gemini.routes.js";
 import jobRequestRoutes from "./routes/jobRequest.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import adminSettingsRoutes from "./routes/adminSettings.routes.js";
+import "./cronJobs/certificateExpiryAlert.js";
+import "./cronJobs/skillMatrixExpiryAlert.js";
 
 //http://localhost:8000/api/v1/users/register
 app.use('/api/v1/users', userRoutes);
@@ -45,6 +47,8 @@ app.use("/api/v1/gemini", geminiRoutes);
 app.use("/api/v1/job-requests", jobRequestRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/admin/settings", adminSettingsRoutes);
+
+
 
 //Error Handling middleware
 app.use((err, req, res, next) => {

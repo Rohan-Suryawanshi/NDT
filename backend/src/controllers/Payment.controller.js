@@ -4,7 +4,6 @@ import { User } from '../models/User.model.js';
 import { AsyncHandler } from '../utils/AsyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
-import mongoose from 'mongoose';
 import { Withdrawal } from '../models/Withdrawal.model.js';
 import { Payment } from "../models/Payment.model.js";
 import { ProviderBalance } from '../models/ProviderBalance.model.js';
@@ -20,7 +19,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const createPaymentIntent = AsyncHandler(async (req, res) => {
   const { jobId, amount, currency = 'usd', description } = req.body;
 
-  console.log(req.body)
 
   if (!jobId || !amount) {
     throw new ApiError(400, 'Job ID and amount are required');
@@ -161,9 +159,15 @@ export const getPaymentHistory = AsyncHandler(async (req, res) => {
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
   const skip = (pageNumber - 1) * limitNumber;
+  const query={};
+  if(req.user.role!=="admin"&&req.user.role!=="finance")
+  {
+    query.clientId=req.user._id;
+  }
 
-  const payments = await Payment.find({ clientId: req.user._id })
-    .populate('jobId', 'title description location status')
+  const payments = await Payment.find(query)
+    .populate("jobId", "title description location status")
+    .populate("clientId", "name email phone")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limitNumber);
@@ -265,9 +269,10 @@ export const getProviderBalance = AsyncHandler(async (req, res) => {
     paymentStatus: 'paid'
   });
 
+
   const totalEarnings = completedJobs.reduce((sum, job) => {
-    const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
-    return sum + earnings.earnings;
+    // const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
+    return sum + job.estimatedTotal;
   }, 0);
   // Calculate withdrawn amount
   const completedWithdrawals = await Withdrawal.find({
@@ -307,6 +312,7 @@ export const requestWithdrawal = AsyncHandler(async (req, res) => {
   const { 
     amount, 
     withdrawalMethod, 
+    currency,
     method, // Legacy support
     bankDetails, 
     paypalDetails, 
@@ -366,7 +372,8 @@ export const requestWithdrawal = AsyncHandler(async (req, res) => {
     amount: parseFloat(amount),
     withdrawalMethod: finalMethod,
     status: 'pending',
-    metadata: metadata || {}
+    metadata: metadata || {},
+    currency,
   };
 
   // Calculate withdrawal fee using admin settings
@@ -454,12 +461,13 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
 
   // Transform to payment format
   const payments = jobs.map(job => {
-    const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
+    // const earnings = settings.calculateEarnings(job.paymentAmount, 'provider');
+    // console.log(job)
     return {
       jobId: job._id,
       jobTitle: job.title,
       clientName: job.clientId.fullName,
-      amount: earnings.earnings,
+      amount: job.estimatedTotal,
       paidAt: job.paidAt,
       paymentMethod: 'stripe' // Default payment method
     };
@@ -490,8 +498,6 @@ export const getProviderEarnings = AsyncHandler(async (req, res) => {
 export const getInspectorBalance = AsyncHandler(async (req, res) => {
   const inspectorId = req.user._id;
 
-  // Get admin settings for commission calculation
-  const settings = await AdminSettings.getCurrentSettings();
 
   // Find or create inspector balance (using same schema as ProviderBalance)
   let balance = await ProviderBalance.findOne({ providerId: inspectorId });
@@ -509,8 +515,8 @@ export const getInspectorBalance = AsyncHandler(async (req, res) => {
   });
 
   const totalEarnings = completedInspections.reduce((sum, inspection) => {
-    const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
-    return sum + earnings.earnings;
+    // const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
+    return sum + inspection.estimatedTotal;
   }, 0);
   // Calculate withdrawn amount
   const completedWithdrawals = await Withdrawal.find({
@@ -551,7 +557,7 @@ export const getInspectorEarnings = AsyncHandler(async (req, res) => {
   const inspectorId = req.user._id;
 
   // Get admin settings for commission calculation
-  const settings = await AdminSettings.getCurrentSettings();
+  // const settings = await AdminSettings.getCurrentSettings();
 
   const pageNumber = parseInt(page);
   const limitNumber = parseInt(limit);
@@ -567,15 +573,16 @@ export const getInspectorEarnings = AsyncHandler(async (req, res) => {
   .sort({ paidAt: -1 })
   .skip(skip)
   .limit(limitNumber);
+  // console.log(inspections)
 
   // Transform to payment format
   const payments = inspections.map(inspection => {
-    const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
+    // const earnings = settings.calculateEarnings(inspection.paymentAmount, 'inspector');
     return {
       jobId: inspection._id,
       jobTitle: inspection.title,
       clientName: inspection.clientId.fullName,
-      amount: earnings.earnings,
+      amount: inspection.estimatedTotal,
       paidAt: inspection.paidAt,
       paymentMethod: 'stripe' // Default payment method
     };
@@ -606,8 +613,8 @@ export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status, adminNote, transactionId, processingFee } = req.body;
 
-  if (req.user.role !== 'admin') {
-    throw new ApiError(403, 'Only admins can update withdrawal status');
+  if (req.user.role !== 'admin' && req.user.role !== 'finance') {
+    throw new ApiError(403, 'Only admins and finance can update withdrawal status');
   }
 
   const withdrawal = await Withdrawal.findById(id);
@@ -677,7 +684,7 @@ export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
 export const getAllWithdrawals = AsyncHandler(async (req, res) => {
   const { page = 1, limit = 10, status, search, dateRange } = req.query;
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'finance') {
     throw new ApiError(403, 'Only admins can view all withdrawals');
   }
 
@@ -749,11 +756,109 @@ export const getAllWithdrawals = AsyncHandler(async (req, res) => {
   );
 });
 
+// // @desc    Get payment statistics for admin dashboard
+// // @route   GET /api/v1/payments/admin/stats
+// // @access  Private (Admin only)
+// export const getPaymentStats = AsyncHandler(async (req, res) => {
+//   if (req.user.role !== 'admin') {
+//     throw new ApiError(403, 'Only admins can view payment statistics');
+//   }
+
+//   // Get withdrawal statistics
+//   const totalWithdrawals = await Withdrawal.aggregate([
+//     { $group: { _id: null, total: { $sum: '$amount' } } }
+//   ]);
+
+//   const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
+  
+//   const withdrawalStatusCounts = await Withdrawal.aggregate([
+//     { $group: { _id: '$status', count: { $sum: 1 } } }
+//   ]);
+
+//   // Get payment statistics
+//   const totalPayments1 = await Payment.aggregate([
+//     {
+//       $group: {
+//         _id: "$currency", // group by currency (QAR, USD, USDT, etc.)
+//         total: { $sum: "$totalAmount" },
+//       },
+//     },
+//   ]);
+
+//   console.log(totalPayments1);
+
+//   const totalPayments = await Payment.aggregate([
+//     { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+//   ]);
+
+//   const totalUsers = await User.countDocuments();
+//   // Calculate active users based on recent creation instead of lastLogin since lastLogin field doesn't exist
+//   // const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+//   // const activeUsers = await User.countDocuments({ 
+//   //   createdAt: { $gte: thirtyDaysAgo } 
+//   // });
+
+//   const activeUsers = await User.countDocuments();
+
+//   // Monthly trends (last 6 months)
+//   const sixMonthsAgo = new Date();
+//   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+//   const monthlyWithdrawals = await Withdrawal.aggregate([
+//     { $match: { requestedAt: { $gte: sixMonthsAgo } } },
+//     {
+//       $group: {
+//         _id: {
+//           year: { $year: '$requestedAt' },
+//           month: { $month: '$requestedAt' }
+//         },
+//         total: { $sum: '$amount' },
+//         count: { $sum: 1 }
+//       }
+//     },
+//     { $sort: { '_id.year': 1, '_id.month': 1 } }
+//   ]);
+
+//   const monthlyPayments = await Payment.aggregate([
+//     { $match: { createdAt: { $gte: sixMonthsAgo } } },
+//     {
+//       $group: {
+//         _id: {
+//           year: { $year: '$createdAt' },
+//           month: { $month: '$createdAt' }
+//         },
+//         total: { $sum: '$totalAmount' },
+//         count: { $sum: 1 }
+//       }
+//     },
+//     { $sort: { '_id.year': 1, '_id.month': 1 } }
+//   ]);
+
+//   // Get total withdrawals count for pagination
+//   const totalWithdrawalsCount = await Withdrawal.countDocuments();
+
+//   res.status(200).json(
+//     new ApiResponse(200, {
+//       totalWithdrawals: totalWithdrawals[0]?.total || 0,
+//       pendingWithdrawals,
+//       totalPayments: totalPayments[0]?.total || 0,
+//       totalUsers,
+//       activeUsers,
+//       withdrawalStatusCounts,
+//       totalWithdrawalsCount,
+//       monthlyTrends: {
+//         withdrawals: monthlyWithdrawals,
+//         payments: monthlyPayments
+//       }
+//     }, 'Payment statistics retrieved successfully')
+//   );
+// });
+
 // @desc    Get payment statistics for admin dashboard
 // @route   GET /api/v1/payments/admin/stats
 // @access  Private (Admin only)
 export const getPaymentStats = AsyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'finance') {
     throw new ApiError(403, 'Only admins can view payment statistics');
   }
 
@@ -768,17 +873,49 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     { $group: { _id: '$status', count: { $sum: 1 } } }
   ]);
 
-  // Get payment statistics
+  // Get payment statistics grouped by currency
+  const totalPaymentsByCurrency = await Payment.aggregate([
+    {
+      $group: {
+        _id: "$currency",
+        total: { $sum: "$totalAmount" },
+      },
+    },
+  ]);
+
+  // Fetch exchange rates (base = USD)
+  const axios = (await import("axios")).default;
+  const { data: fx } = await axios.get("https://open.er-api.com/v6/latest/USD");
+  const rates = fx?.rates || {};
+
+  // Convert payments into USD
+  const paymentsInUSD = totalPaymentsByCurrency.map(item => {
+    const currency = item._id?.toUpperCase();
+    const rate = rates[currency];
+
+    let totalInUSD = null;
+    if (rate) {
+      totalInUSD = item.total / rate; // because base is USD
+    }
+
+    return {
+      currency,
+      total: item.total,
+      totalInUSD: totalInUSD ? parseFloat(totalInUSD.toFixed(2)) : null
+    };
+  });
+
+  const totalPaymentsUSD = paymentsInUSD.reduce((acc, curr) => {
+    return acc + (curr.totalInUSD || 0);
+  }, 0);
+
+  // Other stats
   const totalPayments = await Payment.aggregate([
     { $group: { _id: null, total: { $sum: '$totalAmount' } } }
   ]);
 
   const totalUsers = await User.countDocuments();
-  // Calculate active users based on recent creation instead of lastLogin since lastLogin field doesn't exist
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const activeUsers = await User.countDocuments({ 
-    createdAt: { $gte: thirtyDaysAgo } 
-  });
+  const activeUsers = await User.countDocuments();
 
   // Monthly trends (last 6 months)
   const sixMonthsAgo = new Date();
@@ -789,14 +926,15 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     {
       $group: {
         _id: {
-          year: { $year: '$requestedAt' },
-          month: { $month: '$requestedAt' }
+          year: { $year: "$requestedAt" },
+          month: { $month: "$requestedAt" },
+          currency: "$currency"
         },
-        total: { $sum: '$amount' },
-        count: { $sum: 1 }
-      }
+        total: { $sum: "$amount" },
+        count: { $sum: 1 },
+      },
     },
-    { $sort: { '_id.year': 1, '_id.month': 1 } }
+    { $sort: { "_id.year": 1, "_id.month": 1 } },
   ]);
 
   const monthlyPayments = await Payment.aggregate([
@@ -814,14 +952,16 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     { $sort: { '_id.year': 1, '_id.month': 1 } }
   ]);
 
-  // Get total withdrawals count for pagination
+  // Get total withdrawals count
   const totalWithdrawalsCount = await Withdrawal.countDocuments();
 
   res.status(200).json(
     new ApiResponse(200, {
       totalWithdrawals: totalWithdrawals[0]?.total || 0,
       pendingWithdrawals,
-      totalPayments: totalPayments[0]?.total || 0,
+      totalPaymentsRaw: totalPayments[0]?.total || 0,
+      totalPayments: parseFloat(totalPaymentsUSD.toFixed(2)),
+      paymentsByCurrency: paymentsInUSD,
       totalUsers,
       activeUsers,
       withdrawalStatusCounts,
@@ -833,6 +973,7 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     }, 'Payment statistics retrieved successfully')
   );
 });
+
 
 export { 
   Payment, 

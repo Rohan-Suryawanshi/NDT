@@ -3,14 +3,19 @@ import {
   getAdminSettings,
   updateAdminSettings,
   resetSettingsToDefaults,
-  calculateFeesPreview
+  calculateFeesPreview,
+  getPublicFeeSettings
 } from '../controllers/AdminSettings.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { isAdmin } from '../middlewares/isAdmin.js';
 
 const router = Router();
 
-// Apply authentication and admin middleware to all routes
+// Public route for fee settings (no auth required)
+router.route('/public')
+  .get(getPublicFeeSettings);
+
+// Apply authentication and admin middleware to protected routes
 router.use(verifyJWT);
 router.use(isAdmin);
 

@@ -25,12 +25,6 @@ export default function DashboardProvider() {
          route: "/gemini",
       },
       {
-         title: "Manage Feedback",
-         description: "View and respond to client feedback.",
-         icon: <MessageCircle className="w-8 h-8 text-blue-600" />,
-         route: "/provider/feedback",
-      },
-      {
          title: "Manage Profile",
          description:
             "Update your company details, services offered, and availability.",
@@ -47,7 +41,7 @@ export default function DashboardProvider() {
          title: "Client Feedback",
          description:
             "View feedback and ratings from your clients.",
-         icon: <MessageCircle className="w-8 h-8 text-blue-600" />,
+         icon: <MessageCircle className="w-8 h-8 text-[#004aad]" />,
          route: "/provider/feedback",
       },
       

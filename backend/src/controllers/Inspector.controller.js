@@ -285,7 +285,8 @@ const updateAvailability = AsyncHandler(async (req, res) => {
 // ✅ UPDATE Inspector Rates
 const updateRates = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { hourlyRate, monthlyRate, marginRate } = req.body;
+  const { hourlyRate, monthlyRate, marginRate,currency } = req.body;
+  console.log(req.body);
 
   const updateData = {};
   if (hourlyRate !== undefined) updateData.hourlyRate = Number(hourlyRate);
@@ -295,6 +296,10 @@ const updateRates = AsyncHandler(async (req, res) => {
   if (Object.keys(updateData).length === 0) {
     throw new ApiError(400, "At least one rate must be provided");
   }
+ if (!currency || currency.trim() === "") {
+   throw new ApiError(400, "Currency is not selected");
+ }
+ updateData.currency=currency;
 
   const profile = await InspectorProfile.findOneAndUpdate(
     { userId },
@@ -310,6 +315,7 @@ const updateRates = AsyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, profile, "Rates updated successfully"));
 });
+
 // ✅ ADD Certification
 const addCertification = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -486,6 +492,7 @@ const updateResume = AsyncHandler(async (req, res) => {
 
   // Upload new resume
   const resumeResult = await uploadToCloudinary(resumeFile.path);
+  console.log(resumeResult);
   if (!resumeResult.url) {
     throw new ApiError(500, "Failed to upload resume");
   }

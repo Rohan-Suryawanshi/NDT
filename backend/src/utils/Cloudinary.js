@@ -48,5 +48,4 @@ const destroyImage = async (imageUrl) => {
     return { success: false, message: error.message };
   }
 };
-
 export { uploadToCloudinary, destroyImage };

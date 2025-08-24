@@ -47,33 +47,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { BACKEND_URL } from "@/constant/Global";
+import { Location } from "@/constant/Location";
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ASSOCIATION_TYPES = ["Freelancer", "Company"];
 
 const SUBSCRIPTION_PLANS = ["Free", "Basic", "Premium", "Enterprise"];
-
-const REGIONS = [
-   "North India",
-   "South India",
-   "East India",
-   "West India",
-   "Central India",
-   "Northeast India",
-];
-
-const MAJOR_CITIES = [
-   "Mumbai",
-   "Delhi",
-   "Bengaluru",
-   "Hyderabad",
-   "Ahmedabad",
-   "Chennai",
-   "Kolkata",
-   "Surat",
-   "Pune",
-   "Jaipur",
-];
 
 const COMPLIANCE_STANDARDS = [
    "ASME Section V",
@@ -129,7 +109,7 @@ const ClientProviderSelection = () => {
       title: "",
       description: "",
       location: "",
-      region: "Central India",
+      region: "",
       urgencyLevel: "medium",
       preferredStartDate: "",
       expectedCompletionDate: "",
@@ -160,7 +140,7 @@ const ClientProviderSelection = () => {
 
          if (response.data.success) {
             setProviders(response.data.data.profiles);
-            console.log(response.data.data.profiles);
+
             setFilteredProviders(response.data.data.profiles);
          }
       } catch (error) {
@@ -182,7 +162,6 @@ const ClientProviderSelection = () => {
 
          if (response.data.success) {
             setServiceOptions(response.data.data || []);
-            console.log("Services fetched:", response.data.data);
          }
       } catch (error) {
          console.error("Error fetching services:", error);
@@ -301,8 +280,9 @@ const ClientProviderSelection = () => {
          // Calculate estimated total based on provider rates
          const estimatedTotal =
             selectedProvider.hourlyRate * jobRequest.projectDuration * 8 +
-            selectedProvider.monthlyRate *
-               Math.ceil(jobRequest.projectDuration / 30);
+            (selectedProvider.monthlyRate / 30) *
+               jobRequest.projectDuration *
+               jobRequest.numInspectors;
          const requestData = {
             title: jobRequest.title,
             description: jobRequest.description,
@@ -319,6 +299,9 @@ const ClientProviderSelection = () => {
                },
                {}
             ),
+            costDetails: {
+               currency: selectedProvider.currency,
+            },
             projectDuration: jobRequest.projectDuration,
             numInspectors: jobRequest.numInspectors,
             estimatedTotal: estimatedTotal,
@@ -335,9 +318,6 @@ const ClientProviderSelection = () => {
             status: "open",
             type: "inspector",
          };
-
-         console.log("Job Request Data:", requestData);
-         console.log("Selected Services:", jobRequest.requiredServices);
 
          const response = await axios.post(
             `${BACKEND_URL}/api/v1/job-requests`,
@@ -369,7 +349,7 @@ const ClientProviderSelection = () => {
          title: "",
          description: "",
          location: "",
-         region: "Central India",
+         region: "",
          urgencyLevel: "medium",
          preferredStartDate: "",
          expectedCompletionDate: "",
@@ -409,12 +389,12 @@ const ClientProviderSelection = () => {
    return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
          {/* Header */}
-         <NavbarSection/>
+         <NavbarSection />
          <header className="bg-white shadow-sm border-b border-gray-200 mt-3">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                <div className="flex justify-between items-center py-6">
                   <div className="flex items-center space-x-4">
-                     <Building2 className="h-8 w-8 text-blue-600" />
+                     <Building2 className="h-8 w-8 text-[#004aad]" />
                      <h1 className="text-3xl font-bold text-[#004aad]">
                         Find NDT Inspector
                      </h1>
@@ -468,7 +448,6 @@ const ClientProviderSelection = () => {
                      {/* Association Type Filter */}
                      <Select
                         value={filters.associationType}
-                        
                         onValueChange={(value) =>
                            setFilters((prev) => ({
                               ...prev,
@@ -479,10 +458,10 @@ const ClientProviderSelection = () => {
                         <SelectTrigger className="w-full">
                            <SelectValue placeholder="Association Type" />
                         </SelectTrigger>
-                        <SelectContent > 
-                           <SelectItem value="all" >All Types</SelectItem>
+                        <SelectContent>
+                           <SelectItem value="all">All Types</SelectItem>
                            {ASSOCIATION_TYPES.map((type) => (
-                              <SelectItem key={type} value={type} >
+                              <SelectItem key={type} value={type}>
                                  {type}
                               </SelectItem>
                            ))}
@@ -539,7 +518,7 @@ const ClientProviderSelection = () => {
                      {/* Hourly Rate Filter */}
                      <div>
                         <Label htmlFor="hourlyRate" className="text-sm">
-                           Max Hourly Rate (₹)
+                           Max Hourly Rate
                         </Label>
                         <Input
                            id="hourlyRate"
@@ -558,7 +537,7 @@ const ClientProviderSelection = () => {
                      {/* Monthly Rate Filter */}
                      <div>
                         <Label htmlFor="monthlyRate" className="text-sm">
-                           Max Monthly Rate (₹)
+                           Max Monthly Rate
                         </Label>
                         <Input
                            id="monthlyRate"
@@ -576,56 +555,55 @@ const ClientProviderSelection = () => {
 
                      {/* Verified Filter */}
                      <div>
-                      <Label  className="text-sm">
-                           Verification
-                      </Label>
-                     <Select
-                        value={filters.verified}
-                        onValueChange={(value) =>
-                           setFilters((prev) => ({ ...prev, verified: value }))
-                        }
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Verification" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           <SelectItem value="all">All Providers</SelectItem>
-                           <SelectItem value="verified">
-                              Verified Only
-                           </SelectItem>
-                           <SelectItem value="unverified">
-                              Unverified
-                           </SelectItem>
-                        </SelectContent>
-                     </Select>
+                        <Label className="text-sm">Verification</Label>
+                        <Select
+                           value={filters.verified}
+                           onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                 ...prev,
+                                 verified: value,
+                              }))
+                           }
+                        >
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Verification" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="all">All Providers</SelectItem>
+                              <SelectItem value="verified">
+                                 Verified Only
+                              </SelectItem>
+                              <SelectItem value="unverified">
+                                 Unverified
+                              </SelectItem>
+                           </SelectContent>
+                        </Select>
                      </div>
 
                      {/* Subscription Plan Filter */}
                      <div>
-                       <Label  className="text-sm">
-                           Subscription
-                      </Label>
-                     <Select
-                        value={filters.subscriptionPlan}
-                        onValueChange={(value) =>
-                           setFilters((prev) => ({
-                              ...prev,
-                              subscriptionPlan: value,
-                           }))
-                        }
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Subscription" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           <SelectItem value="all">All Plans</SelectItem>
-                           {SUBSCRIPTION_PLANS.map((plan) => (
-                              <SelectItem key={plan} value={plan}>
-                                 {plan}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
+                        <Label className="text-sm">Subscription</Label>
+                        <Select
+                           value={filters.subscriptionPlan}
+                           onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                 ...prev,
+                                 subscriptionPlan: value,
+                              }))
+                           }
+                        >
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Subscription" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="all">All Plans</SelectItem>
+                              {SUBSCRIPTION_PLANS.map((plan) => (
+                                 <SelectItem key={plan} value={plan}>
+                                    {plan}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
                      </div>
                   </div>
 
@@ -652,7 +630,7 @@ const ClientProviderSelection = () => {
             {/* Providers Grid */}
             {loading ? (
                <div className="flex justify-center items-center py-12">
-                  <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#004aad]" />
                   <span className="ml-2 text-gray-600">
                      Loading providers...
                   </span>
@@ -728,7 +706,7 @@ const ClientProviderSelection = () => {
                                  {provider.verified && (
                                     <Badge
                                        variant="outline"
-                                       className="bg-blue-100 text-blue-800"
+                                       className="bg-blue-100 text-[#004aad]"
                                     >
                                        Verified
                                     </Badge>
@@ -809,15 +787,17 @@ const ClientProviderSelection = () => {
                                        Hourly
                                     </span>
                                     <p className="font-bold text-green-600">
-                                       ₹{provider.hourlyRate}/hr
+                                       {provider.currency} {provider.hourlyRate}
+                                       /hr
                                     </p>
                                  </div>
                                  <div>
                                     <span className="text-xs text-gray-500">
                                        Monthly
                                     </span>
-                                    <p className="font-bold text-blue-600">
-                                       ₹{provider.monthlyRate}/month
+                                    <p className="font-bold text-[#004aad]">
+                                       {provider.currency}{" "}
+                                       {provider.monthlyRate}/month
                                     </p>
                                  </div>
                               </div>
@@ -831,7 +811,7 @@ const ClientProviderSelection = () => {
                            <div className="flex space-x-2">
                               <Button
                                  onClick={() => handleRequestService(provider)}
-                                 className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                 className="flex-1 bg-[#004aad]"
                                  disabled={!provider.availability}
                               >
                                  <Send className="w-4 h-4 mr-2" />
@@ -869,6 +849,7 @@ const ClientProviderSelection = () => {
                      Request Service from{" "}
                      {selectedProvider?.fullName ||
                         selectedProvider?.companyName}
+                     {selectedProvider?.currency}
                   </DialogTitle>
                   <DialogDescription>
                      Fill out the details for your NDT service request
@@ -903,7 +884,7 @@ const ClientProviderSelection = () => {
                               }))
                            }
                         >
-                           <SelectTrigger>
+                           <SelectTrigger className="w-full">
                               <SelectValue />
                            </SelectTrigger>
                            <SelectContent>
@@ -923,40 +904,42 @@ const ClientProviderSelection = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div>
                         <Label htmlFor="location">Job Location *</Label>
-                        <Input
-                           id="location"
-                           placeholder="Enter specific location/address"
-                           value={jobRequest.location}
-                           onChange={(e) =>
-                              setJobRequest((prev) => ({
-                                 ...prev,
-                                 location: e.target.value,
-                              }))
-                           }
-                        />
-                     </div>
-                     <div>
-                        <Label htmlFor="region">Region</Label>
                         <Select
-                           value={jobRequest.region}
+                           value={jobRequest.location}
                            onValueChange={(value) =>
                               setJobRequest((prev) => ({
                                  ...prev,
-                                 region: value,
+                                 location: value,
                               }))
                            }
                         >
-                           <SelectTrigger>
-                              <SelectValue />
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select location" />
                            </SelectTrigger>
                            <SelectContent>
-                              {REGIONS.map((region) => (
-                                 <SelectItem key={region} value={region}>
-                                    {region}
+                              {Location.map((location) => (
+                                 <SelectItem
+                                    key={location.id}
+                                    value={location.country}
+                                 >
+                                    {location.country}
                                  </SelectItem>
                               ))}
                            </SelectContent>
                         </Select>
+                     </div>
+                     <div>
+                        <Label htmlFor="region">Region</Label>
+                        <Input
+                           value={jobRequest.region}
+                           onChange={(e) =>
+                              setJobRequest((prev) => ({
+                                 ...prev,
+                                 region: e.target.value,
+                              }))
+                           }
+                           placeholder="Enter region"
+                        />
                      </div>
                   </div>
                   {/* Description */}
@@ -994,7 +977,7 @@ const ClientProviderSelection = () => {
                            }
                         />
                      </div>
-                     <div>
+                     <div className="hidden">
                         <Label htmlFor="numInspectors">
                            Number of Inspectors *
                         </Label>
@@ -1012,17 +995,15 @@ const ClientProviderSelection = () => {
                         />
                      </div>
                      <div className="flex items-center space-x-2 pt-6">
-                        <input
-                           type="checkbox"
+                        <Checkbox
                            id="isPremium"
                            checked={jobRequest.isPremium}
-                           onChange={(e) =>
+                           onCheckedChange={(checked) =>
                               setJobRequest((prev) => ({
                                  ...prev,
-                                 isPremium: e.target.checked,
+                                 isPremium: checked === true, // ensures it's a boolean
                               }))
                            }
-                           className="rounded"
                         />
                         <Label htmlFor="isPremium" className="text-sm">
                            Premium Service
@@ -1092,7 +1073,7 @@ const ClientProviderSelection = () => {
                      )}
                   </div>
                   {/* Compliance Requirements */}
-                  <div>
+                  <div className="hidden">
                      <Label>Compliance Standards (Optional)</Label>
                      <div className="grid grid-cols-2 gap-2 mt-2">
                         {COMPLIANCE_STANDARDS.map((standard) => (
@@ -1119,27 +1100,32 @@ const ClientProviderSelection = () => {
                   {selectedProvider && jobRequest.projectDuration > 0 && (
                      <div className="p-4 bg-blue-50 rounded-lg">
                         <h4 className="font-medium mb-2 flex items-center">
-                           <DollarSign className="w-4 h-4 mr-1" />
-                           Estimated Cost Preview
+                           Cost Preview
                         </h4>
                         <div className="text-sm space-y-1">
                            <p>
-                              Daily Rate: ₹{selectedProvider.hourlyRate * 8} ×{" "}
-                              {jobRequest.projectDuration} days = ₹
+                              Daily Rate: {selectedProvider.hourlyRate * 8}{" "}
+                              {selectedProvider.currency} ×{" "}
+                              {jobRequest.projectDuration} days =
                               {selectedProvider.hourlyRate *
                                  8 *
-                                 jobRequest.projectDuration}
+                                 jobRequest.projectDuration}{" "}
+                              {selectedProvider.currency}
                            </p>
                            <p>
-                              Inspectors: {jobRequest.numInspectors} × ₹
-                              {(selectedProvider.monthlyRate / 30) *
-                                 jobRequest.projectDuration}{" "}
-                              = ₹
+                              Inspectors: {jobRequest.numInspectors} ×{" "}
+                              {selectedProvider.currency}{" "}
+                              {(
+                                 (selectedProvider.monthlyRate / 30) *
+                                 jobRequest.projectDuration
+                              ).toFixed(2)}{" "}
+                              =
                               {(
                                  (selectedProvider.monthlyRate / 30) *
                                  jobRequest.projectDuration *
                                  jobRequest.numInspectors
-                              ).toFixed(0)}
+                              ).toFixed(0)}{" "}
+                              {selectedProvider.currency}
                            </p>
 
                            {jobRequest.requiredServices.length > 0 && (
@@ -1169,7 +1155,7 @@ const ClientProviderSelection = () => {
                            )}
 
                            <p className="font-medium border-t pt-1">
-                              Estimated Total: ₹
+                              Total: {selectedProvider.currency}{" "}
                               {(
                                  selectedProvider.hourlyRate *
                                     8 *
@@ -1180,8 +1166,8 @@ const ClientProviderSelection = () => {
                               ).toFixed(0)}
                            </p>
                            <p className="text-xs text-gray-600">
-                              *This is an estimate. Final quote will be provided
-                              by the service provider.
+                              {/* *This is an estimate. Final quote will be provided
+                              by the service provider. */}
                            </p>
                         </div>
                      </div>
@@ -1198,7 +1184,7 @@ const ClientProviderSelection = () => {
                            !jobRequest.preferredStartDate ||
                            jobRequest.requiredServices.length === 0
                         }
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        className="flex-1 bg-[#004aad]"
                      >
                         {submitting ? (
                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -1304,7 +1290,7 @@ const ClientProviderSelection = () => {
                               : "Busy"}
                         </Badge>
                         {selectedProvider.verified && (
-                           <Badge className="bg-blue-100 text-blue-800">
+                           <Badge className="bg-blue-100 text-[#004aad]">
                               Verified Provider
                            </Badge>
                         )}
@@ -1426,7 +1412,7 @@ const ClientProviderSelection = () => {
                               setShowDetailsModal(false);
                               setShowRequestModal(true);
                            }}
-                           className="flex-1 bg-blue-600 hover:bg-blue-700"
+                           className="flex-1 bg-[#004aad]"
                            disabled={!selectedProvider.availability}
                         >
                            <Send className="w-4 h-4 mr-2" />

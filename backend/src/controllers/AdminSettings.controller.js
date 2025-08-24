@@ -3,6 +3,24 @@ import { AsyncHandler } from '../utils/AsyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
+// @desc    Get public fee settings
+// @route   GET /api/v1/admin/settings/public
+// @access  Public
+export const getPublicFeeSettings = AsyncHandler(async (req, res) => {
+  const settings = await AdminSettings.getCurrentSettings();
+  
+  // Return only fee-related settings that clients need
+  const publicSettings = {
+    platformFeePercentage: settings.platformFeePercentage,
+    processingFeePercentage: settings.processingFeePercentage,
+    fixedProcessingFee: settings.fixedProcessingFee
+  };
+
+  res.status(200).json(
+    new ApiResponse(200, publicSettings, 'Public fee settings retrieved successfully')
+  );
+});
+
 // @desc    Get current admin settings
 // @route   GET /api/v1/admin/settings
 // @access  Private (Admin only)

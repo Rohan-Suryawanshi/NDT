@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { agreementTexts } from "@/constant/agreements";
 import { BACKEND_URL } from "@/constant/Global";
+import { Location } from "@/constant/Location";
 import toast from "react-hot-toast";
 
 export default function Register() {
@@ -19,6 +20,8 @@ export default function Register() {
       password: "",
       avatar: null,
       role: "client",
+      location: "",
+      currency: "",
       acceptedTerms: false,
    });
 
@@ -51,7 +54,9 @@ export default function Register() {
          !form.email ||
          !form.password ||
          !form.role ||
-         !form.avatar
+         !form.avatar ||
+         !form.location ||
+         !form.currency
       ) {
          toast.error("All fields are required, including image.");
          return;
@@ -68,22 +73,22 @@ export default function Register() {
          formData.append("password", form.password);
          formData.append("role", form.role);
          formData.append("acceptedTerms", form.acceptedTerms);
+         formData.append("location", form.location);
+         formData.append("currency", form.currency);
+
          if (form.avatar) {
             formData.append("avatar", form.avatar);
          }
-
          const res = await fetch(`${BACKEND_URL}/api/v1/users/register`, {
             method: "POST",
             body: formData, // Automatically sets multipart/form-data
          });
 
          const data = await res.json();
-         if(data.success)
-         {
-          toast.success(data.message);
-         }
-         else{
-          toast.error(data.message)
+         if (data.success) {
+            toast.success(data.message);
+         } else {
+            toast.error(data.message);
          }
          console.log("Registered:", data);
       } catch (err) {
@@ -164,6 +169,32 @@ export default function Register() {
                      </SelectContent>
                   </Select>
                </div>
+               <Select
+                  value={form.location || ""}
+                  onValueChange={(value) => {
+                     const selected = Location.find(
+                        (loc) => loc.country === value
+                     );
+                     if (selected) {
+                        setForm((prev) => ({
+                           ...prev,
+                              location: selected.country,
+                              currency: selected.currencyCode,
+                        }));
+                     }
+                  }}
+               >
+                  <SelectTrigger className="h-11 px-3 py-1 text-base md:text-sm w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004aad]">
+                     <SelectValue placeholder="Select Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     {Location.map((location) => (
+                        <SelectItem key={location.id} value={location.country}>
+                           {location.country} ({location.currencyCode})
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
             </div>
 
             {/* Avatar Upload */}

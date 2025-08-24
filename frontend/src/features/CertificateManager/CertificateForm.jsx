@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { BACKEND_URL } from "@/constant/Global";
+import { certificateBodies } from "@/constant/CertificateBody";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function CertificateForm({ initialData, onSuccess }) {
    const [formData, setFormData] = useState({
@@ -68,6 +70,9 @@ export default function CertificateForm({ initialData, onSuccess }) {
       }
    };
 
+   // Certificate body options array
+  
+
    return (
       <form onSubmit={handleSubmit} className="space-y-4">
          <div>
@@ -82,15 +87,26 @@ export default function CertificateForm({ initialData, onSuccess }) {
          </div>
 
          <div>
-            <Label className="mb-2">Certification Body</Label>
-            <Input
-               type="text"
-               name="certificationBody"
-               value={formData.certificationBody}
-               onChange={handleChange}
-               required
-            />
-         </div>
+  <Label className="mb-2">Certification Body</Label>
+  <Select
+    value={formData.certificationBody}
+    onValueChange={(value) =>
+      handleChange({ target: { name: "certificationBody", value } })
+    }
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select Certification Body" />
+    </SelectTrigger>
+    <SelectContent>
+      {certificateBodies.map((body) => (
+        <SelectItem key={body} value={body}>
+          {body}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
+
 
          <div>
             <Label className="mb-2">Category</Label>

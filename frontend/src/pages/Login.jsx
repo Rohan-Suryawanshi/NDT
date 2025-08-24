@@ -46,7 +46,7 @@ export default function Login() {
             toast.error(data.message || "Login failed");
          } else {
             toast.success("Login successful!");
-            console.log(data);
+            
 
             // Use the login function from useAuth hook
             login(data.data.user, data.data.accessToken);
@@ -57,6 +57,8 @@ export default function Login() {
                navigate("/dashboard-inspector");
             } else if (data.data.user.role === "admin") {
                navigate("/admin/dashboard");
+            }else if(data.data.user.role === "finance"){
+               navigate("/admin/payments");
             } else {
                navigate("/dashboard-client");
             }

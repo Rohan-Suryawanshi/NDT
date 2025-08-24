@@ -58,13 +58,14 @@ import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { BACKEND_URL } from "@/constant/Global";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
 // Utility functions
-const formatCurrency = (amount) => {
-   return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-   }).format(amount);
+const formatCurrency = (amount, currency = "USD") => {
+   return `${new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+   }).format(amount)} ${currency}`;
 };
 
 const formatDate = (date) => {
@@ -107,51 +108,69 @@ const AdminWithdrawManagement = () => {
    // Chart colors
    const COLORS = ["#004aad", "#e0eaff", "#c1d6ff", "#ff6b6b", "#ffd93d"];
 
-  // Generate chart data from real stats
-  const getChartData = () => {
-    if (!stats.monthlyTrends || !stats.monthlyTrends.withdrawals || !stats.monthlyTrends.payments) {
-      // Return empty data instead of mock data
-      return [];
-    }
+   // Generate chart data from real stats
+   const getChartData = () => {
+      if (
+         !stats.monthlyTrends ||
+         !stats.monthlyTrends.withdrawals ||
+         !stats.monthlyTrends.payments
+      ) {
+         // Return empty data instead of mock data
+         return [];
+      }
 
-    // Convert backend data to chart format
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-    ];
-    const chartData = [];
-    
-    // Create a map of existing data
-    const withdrawalData = {};
-    const paymentData = {};
-    
-    stats.monthlyTrends.withdrawals?.forEach((item) => {
-      const key = `${item._id.year}-${item._id.month}`;
-      withdrawalData[key] = item.total;
-    });
-    
-    stats.monthlyTrends.payments?.forEach((item) => {
-      const key = `${item._id.year}-${item._id.month}`;
-      paymentData[key] = item.total;
-    });
+      // Convert backend data to chart format
+      const months = [
+         "Jan",
+         "Feb",
+         "Mar",
+         "Apr",
+         "May",
+         "Jun",
+         "Jul",
+         "Aug",
+         "Sep",
+         "Oct",
+         "Nov",
+         "Dec",
+      ];
+      const chartData = [];
 
-    // Generate last 6 months
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      
-      chartData.push({
-        month: months[date.getMonth()],
-        withdrawals: withdrawalData[key] || 0,
-        payments: paymentData[key] || 0,
-        users: stats.activeUsers || 0
+      // Create a map of existing data
+      const withdrawalData = {};
+      const paymentData = {};
+
+      stats.monthlyTrends.withdrawals?.forEach((item) => {
+         const key = `${item._id.year}-${item._id.month}`;
+         withdrawalData[key] = item.total;
       });
-    }
-    
-    return chartData;
-  };   const getStatusDistribution = () => {
-      if (!stats.withdrawalStatusCounts || stats.withdrawalStatusCounts.length === 0) {
+
+      stats.monthlyTrends.payments?.forEach((item) => {
+         const key = `${item._id.year}-${item._id.month}`;
+         paymentData[key] = item.total;
+      });
+
+      // Generate last 6 months
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+         const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+
+         chartData.push({
+            month: months[date.getMonth()],
+            withdrawals: withdrawalData[key] || 0,
+            payments: paymentData[key] || 0,
+            users: stats.activeUsers || 0,
+         });
+      }
+
+      return chartData;
+   };
+   const getStatusDistribution = () => {
+      if (
+         !stats.withdrawalStatusCounts ||
+         stats.withdrawalStatusCounts.length === 0
+      ) {
          // Return empty data instead of mock data
          return [];
       }
@@ -188,13 +207,16 @@ const AdminWithdrawManagement = () => {
             }
          );
 
-         console.log('Withdrawals response:', response.data);
          setWithdrawals(response.data.data.withdrawals || []);
          setTotalPages(response.data.data.pagination?.totalPages || 1);
       } catch (error) {
          console.error("Error fetching withdrawals:", error);
          console.error("Error response:", error.response?.data);
-         toast.error(`Failed to fetch withdrawals: ${error.response?.data?.message || error.message}`);
+         toast.error(
+            `Failed to fetch withdrawals: ${
+               error.response?.data?.message || error.message
+            }`
+         );
          // If unauthorized, redirect to login or show appropriate message
          if (error.response?.status === 403) {
             toast.error("Admin access required");
@@ -214,7 +236,6 @@ const AdminWithdrawManagement = () => {
             }
          );
 
-         console.log('Payment stats response:', response.data);
          setStats(response.data.data || {});
       } catch (error) {
          console.error("Error fetching payment stats:", error);
@@ -222,7 +243,11 @@ const AdminWithdrawManagement = () => {
          if (error.response?.status === 403) {
             toast.error("Admin access required");
          } else {
-            toast.error(`Failed to fetch payment stats: ${error.response?.data?.message || error.message}`);
+            toast.error(
+               `Failed to fetch payment stats: ${
+                  error.response?.data?.message || error.message
+               }`
+            );
          }
       }
    };
@@ -280,11 +305,11 @@ const AdminWithdrawManagement = () => {
    };
 
    // Utility functions
-   const formatCurrency = (amount) => {
-      return new Intl.NumberFormat("en-US", {
-         style: "currency",
-         currency: "USD",
-      }).format(amount);
+   const formatCurrency = (amount, currency = "USD") => {
+      return `${new Intl.NumberFormat("en-US", {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2,
+      }).format(amount)} ${currency}`;
    };
 
    const formatDate = (date) => {
@@ -479,7 +504,7 @@ const AdminWithdrawManagement = () => {
             </Card>
 
             {/* User Growth */}
-            <Card className="p-6">
+            {/* <Card className="p-6">
                <h3 className="text-lg font-semibold mb-4">User Growth</h3>
                {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -505,7 +530,7 @@ const AdminWithdrawManagement = () => {
                      </div>
                   </div>
                )}
-            </Card>
+            </Card> */}
          </div>
       );
    };
@@ -514,8 +539,9 @@ const AdminWithdrawManagement = () => {
    const TableView = () => (
       <Card className="p-6">
          {/* Filters */}
-         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
+         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 mb-6">
+            {/* Search Input */}
+            <div className="flex-1 min-w-[250px]">
                <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
@@ -523,95 +549,101 @@ const AdminWithdrawManagement = () => {
                      value={searchTerm}
                      onChange={(e) => setSearchTerm(e.target.value)}
                      onKeyPress={handleSearchKeyPress}
-                     className="pl-10"
+                     className="pl-10 w-full"
                   />
                </div>
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-               <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Status" />
-               </SelectTrigger>
-               <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">
-                     <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-yellow-500" />
-                        Pending
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="processing">
-                     <div className="flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 text-blue-500" />
-                        Processing
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="completed">
-                     <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        Completed
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="rejected">
-                     <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-red-500" />
-                        Rejected
-                     </div>
-                  </SelectItem>
-               </SelectContent>
-            </Select>
+            {/* Status Filter */}
+            <div className="w-full sm:w-[200px]">
+               <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                     <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="all">All Status</SelectItem>
+                     <SelectItem value="pending">
+                        <div className="flex items-center gap-2">
+                           <Clock className="h-4 w-4 text-yellow-500" /> Pending
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="processing">
+                        <div className="flex items-center gap-2">
+                           <RefreshCw className="h-4 w-4 text-[#004aad]" />{" "}
+                           Processing
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="completed">
+                        <div className="flex items-center gap-2">
+                           <CheckCircle className="h-4 w-4 text-green-500" />{" "}
+                           Completed
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="rejected">
+                        <div className="flex items-center gap-2">
+                           <XCircle className="h-4 w-4 text-red-500" /> Rejected
+                        </div>
+                     </SelectItem>
+                  </SelectContent>
+               </Select>
+            </div>
 
-            <Select value={dateRange} onValueChange={setDateRange}>
-               <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Time" />
-               </SelectTrigger>
-               <SelectContent>
-                  <SelectItem value="all">
-                     <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        All Time
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="today">
-                     <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-blue-500" />
-                        Today
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="week">
-                     <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-green-500" />
-                        This Week
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="month">
-                     <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-purple-500" />
-                        This Month
-                     </div>
-                  </SelectItem>
-                  <SelectItem value="quarter">
-                     <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-orange-500" />
-                        This Quarter
-                     </div>
-                  </SelectItem>
-               </SelectContent>
-            </Select>
+            {/* Date Range Filter */}
+            <div className="w-full sm:w-[200px]">
+               <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger className="w-full">
+                     <SelectValue placeholder="All Time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-gray-500" /> All
+                           Time
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="today">
+                        <div className="flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-[#004aad]" /> Today
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="week">
+                        <div className="flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-green-500" /> This
+                           Week
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="month">
+                        <div className="flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-purple-500" /> This
+                           Month
+                        </div>
+                     </SelectItem>
+                     <SelectItem value="quarter">
+                        <div className="flex items-center gap-2">
+                           <Calendar className="h-4 w-4 text-orange-500" /> This
+                           Quarter
+                        </div>
+                     </SelectItem>
+                  </SelectContent>
+               </Select>
+            </div>
 
-            <Button
-               onClick={() => {
-                  setCurrentPage(1);
-                  fetchWithdrawals();
-               }}
-               disabled={loading}
-               className="min-w-[100px]"
-            >
-               <RefreshCw
-                  className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-               />
-               {loading ? "Loading..." : "Refresh"}
-            </Button>
+            {/* Refresh Button */}
+            <div className="w-full sm:w-auto flex justify-start sm:justify-end">
+               <Button
+                  onClick={() => {
+                     setCurrentPage(1);
+                     fetchWithdrawals();
+                  }}
+                  disabled={loading}
+                  className="min-w-[120px]"
+               >
+                  <RefreshCw
+                     className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                  />
+                  {loading ? "Loading..." : "Refresh"}
+               </Button>
+            </div>
          </div>
          {/* Table */}
          <div className="overflow-x-auto">
@@ -682,13 +714,17 @@ const AdminWithdrawManagement = () => {
                            <td className="py-3 px-4">
                               <div>
                                  <p className="font-medium">
-                                    {formatCurrency(withdrawal.amount || 0)}
+                                    {formatCurrency(
+                                       withdrawal.amount || 0,
+                                       withdrawal.currency
+                                    )}
                                  </p>
                                  {withdrawal.processingFee > 0 && (
                                     <p className="text-sm text-gray-500">
                                        Fee:{" "}
                                        {formatCurrency(
-                                          withdrawal.processingFee
+                                          withdrawal.processingFee,
+                                          withdrawal.currency
                                        )}
                                     </p>
                                  )}
@@ -747,6 +783,7 @@ const AdminWithdrawManagement = () => {
                                  <Dialog
                                     open={isModalOpen}
                                     onOpenChange={setIsModalOpen}
+                                    className=""
                                  >
                                     <DialogTrigger asChild>
                                        <Button
@@ -763,8 +800,8 @@ const AdminWithdrawManagement = () => {
                                           <Eye className="h-4 w-4" />
                                        </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                                       <DialogHeader className="pb-4 border-b">
+                                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto ">
+                                       <DialogHeader className="pb-4 border-b ">
                                           <DialogTitle className="text-xl font-bold text-gray-900">
                                              Withdrawal Request Details
                                           </DialogTitle>
@@ -832,7 +869,7 @@ const AdminWithdrawManagement = () => {
       adminNote,
       setAdminNote,
    }) => (
-      <div className="space-y-6">
+      <div className="space-y-6 ">
          {/* Withdrawal Info */}
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
@@ -863,8 +900,8 @@ const AdminWithdrawManagement = () => {
                   </Label>
                   <div className="mt-2 p-3 bg-blue-50 rounded-lg">
                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-blue-600" />
-                        <p className="capitalize font-medium text-blue-900">
+                        <CreditCard className="h-4 w-4 text-[#004aad]" />
+                        <p className="capitalize font-medium text-[#004aad]">
                            {withdrawal.withdrawalMethod?.replace("_", " ") ||
                               "Bank Transfer"}
                         </p>
@@ -882,18 +919,28 @@ const AdminWithdrawManagement = () => {
                      <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="h-5 w-5 text-green-600" />
                         <p className="text-2xl font-bold text-green-900">
-                           {formatCurrency(withdrawal.amount || 0)}
+                           {formatCurrency(
+                              withdrawal.amount || 0,
+                              withdrawal.currency
+                           )}
                         </p>
                      </div>
                      {withdrawal.processingFee > 0 && (
                         <p className="text-sm text-gray-600 mt-1">
                            Processing Fee:{" "}
-                           {formatCurrency(withdrawal.processingFee)}
+                           {formatCurrency(
+                              withdrawal.processingFee,
+                              withdrawal.currency
+                           )}
                         </p>
                      )}
                      {withdrawal.netAmount && (
                         <p className="text-sm text-green-700 mt-1 font-semibold">
-                           Net Amount: {formatCurrency(withdrawal.netAmount)}
+                           Net Amount:{" "}
+                           {formatCurrency(
+                              withdrawal.netAmount,
+                              withdrawal.currency
+                           )}
                         </p>
                      )}
                   </div>
@@ -945,7 +992,7 @@ const AdminWithdrawManagement = () => {
                </div>
                {withdrawal.processedAt && (
                   <div className="flex items-center gap-2">
-                     <Clock className="h-4 w-4 text-blue-500" />
+                     <Clock className="h-4 w-4 text-[#004aad]" />
                      <span className="text-gray-600">Processed:</span>
                      <span className="ml-2 font-medium">
                         {formatDate(withdrawal.processedAt)}
@@ -1080,15 +1127,15 @@ const AdminWithdrawManagement = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-3 pt-4">
-                     <Button
+                     {/* <Button
                         onClick={() =>
                            onUpdateStatus(withdrawal._id, "processing")
                         }
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                        className="bg-[#004aad] text-white px-6 py-2"
                      >
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve
-                     </Button>
+                     </Button> */}
                      <Button
                         onClick={() =>
                            onUpdateStatus(withdrawal._id, "completed")
@@ -1138,41 +1185,48 @@ const AdminWithdrawManagement = () => {
       </div>
    );
    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-6">
+      <>
+      <NavbarSection/>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-6 mt-2">
          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-               <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 bg-white rounded-lg p-6 shadow-sm border border-gray-200 gap-6">
+               {/* Left Section */}
+               <div className="flex-1 text-center sm:text-left">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#004aad]">
                      Withdrawal Management
                   </h1>
-                  <p className="text-gray-600 mt-2 text-lg">
+                  <p className="text-gray-600 mt-2 text-sm sm:text-base lg:text-lg">
                      Manage payment withdrawals and view analytics
                   </p>
                </div>
 
-               {/* Graphical Toggle */}
-               <div className="flex items-center gap-4 mt-4 sm:mt-0 bg-gray-50 p-4 rounded-lg">
-                  <Label
-                     htmlFor="graphical-view"
-                     className="text-sm font-semibold text-gray-700"
-                  >
-                     Graphical View
-                  </Label>
-                  <Switch
-                     id="graphical-view"
-                     checked={isGraphicalView}
-                     onCheckedChange={setIsGraphicalView}
-                     className="data-[state=checked]:bg-blue-600"
-                  />
-                  <Button
-                     variant="outline"
-                     onClick={() => window.print()}
-                     className="px-6 py-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
-                  >
-                     <Download className="h-4 w-4 mr-2" />
-                     Export
-                  </Button>
+               {/* Right Section */}
+               <div className="flex flex-col sm:flex-row items-center gap-4 bg-gray-50 p-4 rounded-lg w-full sm:w-auto">
+                  {/* Toggle */}
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                     <Label
+                        htmlFor="graphical-view"
+                        className="text-sm font-semibold text-gray-700"
+                     >
+                        Graphical View
+                     </Label>
+                     <Switch
+                        id="graphical-view"
+                        checked={isGraphicalView}
+                        onCheckedChange={setIsGraphicalView}
+                        className="data-[state=checked]:bg-[#004aad]"
+                     />
+                  </div>
+
+                  {/* Export Button (optional) */}
+                  {/* <Button
+      variant="outline"
+      onClick={() => window.print()}
+      className="w-full sm:w-auto px-6 py-2 border-[#004aad] text-[#004aad] hover:bg-blue-50 hover:border-[#004aad]"
+    >
+      <Download className="h-4 w-4 mr-2" />
+      Export
+    </Button> */}
                </div>
             </div>
             {/* Stats Cards */}
@@ -1181,19 +1235,19 @@ const AdminWithdrawManagement = () => {
                <TabsList className="bg-white border border-gray-200 p-1 rounded-lg shadow-sm">
                   <TabsTrigger
                      value="withdrawals"
-                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
                      Withdrawals
                   </TabsTrigger>
                   <TabsTrigger
                      value="payments"
-                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
                      Payment History
                   </TabsTrigger>
                   <TabsTrigger
                      value="analytics"
-                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
                      Analytics
                   </TabsTrigger>
@@ -1210,6 +1264,7 @@ const AdminWithdrawManagement = () => {
             </Tabs>{" "}
          </div>
       </div>
+      </>
    );
 };
 // Payment History View Component

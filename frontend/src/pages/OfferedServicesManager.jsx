@@ -14,15 +14,18 @@ import {
    SelectItem,
    SelectValue,
 } from "@/components/ui/select";
+import { Location } from "@/constant/Location";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
 
 export default function OfferedServicesManager() {
+   const currency=JSON.parse(localStorage.getItem("user")).currency;
    const [services, setServices] = useState([]);
    const [offerings, setOfferings] = useState([]);
    const [form, setForm] = useState({
       serviceId: "",
       charge: "",
       unit: "Per Unit",
-      currency: "USD",
+      currency: currency||"USD",
       tax: 0,
    });
    const [editingId, setEditingId] = useState(null);
@@ -114,12 +117,14 @@ export default function OfferedServicesManager() {
          serviceId: "",
          charge: "",
          unit: "Per Unit",
-         currency: "USD",
+         currency: currency||"USD",
          tax: 0,
       });
    };
 
    return (
+      <>
+      <NavbarSection/>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
          <h2 className="text-2xl font-bold mb-6">Add Service</h2>
 
@@ -184,21 +189,24 @@ export default function OfferedServicesManager() {
                   </Select>
                </div>
 
-               <div className="w-full sm:flex-1 min-w-[140px] ">
+               <div className="w-full sm:flex-1 min-w-[140px]">
                   <Label className="mb-2">Currency</Label>
                   <Select
                      value={form.currency}
                      onValueChange={(v) =>
                         setForm((prev) => ({ ...prev, currency: v }))
                      }
+                     disabled={!!currency}
                   >
                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Currency" />
                      </SelectTrigger>
                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="INR">INR</SelectItem>
-                        <SelectItem value="EUR">EUR</SelectItem>
+                        {Location.map((location) => (
+                           <SelectItem key={location.id} value={location.currencyCode}>
+                              {location.currencyCode}
+                           </SelectItem>
+                        ))}
                      </SelectContent>
                   </Select>
                </div>
@@ -239,7 +247,7 @@ export default function OfferedServicesManager() {
                      <tr key={off._id} className="border-t hover:bg-gray-50">
                         <td className="p-3">{off.serviceId?.name}</td>
                         <td className="p-3">
-                           ${Number(off.charge).toFixed(2)}
+                           {Number(off.charge).toFixed(2)}
                         </td>
                         <td className="p-3">{off.unit}</td>
                         <td className="p-3">{off.currency}</td>
@@ -276,5 +284,6 @@ export default function OfferedServicesManager() {
             </table>
          </div>
       </div>
+      </>
    );
 }

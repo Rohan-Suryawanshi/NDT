@@ -141,6 +141,7 @@ export const getAllProfiles = AsyncHandler(async (req, res) => {
         companyLogoUrl: 1,
         createdAt: 1,
         updatedAt: 1,
+        rating:1,
         user: {
           _id: 1,
           fullName: 1,
@@ -154,7 +155,7 @@ export const getAllProfiles = AsyncHandler(async (req, res) => {
     },
   ]);
 
-  console.log(`Found ${profiles.length} service provider profiles`);
+
   if (profiles.length > 0) {
     console.log(`First profile certificates:`, profiles[0].certificates?.length || 0);
   }
