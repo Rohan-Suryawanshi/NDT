@@ -1,1 +1,1 @@
-export const DB_NAME="NDTConnect1"
+export const DB_NAME="NDTConnect2"

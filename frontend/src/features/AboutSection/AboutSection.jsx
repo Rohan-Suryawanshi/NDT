@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
-import InteractiveEarth from "../InteractiveEarth/InteractiveEarth";
-
+import { lazy, Suspense } from "react";
 const AboutSection = () => {
+   const InteractiveEarth = lazy(() =>
+      import("../InteractiveEarth/InteractiveEarth")
+   );
+
    return (
       <section id="about" className="bg-gray-50 py-20 px-4">
          <div className="max-w-6xl mx-auto space-y-16">
@@ -17,7 +20,11 @@ const AboutSection = () => {
             {/* Image + Content */}
             <div className="grid md:grid-cols-2 gap-12 items-center">
                {/* Image */}
-               <InteractiveEarth />
+               <Suspense
+                  fallback={<div className="h-96 bg-gray-200 animate-pulse" />}
+               >
+                  <InteractiveEarth />
+               </Suspense>
 
                {/* Text Content */}
                <div className="text-gray-800">
