@@ -447,6 +447,7 @@ export default function SkillMatrixManager() {
                            onCheckedChange={(checked) =>
                               handleChange(idx, "isAvailable", checked)
                            }
+                        
                         />
                         <span className="text-sm text-gray-600">
                            {cert.isAvailable ? "Available" : "Not Available"}
