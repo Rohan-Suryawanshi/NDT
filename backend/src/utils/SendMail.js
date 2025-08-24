@@ -41,27 +41,20 @@ const graphClient = Client.initWithMiddleware({
 
 // Send Email Function
 export const sendEmail = async ({ to, subject, html }) => {
-  const message = {
-    message: {
-      subject,
-      body: {
-        contentType: "HTML",
-        content: html,
-      },
-      toRecipients: [
-        {
-          emailAddress: { address: to },
-        },
-      ],
+  const transporter = nodemailer.createTransport({
+    host: "smtp.office365.com",   // Microsoft SMTP
+    port: 587,
+    secure: false,                // STARTTLS
+    auth: {
+      user: process.env.EMAIL_USER, // e.g. support@yourdomain.com
+      pass: process.env.EMAIL_PASS, // app password or real password
     },
-    saveToSentItems: "true",
-  };
+  });
 
-  try {
-    await graphClient.api(`/users/${process.env.MS_EMAIL}/sendMail`).post(message);
-    console.log("✅ Email sent successfully!");
-  } catch (error) {
-    console.error("❌ Error sending email:", error);
-    throw error;
-  }
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER, // must match the authenticated user
+    to,
+    subject,
+    html,
+  });
 };
