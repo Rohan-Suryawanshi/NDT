@@ -12,7 +12,6 @@ const MAX_TOKENS_PER_KEY = 1_000_000;
 
 export const generateProcedure = async (req, res) => {
   const { userInput } = req.body;
-  console.log(req.body);
 
   const config = {
     temperature: 1,
@@ -77,9 +76,7 @@ The output must be formal, technical, and structured as a real inspection proced
         totalTokenUsage = 0;
       }
 
-      console.log("Ans :"+output);
       const htmlOutput = marked.parse(output);
-      console.log("Ans :" + htmlOutput);
 
       return res.json({ result: htmlOutput, tokensUsed: estimatedTokens });
     } catch (err) {

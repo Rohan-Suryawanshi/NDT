@@ -14,7 +14,6 @@ const StripePaymentForm = ({ job, paymentDetails, onSuccess, onCancel }) => {
    const elements = useElements();
    const [processing, setProcessing] = useState(false);
    const [paymentSucceeded, setPaymentSucceeded] = useState(false);
-   console.log(paymentDetails);
 
    const cardElementOptions = {
       style: {

@@ -24,7 +24,6 @@ cron.schedule("0 9 * * *", async () => {
       },
     }).populate("userId", "email name");
 
-    console.log(technicians)
 
     for (const tech of technicians) {
       const expiringCerts = tech.certificates.filter(

@@ -124,20 +124,12 @@ const fetchProvider = async (provider) => {
 
     if (response.data.success) {
       const profiles = response.data.data.profiles || [];
-      console.log(profiles)
-
-      console.log("First Profile User ID:", profiles[0].
-_id
-);
-      console.log("Second Profile User ID:", profiles[1]?._id);
-      console.log("Clicked Provider ID:", provider._id);
 
       // Filter correctly
       const filtered = profiles.filter(
         (p) => p._id === provider._id
       );
 
-      console.log("Filtered Provider:", filtered);
 
       setSelectedProvider(filtered);
     }
@@ -149,7 +141,6 @@ _id
 
 
    const handleRequestService = (provider) => {
-    console.log(provider);
       fetchProvider(provider);
 
       // setSelectedProvider(provider);

@@ -26,7 +26,6 @@ const ContactSection = () => {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      console.log(data);
       if (data.success) {
         toast.success("Message sent successfully!");
         setForm({ name: "", email: "", phone: "", message: "" });

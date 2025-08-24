@@ -259,7 +259,6 @@ const InspectorWithdraw = () => {
 
     try {
       const token = localStorage.getItem('accessToken');
-      console.log("this is the currency"+currency);
       const requestData = {
         amount: parseFloat(withdrawAmount),
         withdrawalMethod: withdrawMethod,

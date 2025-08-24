@@ -286,7 +286,7 @@ const updateAvailability = AsyncHandler(async (req, res) => {
 const updateRates = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { hourlyRate, monthlyRate, marginRate,currency } = req.body;
-  console.log(req.body);
+
 
   const updateData = {};
   if (hourlyRate !== undefined) updateData.hourlyRate = Number(hourlyRate);
@@ -492,7 +492,7 @@ const updateResume = AsyncHandler(async (req, res) => {
 
   // Upload new resume
   const resumeResult = await uploadToCloudinary(resumeFile.path);
-  console.log(resumeResult);
+ 
   if (!resumeResult.url) {
     throw new ApiError(500, "Failed to upload resume");
   }

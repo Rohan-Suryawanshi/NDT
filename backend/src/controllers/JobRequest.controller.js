@@ -36,7 +36,7 @@ export const createJobRequest = AsyncHandler(async (req, res) => {
     type
   } = req.body;
 
-  console.log(req.body);
+
 
 
   if (
@@ -151,7 +151,6 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
 
   // Build query
   let query = {};
-  console.log(req.user.role);
 
   let profileExists = false;
 
