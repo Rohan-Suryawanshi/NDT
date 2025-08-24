@@ -152,33 +152,38 @@ export const getAllJobRequests = AsyncHandler(async (req, res) => {
   // Build query
   let query = {};
   console.log(req.user.role);
-  // Role-based filtering
-  let providerProfile;
+
+  let profileExists = false;
+
   if (req.user.role === "client") {
+    // Clients don't have separate profiles
     query.clientId = req.user._id;
+    profileExists = true; // Assume client always has access
   } else if (req.user.role === "provider") {
-    // Find provider profile for this user
-     providerProfile = await ServiceProviderProfile.findOne({
-       userId: req.user._id,
-     });
-    if (providerProfile) {
-      query.assignedProviderId = req.user._id;
-    }
-  }
-  else{
-     providerProfile = await InspectorProfile.findOne({
+    // Check if provider profile exists
+    const providerProfile = await ServiceProviderProfile.findOne({
       userId: req.user._id,
     });
-
-    
-    
     if (providerProfile) {
       query.assignedProviderId = req.user._id;
+      profileExists = true;
+    }
+  } else if (req.user.role === "inspector") {
+    // Check if inspector profile exists
+    const inspectorProfile = await InspectorProfile.findOne({
+      userId: req.user._id,
+    });
+    if (inspectorProfile) {
+      query.assignedProviderId = req.user._id;
+      profileExists = true;
     }
   }
- if (req.user.role !== "admin" && !query.assignedProviderId) {
-   throw new ApiError(404, "Create the Profile First");
- }
+
+  // If not admin and no profile exists, throw error
+  if (req.user.role !== "admin" && !profileExists) {
+    throw new ApiError(404, "Create the Profile First");
+  }
+
 
   // Admin can see all jobs
 
