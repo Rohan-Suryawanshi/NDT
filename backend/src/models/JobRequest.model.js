@@ -22,7 +22,6 @@ const serviceCostSchema = new mongoose.Schema({
   unit: {
     type: String,
     required: true,
-    enum: ['Per Day', 'Per Hour', 'Per Unit', 'Per Inspector', 'Fixed']
   },
   quantity: {
     type: Number,

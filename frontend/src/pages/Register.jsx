@@ -86,11 +86,10 @@ export default function Register() {
 
          const data = await res.json();
          if (data.success) {
-            toast.success(data.message);
+            toast.success(data.message||"Please Verify Your Email");
          } else {
-            toast.error(data.message);
+            toast.error(data.message||"Unable To Login");
          }
-         console.log("Registered:", data);
       } catch (err) {
          console.error("Registration failed:", err);
       }
