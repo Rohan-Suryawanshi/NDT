@@ -1,23 +1,3 @@
-// // utils/sendEmail.js
-// import nodemailer from "nodemailer";
-
-// export const sendEmail = async ({ to, subject, html }) => {
-//   const transporter = nodemailer.createTransport({
-//     service: "gmail", // or use Mailgun/SMTP
-//     auth: {
-//       user: process.env.EMAIL_USER,
-//       pass: process.env.EMAIL_PASS,
-//     },
-//   });
-
-//   await transporter.sendMail({
-//     from: process.env.EMAIL_USER,
-//     to,
-//     subject,
-//     html,
-//   });
-// };
-// utils/sendEmail.js
 import { Client } from "@microsoft/microsoft-graph-client";
 import { ClientSecretCredential } from "@azure/identity";
 import "isomorphic-fetch"; // required by microsoft-graph-client
@@ -41,20 +21,27 @@ const graphClient = Client.initWithMiddleware({
 
 // Send Email Function
 export const sendEmail = async ({ to, subject, html }) => {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.office365.com",   // Microsoft SMTP
-    port: 587,
-    secure: false,                // STARTTLS
-    auth: {
-      user: process.env.EMAIL_USER, // e.g. support@yourdomain.com
-      pass: process.env.EMAIL_PASS, // app password or real password
+  const message = {
+    message: {
+      subject,
+      body: {
+        contentType: "HTML",
+        content: html,
+      },
+      toRecipients: [
+        {
+          emailAddress: { address: to },
+        },
+      ],
     },
-  });
+    saveToSentItems: "true",
+  };
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER, // must match the authenticated user
-    to,
-    subject,
-    html,
-  });
+  try {
+    await graphClient.api(`/users/${process.env.MS_EMAIL}/sendMail`).post(message);
+    console.log("✅ Email sent successfully!");
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    throw error;
+  }
 };
