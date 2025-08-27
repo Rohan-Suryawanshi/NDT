@@ -53,10 +53,38 @@ const registerUser = AsyncHandler(async (req, res) => {
   await sendEmail({
     to: email,
     subject: "Verify your email",
-    html: `<h2>Welcome, ${name}!</h2>
-      <p>Click below to verify your email:</p>
-      <a href="${verifyUrl}">Verify Email</a>`,
+    html: `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Email Verification</title>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f7f9fc; font-family:Arial, sans-serif;">
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+        <tr>
+          <td align="center" style="padding:40px 0;">
+            <table style="max-width:600px; width:100%; background:#ffffff; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" cellpadding="20">
+              <tr>
+                <td align="center" style="color:#333;">
+                  <h2 style="margin:0; color:#004aad;">Welcome, ${name}!</h2>
+                  <p style="color:#555; font-size:16px;">Thanks for signing up. Please click the button below to verify your email address:</p>
+                  <a href="${verifyUrl}" 
+                     style="display:inline-block; margin-top:20px; padding:12px 25px; background:#004aad; color:#ffffff; text-decoration:none; border-radius:6px; font-size:16px; font-weight:bold;">
+                    Verify Email
+                  </a>
+                  <p style="margin-top:30px; font-size:13px; color:#999;">If you didn’t create this account, you can safely ignore this email.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `,
   });
+
 
   deleteLocalFile(avatarPath);
 
