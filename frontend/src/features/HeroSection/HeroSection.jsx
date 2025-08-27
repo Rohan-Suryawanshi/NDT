@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate=useNavigate();
   return (
     <section className="bg-white py-20">
 
@@ -19,7 +21,7 @@ const HeroSection = () => {
             Your trusted platform for Non-Destructive Testing services.
             Find expert providers or offer your specialized NDT skills.
           </p>
-          <Button>Get Started</Button>
+          <Button onClick={() => navigate("/login")}>Get Started</Button>
         </motion.div>
 
         <motion.img
