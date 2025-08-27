@@ -38,9 +38,18 @@ const NavbarSection = () => {
    const location = useLocation();
    const navigate = useNavigate();
 
-   const handleLogout = () => {
-      logout();
-      navigate("/");
+  const handleLogout = async () => {
+      try {
+         await logout();
+         // Force navigation to home page after successful logout
+         navigate("/", { replace: true });
+         // // Force a page refresh to ensure clean state
+         // window.location.reload();
+      } catch (error) {
+         console.error("Logout error:", error);
+         // Even if logout fails, redirect to home
+         navigate("/", { replace: true });
+      }
    };
 
    const navLinkClasses = (path) =>

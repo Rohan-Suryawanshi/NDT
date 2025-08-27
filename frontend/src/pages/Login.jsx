@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { BACKEND_URL } from "@/constant/Global";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 export default function Login() {
    const navigate = useNavigate();
@@ -16,6 +17,79 @@ export default function Login() {
    });
 
    const [loading, setLoading] = useState(false);
+
+   // Profile check function
+   const checkUserProfile = async (userRole, token) => {
+      try {
+         let endpoint;
+         
+         switch (userRole) {
+            case "client":
+               endpoint = `${BACKEND_URL}/api/v1/client-routes/profile`;
+               break;
+            case "provider":
+               endpoint = `${BACKEND_URL}/api/v1/service-provider/profile`;
+               break;
+            case "inspector":
+               endpoint = `${BACKEND_URL}/api/v1/inspectors/profile`;
+               break;
+            default:
+               throw new Error("Invalid user role");
+         }
+
+         const response = await axios.get(endpoint, {
+            headers: {
+               Authorization: `Bearer ${token}`,
+            },
+         });
+         
+         // If we get here without error, profile exists
+         return {
+            hasProfile: true,
+            profile: response.data.data || response.data
+         };
+      } catch (error) {
+         // If 404 or any error, profile doesn't exist
+         console.log(`Profile check for ${userRole}:`, error.response?.status);
+         return {
+            hasProfile: false,
+            profile: null,
+            userRole
+         };
+      }
+   };
+
+   // Get profile setup page path
+   const getProfileSetupPath = (userRole) => {
+      switch (userRole) {
+         case "client":
+            return "/account-settings";
+         case "provider":
+            return "/provider-profile";
+         case "inspector":
+            return "/inspector-profile";
+         default:
+            return "/login";
+      }
+   };
+
+   // Get dashboard path
+   const getDashboardPath = (userRole) => {
+      switch (userRole) {
+         case "client":
+            return "/dashboard-client";
+         case "provider":
+            return "/dashboard-provider";
+         case "inspector":
+            return "/dashboard-inspector";
+         case "admin":
+            return "/admin/dashboard";
+         case "finance":
+            return "/admin/payments";
+         default:
+            return "/dashboard";
+      }
+   };
 
    const handleChange = (e) => {
       const { name, value } = e.target;
@@ -47,20 +121,35 @@ export default function Login() {
          } else {
             toast.success("Login successful!");
             
+            const user = data.data.user;
+            const token = data.data.accessToken;
 
             // Use the login function from useAuth hook
-            login(data.data.user, data.data.accessToken);
+            login(user, token);
 
-            if (data.data.user.role === "provider") {
-               navigate("/dashboard-provider");
-            } else if (data.data.user.role === "inspector") {
-               navigate("/dashboard-inspector");
-            } else if (data.data.user.role === "admin") {
-               navigate("/admin/dashboard");
-            }else if(data.data.user.role === "finance"){
-               navigate("/admin/payments");
+            // Check if profile exists for non-admin users
+            if (user.role === "admin" || user.role === "finance") {
+               // Admin and finance users don't need profile setup
+               navigate(getDashboardPath(user.role));
             } else {
-               navigate("/dashboard-client");
+               // Check profile for client, provider, inspector
+               const profileCheck = await checkUserProfile(user.role, token);
+               
+               if (!profileCheck.hasProfile) {
+                  // No profile found - redirect to profile setup
+                  toast.error("Please create your profile to get started");
+                  if(user.role=="provider")
+                  {
+                     localStorage.setItem("firstLogin",true);
+                  }
+                  const profilePath = getProfileSetupPath(user.role);
+                  navigate(profilePath);
+               } else {
+                  // Profile exists - redirect to dashboard
+                  toast.success("Welcome back!");
+                  const dashboardPath = getDashboardPath(user.role);
+                  navigate(dashboardPath);
+               }
             }
          }
       } catch (err) {

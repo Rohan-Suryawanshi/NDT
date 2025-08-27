@@ -105,8 +105,259 @@ const AdminWithdrawManagement = () => {
    const [dateRange, setDateRange] = useState("all");
    const [currentPage, setCurrentPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
+   const [exportLoading, setExportLoading] = useState(false);
    // Chart colors
    const COLORS = ["#004aad", "#e0eaff", "#c1d6ff", "#ff6b6b", "#ffd93d"];
+
+   // CSV Export Functions
+   const convertToCSV = (data, type) => {
+      if (!data || data.length === 0) return "";
+
+      let headers, rows;
+
+      if (type === "withdrawals") {
+         headers = [
+            "ID",
+            "User Name",
+            "User Email",
+            "Amount",
+            "Currency",
+            "Processing Fee",
+            "Net Amount",
+            "Method",
+            "Status",
+            "Bank Name",
+            "Account Number",
+            "Account Holder",
+            "PayPal Email",
+            "Crypto Currency",
+            "Wallet Address",
+            "Requested Date",
+            "Processed Date",
+            "Completed Date",
+            "Transaction ID",
+            "Admin Notes"
+         ];
+
+         rows = data.map(withdrawal => [
+            withdrawal._id || "",
+            withdrawal.userId?.name || withdrawal.userId?.fullName || "",
+            withdrawal.userId?.email || "",
+            withdrawal.amount || 0,
+            withdrawal.currency || "USD",
+            withdrawal.processingFee || 0,
+            withdrawal.netAmount || (withdrawal.amount - (withdrawal.processingFee || 0)),
+            withdrawal.withdrawalMethod?.replace("_", " ") || "Bank Transfer",
+            withdrawal.status || "pending",
+            withdrawal.bankDetails?.bankName || "",
+            withdrawal.bankDetails?.accountNumber || "",
+            withdrawal.bankDetails?.accountHolderName || "",
+            withdrawal.paypalDetails?.email || "",
+            withdrawal.cryptoDetails?.currency || "",
+            withdrawal.cryptoDetails?.walletAddress || "",
+            formatDate(withdrawal.requestedAt || withdrawal.createdAt),
+            withdrawal.processedAt ? formatDate(withdrawal.processedAt) : "",
+            withdrawal.completedAt ? formatDate(withdrawal.completedAt) : "",
+            withdrawal.transactionId || "",
+            withdrawal.adminNotes?.map(note => `${note.note} (${formatDate(note.addedAt)})`).join("; ") || ""
+         ]);
+      } else if (type === "payments") {
+         headers = [
+            "ID",
+            "Client Name",
+            "Client Email",
+            "Job Title",
+            "Job ID",
+            "Base Amount",
+            "Platform Fee",
+            "Processing Fee",
+            "Total Amount",
+            "Status",
+            "Payment Method",
+            "Transaction ID",
+            "Created Date",
+            "Updated Date"
+         ];
+
+         rows = data.map(payment => [
+            payment._id || "",
+            payment.clientId?.fullName || payment.clientId?.name || "",
+            payment.clientId?.email || "",
+            payment.jobId?.title || "",
+            payment.jobId?._id || "",
+            payment.baseAmount || 0,
+            payment.platformFee || 0,
+            payment.processingFee || 0,
+            payment.totalAmount || 0,
+            payment.status || "pending",
+            payment.paymentMethod || "",
+            payment.transactionId || "",
+            formatDate(payment.createdAt),
+            formatDate(payment.updatedAt)
+         ]);
+      }
+
+      // Escape CSV values and wrap in quotes if they contain commas or quotes
+      const escapeCSV = (value) => {
+         if (value === null || value === undefined) return "";
+         const stringValue = String(value);
+         if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+         }
+         return stringValue;
+      };
+
+      const csvContent = [
+         headers.join(","),
+         ...rows.map(row => row.map(escapeCSV).join(","))
+      ].join("\n");
+
+      return csvContent;
+   };
+
+   const downloadCSV = (csvContent, filename) => {
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      if (link.download !== undefined) {
+         const url = URL.createObjectURL(blob);
+         link.setAttribute("href", url);
+         link.setAttribute("download", filename);
+         link.style.visibility = "hidden";
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+      }
+   };
+
+   // Export All Withdrawals
+   const exportAllWithdrawals = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         // Fetch all withdrawals without pagination
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/admin/withdrawals`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: {
+                  page: 1,
+                  limit: 10000, // Large number to get all records
+                  status: statusFilter !== "all" ? statusFilter : undefined,
+                  search: searchTerm || undefined,
+                  dateRange: dateRange !== "all" ? dateRange : undefined,
+               },
+            }
+         );
+
+         const allWithdrawals = response.data.data.withdrawals || [];
+         
+         if (allWithdrawals.length === 0) {
+            toast.error("No withdrawals to export");
+            return;
+         }
+
+         const csvContent = convertToCSV(allWithdrawals, "withdrawals");
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(csvContent, `withdrawals_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allWithdrawals.length} withdrawals to CSV`);
+      } catch (error) {
+         console.error("Error exporting withdrawals:", error);
+         toast.error("Failed to export withdrawals");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   // Export All Payments
+   const exportAllPayments = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         // Fetch all payments without pagination
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/history`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: {
+                  page: 1,
+                  limit: 10000, // Large number to get all records
+               },
+            }
+         );
+
+         const allPayments = response.data.data.payments || [];
+         
+         if (allPayments.length === 0) {
+            toast.error("No payments to export");
+            return;
+         }
+
+         const csvContent = convertToCSV(allPayments, "payments");
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(csvContent, `payments_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting payments:", error);
+         toast.error("Failed to export payments");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   // Export Combined Data
+   const exportCombinedData = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         // Fetch both withdrawals and payments
+         const [withdrawalsResponse, paymentsResponse] = await Promise.all([
+            axios.get(`${BACKEND_URL}/api/v1/payments/admin/withdrawals`, {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }),
+            axios.get(`${BACKEND_URL}/api/v1/payments/history`, {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            })
+         ]);
+
+         const allWithdrawals = withdrawalsResponse.data.data.withdrawals || [];
+         const allPayments = paymentsResponse.data.data.payments || [];
+
+         if (allWithdrawals.length === 0 && allPayments.length === 0) {
+            toast.error("No data to export");
+            return;
+         }
+
+         // Create combined CSV with separate sheets effect
+         const withdrawalsCSV = convertToCSV(allWithdrawals, "withdrawals");
+         const paymentsCSV = convertToCSV(allPayments, "payments");
+         
+         const combinedCSV = [
+            "=== WITHDRAWALS ===",
+            withdrawalsCSV,
+            "",
+            "=== PAYMENTS ===", 
+            paymentsCSV
+         ].join("\n");
+
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(combinedCSV, `financial_report_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allWithdrawals.length} withdrawals and ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting combined data:", error);
+         toast.error("Failed to export data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
 
    // Generate chart data from real stats
    const getChartData = () => {
@@ -1218,15 +1469,45 @@ const AdminWithdrawManagement = () => {
                      />
                   </div>
 
-                  {/* Export Button (optional) */}
-                  {/* <Button
-      variant="outline"
-      onClick={() => window.print()}
-      className="w-full sm:w-auto px-6 py-2 border-[#004aad] text-[#004aad] hover:bg-blue-50 hover:border-[#004aad]"
-    >
-      <Download className="h-4 w-4 mr-2" />
-      Export
-    </Button> */}
+                  {/* Export Dropdown */}
+                  <div className="flex gap-2">
+                     <Select onValueChange={(value) => {
+                        if (value === "withdrawals") exportAllWithdrawals();
+                        else if (value === "payments") exportAllPayments();
+                        else if (value === "combined") exportCombinedData();
+                     }}>
+                        <SelectTrigger className="w-[140px]">
+                           <SelectValue placeholder="Export CSV" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           <SelectItem value="withdrawals">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Withdrawals
+                              </div>
+                           </SelectItem>
+                           <SelectItem value="payments">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Payments
+                              </div>
+                           </SelectItem>
+                           <SelectItem value="combined">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Combined Report
+                              </div>
+                           </SelectItem>
+                        </SelectContent>
+                     </Select>
+
+                     {exportLoading && (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600">
+                           <RefreshCw className="h-4 w-4 animate-spin" />
+                           Exporting...
+                        </div>
+                     )}
+                  </div>
                </div>
             </div>
             {/* Stats Cards */}
@@ -1253,12 +1534,65 @@ const AdminWithdrawManagement = () => {
                   </TabsTrigger>
                </TabsList>
                <TabsContent value="withdrawals">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Withdrawal Requests</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportAllWithdrawals}
+                           disabled={exportLoading}
+                           variant="outline"
+                           className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Withdrawals CSV
+                        </Button>
+                     </div>
+                  </div>
                   {isGraphicalView ? <ChartsView /> : <TableView />}
                </TabsContent>{" "}
                <TabsContent value="payments">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Payment History</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportAllPayments}
+                           disabled={exportLoading}
+                           variant="outline"
+                           className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Payments CSV
+                        </Button>
+                     </div>
+                  </div>
                   <PaymentHistoryView />
                </TabsContent>
                <TabsContent value="analytics">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Financial Analytics</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportCombinedData}
+                           disabled={exportLoading}
+                           className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Full Report
+                        </Button>
+                     </div>
+                  </div>
                   <ChartsView />
                </TabsContent>
             </Tabs>{" "}
@@ -1273,6 +1607,87 @@ const PaymentHistoryView = () => {
    const [loadingPayments, setLoadingPayments] = useState(false);
    const [paymentPage, setPaymentPage] = useState(1);
    const [paymentTotalPages, setPaymentTotalPages] = useState(1);
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Export function for payments in this component
+   const exportPayments = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/history`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allPayments = response.data.data.payments || [];
+         
+         if (allPayments.length === 0) {
+            toast.error("No payments to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "Client Name", "Client Email", "Job Title", "Job ID",
+            "Base Amount", "Platform Fee", "Processing Fee", "Total Amount",
+            "Status", "Payment Method", "Transaction ID", "Created Date", "Updated Date"
+         ];
+
+         const rows = allPayments.map(payment => [
+            payment._id || "",
+            payment.clientId?.fullName || payment.clientId?.name || "",
+            payment.clientId?.email || "",
+            payment.jobId?.title || "",
+            payment.jobId?._id || "",
+            payment.baseAmount || 0,
+            payment.platformFee || 0,
+            payment.processingFee || 0,
+            payment.totalAmount || 0,
+            payment.status || "pending",
+            payment.paymentMethod || "",
+            payment.transactionId || "",
+            formatDate(payment.createdAt),
+            formatDate(payment.updatedAt)
+         ]);
+
+         const escapeCSV = (value) => {
+            if (value === null || value === undefined) return "";
+            const stringValue = String(value);
+            if (stringValue.includes(",") || stringValue.includes('"')) {
+               return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+         };
+
+         const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(escapeCSV).join(","))
+         ].join("\n");
+
+         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+         const link = document.createElement("a");
+         const url = URL.createObjectURL(blob);
+         const timestamp = new Date().toISOString().split("T")[0];
+         
+         link.setAttribute("href", url);
+         link.setAttribute("download", `payments_${timestamp}.csv`);
+         link.style.visibility = "hidden";
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         
+         toast.success(`Exported ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting payments:", error);
+         toast.error("Failed to export payments");
+      } finally {
+         setExportLoading(false);
+      }
+   };
 
    const fetchPayments = React.useCallback(async () => {
       try {
@@ -1307,14 +1722,29 @@ const PaymentHistoryView = () => {
       <Card className="p-6">
          <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold">Payment History</h3>
-            <Button onClick={fetchPayments} disabled={loadingPayments}>
-               <RefreshCw
-                  className={`h-4 w-4 mr-2 ${
-                     loadingPayments ? "animate-spin" : ""
-                  }`}
-               />
-               Refresh
-            </Button>
+            <div className="flex gap-2">
+               <Button 
+                  onClick={exportPayments} 
+                  disabled={exportLoading}
+                  variant="outline"
+                  className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+               <Button onClick={fetchPayments} disabled={loadingPayments}>
+                  <RefreshCw
+                     className={`h-4 w-4 mr-2 ${
+                        loadingPayments ? "animate-spin" : ""
+                     }`}
+                  />
+                  Refresh
+               </Button>
+            </div>
          </div>
 
          <div className="overflow-x-auto">

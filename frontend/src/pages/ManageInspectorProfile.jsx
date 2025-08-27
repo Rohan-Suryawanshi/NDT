@@ -39,6 +39,8 @@ import {
    SelectValue,
    SelectItem,
 } from "@/components/ui/select";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
+import { useNavigate } from "react-router-dom";
 
 // Create axios instance with default config
 const api = axios.create({
@@ -803,7 +805,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                   </div>
                </div>
 
-               <div>
+               {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                      Currency
                   </label>
@@ -829,7 +831,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         </SelectContent>
                      </Select>
                   </div>
-               </div>
+               </div> */}
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                      Monthly Rate 
@@ -1182,7 +1184,7 @@ const ManageInspectorProfile = () => {
                contactNumber: "",
                associationType: "Freelancer",
                companyName: "",
-               hourlyRate: 0,
+               hourlyRate: "",
                monthlyRate: 0,
                marginRate: 0,
                currency: "",
@@ -1207,6 +1209,7 @@ const ManageInspectorProfile = () => {
          setLoading(false);
       }
    }, [user?.name]); 
+   const navigate=useNavigate();
 
    useEffect(() => {
       if (user) {
@@ -1248,6 +1251,8 @@ const ManageInspectorProfile = () => {
          setProfile(response.data.data);
          setIsEditing(false);
          toast.success("Profile saved successfully");
+         navigate('/dashboard-inspector');
+         
       } catch (error) {
          console.error("Error saving profile:", error);
          toast.error(error.response?.data?.message || "Failed to save profile");
@@ -1271,7 +1276,7 @@ const ManageInspectorProfile = () => {
                body = {
                   hourlyRate: profile.hourlyRate,
                   monthlyRate: profile.monthlyRate,
-                  currency: profile.currency,
+                  currency: JSON.parse(localStorage.getItem('user')).currency,
                };
                break;
             case "notifications":

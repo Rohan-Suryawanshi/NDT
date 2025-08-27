@@ -9,8 +9,10 @@ import { BACKEND_URL } from "@/constant/Global";
 import { Location } from "@/constant/Location";
 import { Upload, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 export default function ServiceProviderProfileManage() {
+   const navigate=useNavigate();
    const [form, setForm] = useState({
       contactNumber: "",
       companyName: "",
@@ -82,6 +84,11 @@ export default function ServiceProviderProfileManage() {
             }
          );
          toast.success("Profile saved successfully");
+         if(localStorage.getItem("firstLogin"))
+         {
+            navigate('/skill-matrix');
+            localStorage.removeItem('firstLogin');
+         }
          fetchProfile();
       } catch (err) {
          toast.error(

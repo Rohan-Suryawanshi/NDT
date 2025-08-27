@@ -578,7 +578,7 @@ const AdminRevenue = () => {
                className="space-y-6"
             >
                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="overview" className="gap-2">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white gap-2">
                      <BarChart3 className="h-4 w-4" />
                      Overview
                   </TabsTrigger>
@@ -586,15 +586,15 @@ const AdminRevenue = () => {
               <TrendingUp className="h-4 w-4" />
               Trends
             </TabsTrigger> */}
-                  <TabsTrigger value="withdrawals" className="gap-2">
+                  <TabsTrigger value="withdrawals" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white gap-2">
                      <PieChartIcon className="h-4 w-4" />
                      Withdrawals
                   </TabsTrigger>
-                  <TabsTrigger value="settings" className="gap-2">
+                  <TabsTrigger value="settings" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white gap-2">
                      <Settings className="h-4 w-4" />
                      Platform
                   </TabsTrigger>
-                  <TabsTrigger value="details" className="gap-2">
+                  <TabsTrigger value="details" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white gap-2">
                      <Calendar className="h-4 w-4" />
                      Details
                   </TabsTrigger>
@@ -814,7 +814,7 @@ const AdminRevenue = () => {
                                  </span>
                               </div>
 
-                              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                              {/* <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                                  <div>
                                     <p className="font-medium text-green-900">
                                        Provider Commission
@@ -844,7 +844,7 @@ const AdminRevenue = () => {
                                        platformSettings.inspectorCommissionPercentage
                                     )}
                                  </span>
-                              </div>
+                              </div> */}
 
                               <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                                  <div>

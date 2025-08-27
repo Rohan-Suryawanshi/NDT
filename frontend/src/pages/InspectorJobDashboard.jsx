@@ -900,14 +900,14 @@ const JobDetailsModal = ({
    return (
       <Tabs defaultValue="overview" className="w-full">
          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="notes">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
+            <TabsTrigger value="notes" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                Communication ({job.internalNotes?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="attachments">
+            <TabsTrigger value="attachments" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                Files ({job.attachments?.length || 0})
             </TabsTrigger>
-            <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="actions" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Actions</TabsTrigger>
          </TabsList>
 
          <TabsContent value="overview" className="space-y-4">

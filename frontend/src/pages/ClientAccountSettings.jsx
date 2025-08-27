@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { BACKEND_URL } from "@/constant/Global";
 import { Location } from "@/constant/Location";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 export default function ClientAccountSettings() {
    const [form, setForm] = useState({
@@ -17,6 +18,7 @@ export default function ClientAccountSettings() {
 
    const [loading, setLoading] = useState(false);
    const [isExistingProfile, setIsExistingProfile] = useState(false);
+   const navigate=useNavigate();
 
    useEffect(() => {
       const fetchProfile = async () => {
@@ -90,6 +92,8 @@ export default function ClientAccountSettings() {
                isExistingProfile ? "Profile updated" : "Profile created"
             );
             setIsExistingProfile(true);
+            navigate('/dashboard-client');
+            
          } else {
             toast.error(data.message || "Something went wrong");
          }
