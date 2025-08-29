@@ -206,3 +206,10 @@
   height: auto;
   margin: 1em 0;
 }
+
+/* in globals.css */
+a,
+[data-radix-dropdown-menu-item],
+[data-radix-dropdown-menu-trigger] {
+  cursor: pointer !important;
+}

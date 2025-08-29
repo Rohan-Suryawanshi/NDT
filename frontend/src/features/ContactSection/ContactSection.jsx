@@ -41,7 +41,7 @@ const ContactSection = () => {
   return (
     <section id="contact" className="py-20 bg-white px-4">
       <h3 className="text-3xl font-bold text-center text-gray-800 mb-6">
-        Contact Us
+        Get in <span className="text-[#004aad]">touch</span> with us
       </h3>
       <form className="max-w-xl mx-auto space-y-4" onSubmit={handleSubmit}>
         <Input

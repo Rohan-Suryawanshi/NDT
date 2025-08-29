@@ -32,6 +32,7 @@ import {
    Filter,
    Download,
    RefreshCw,
+   CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -106,6 +107,9 @@ const AdminWithdrawManagement = () => {
    const [currentPage, setCurrentPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
    const [exportLoading, setExportLoading] = useState(false);
+   // Custom date range states
+   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+   const [customDateRange, setCustomDateRange] = useState({ startDate: "", endDate: "" });
    // Chart colors
    const COLORS = ["#004aad", "#e0eaff", "#c1d6ff", "#ff6b6b", "#ffd93d"];
 
@@ -235,7 +239,13 @@ const AdminWithdrawManagement = () => {
       try {
          setExportLoading(true);
          const token = localStorage.getItem("accessToken");
-         
+         let dateParams = {};
+         if (dateRange === "custom" && customDateRange.startDate && customDateRange.endDate) {
+            dateParams = {
+               startDate: customDateRange.startDate,
+               endDate: customDateRange.endDate,
+            };
+         }
          // Fetch all withdrawals without pagination
          const response = await axios.get(
             `${BACKEND_URL}/api/v1/payments/admin/withdrawals`,
@@ -247,6 +257,7 @@ const AdminWithdrawManagement = () => {
                   status: statusFilter !== "all" ? statusFilter : undefined,
                   search: searchTerm || undefined,
                   dateRange: dateRange !== "all" ? dateRange : undefined,
+                  ...dateParams,
                },
             }
          );
@@ -444,6 +455,13 @@ const AdminWithdrawManagement = () => {
       try {
          setLoading(true);
          const token = localStorage.getItem("accessToken");
+         let dateParams = {};
+         if (dateRange === "custom" && customDateRange.startDate && customDateRange.endDate) {
+            dateParams = {
+               startDate: customDateRange.startDate,
+               endDate: customDateRange.endDate,
+            };
+         }
          const response = await axios.get(
             `${BACKEND_URL}/api/v1/payments/admin/withdrawals`,
             {
@@ -454,6 +472,7 @@ const AdminWithdrawManagement = () => {
                   status: statusFilter !== "all" ? statusFilter : undefined,
                   search: searchTerm || undefined,
                   dateRange: dateRange !== "all" ? dateRange : undefined,
+                  ...dateParams,
                },
             }
          );
@@ -475,7 +494,7 @@ const AdminWithdrawManagement = () => {
       } finally {
          setLoading(false);
       }
-   }, [currentPage, statusFilter, searchTerm, dateRange]);
+   }, [currentPage, statusFilter, searchTerm, dateRange, customDateRange]);
 
    const fetchPaymentStats = async () => {
       try {
@@ -841,7 +860,18 @@ const AdminWithdrawManagement = () => {
 
             {/* Date Range Filter */}
             <div className="w-full sm:w-[200px]">
-               <Select value={dateRange} onValueChange={setDateRange}>
+               <Select 
+                  value={dateRange} 
+                  onValueChange={(value) => {
+                     setDateRange(value);
+                     if (value === "custom") {
+                        setShowCustomDatePicker(true);
+                     } else {
+                        setShowCustomDatePicker(false);
+                        setCustomDateRange({ startDate: "", endDate: "" });
+                     }
+                  }}
+               >
                   <SelectTrigger className="w-full">
                      <SelectValue placeholder="All Time" />
                   </SelectTrigger>
@@ -875,6 +905,11 @@ const AdminWithdrawManagement = () => {
                            Quarter
                         </div>
                      </SelectItem>
+                     <SelectItem value="custom">
+                        <div className="flex items-center gap-2">
+                           <CalendarDays className="h-4 w-4 text-blue-500" /> Custom Range
+                        </div>
+                     </SelectItem>
                   </SelectContent>
                </Select>
             </div>
@@ -896,6 +931,90 @@ const AdminWithdrawManagement = () => {
                </Button>
             </div>
          </div>
+         {/* Custom Date Picker */}
+         {showCustomDatePicker && (
+            <Card className="p-4 mb-6 bg-blue-50 border-blue-200">
+               <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                     <CalendarDays className="h-5 w-5 text-[#004aad]" />
+                     <Label className="text-sm font-semibold text-[#004aad]">
+                        Select Custom Date Range
+                     </Label>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4 items-end">
+                     <div className="flex-1 min-w-[200px]">
+                        <Label htmlFor="startDate" className="text-sm text-gray-600">
+                           Start Date
+                        </Label>
+                        <Input
+                           id="startDate"
+                           type="date"
+                           value={customDateRange.startDate}
+                           onChange={(e) => setCustomDateRange(prev => ({
+                              ...prev,
+                              startDate: e.target.value
+                           }))}
+                           max={new Date().toISOString().split('T')[0]}
+                           className="mt-1"
+                        />
+                     </div>
+                     <div className="flex-1 min-w-[200px]">
+                        <Label htmlFor="endDate" className="text-sm text-gray-600">
+                           End Date
+                        </Label>
+                        <Input
+                           id="endDate"
+                           type="date"
+                           value={customDateRange.endDate}
+                           onChange={(e) => setCustomDateRange(prev => ({
+                              ...prev,
+                              endDate: e.target.value
+                           }))}
+                           min={customDateRange.startDate}
+                           max={new Date().toISOString().split('T')[0]}
+                           className="mt-1"
+                        />
+                     </div>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={() => {
+                              setDateRange("custom");
+                              setShowCustomDatePicker(false);
+                              setCurrentPage(1);
+                              fetchWithdrawals();
+                           }}
+                           className="bg-[#004aad] hover:bg-[#003a8c] text-white px-6"
+                           disabled={!customDateRange.startDate || !customDateRange.endDate}
+                        >
+                           <Calendar className="h-4 w-4 mr-2" />
+                           Apply
+                        </Button>
+                        <Button
+                           onClick={() => {
+                              setCustomDateRange({ startDate: "", endDate: "" });
+                              setDateRange("all");
+                              setShowCustomDatePicker(false);
+                              setCurrentPage(1);
+                              fetchWithdrawals();
+                           }}
+                           variant="outline"
+                           className="border-gray-300 text-gray-600 hover:bg-gray-50 px-6"
+                        >
+                           Clear
+                        </Button>
+                     </div>
+                  </div>
+                  {dateRange === "custom" && customDateRange.startDate && customDateRange.endDate && (
+                     <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-600">
+                           <span className="font-medium">Selected Range:</span>{" "}
+                           {formatDate(customDateRange.startDate)} to {formatDate(customDateRange.endDate)}
+                        </p>
+                     </div>
+                  )}
+               </div>
+            </Card>
+         )}
          {/* Table */}
          <div className="overflow-x-auto">
             <table className="w-full table-auto">

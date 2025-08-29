@@ -17,11 +17,11 @@ const LandingPage = () => {
       <>
          <NavbarSection />
          <HeroSection />
-         <FeaturesSection />
-         <HowItWorksSection />
          <Suspense fallback={<Loader />}>
             <AboutSection />
          </Suspense>
+         <FeaturesSection />
+         <HowItWorksSection />
          <ContactSection />
          <FooterSection />
       </>

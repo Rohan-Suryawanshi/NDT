@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import {
    BarChart,
@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
    Select,
@@ -54,6 +56,7 @@ import {
    PieChart as PieChartIcon,
    BarChart3,
    Calendar,
+   CalendarDays,
    Download,
    Filter,
    RefreshCw,
@@ -97,6 +100,9 @@ const AdminRevenue = () => {
    const [withdrawalsHistory, setWithdrawalsHistory] = useState([]);
    const [selectedPeriod, setSelectedPeriod] = useState("6months");
    const [selectedTab, setSelectedTab] = useState("overview");
+   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+   const [customDateRange, setCustomDateRange] = useState({ startDate: "", endDate: "" });
+   const [exportLoading, setExportLoading] = useState(false);
 
    // Create axios instance with auth
    const createAxiosInstance = useCallback(() => {
@@ -114,8 +120,21 @@ const AdminRevenue = () => {
    const fetchRevenueStats = useCallback(async () => {
       try {
          const axiosInstance = createAxiosInstance();
+         let params = {};
+         
+         if (selectedPeriod === "custom" && customDateRange.startDate && customDateRange.endDate) {
+            params = {
+               startDate: customDateRange.startDate,
+               endDate: customDateRange.endDate,
+               dateRange: "custom"
+            };
+         } else if (selectedPeriod !== "all") {
+            params = { dateRange: selectedPeriod };
+         }
+         
          const response = await axiosInstance.get(
-            "/api/v1/payments/admin/stats"
+            "/api/v1/payments/admin/stats",
+            { params }
          );
 
          if (response.data.success) {
@@ -139,7 +158,129 @@ const AdminRevenue = () => {
          console.error("Error fetching revenue stats:", error);
          toast.error("Failed to fetch revenue statistics");
       }
-   }, [createAxiosInstance]);
+   }, [createAxiosInstance, selectedPeriod, customDateRange]);
+
+   // CSV Export Functions
+   const convertToCSV = (data, type) => {
+      if (!data || data.length === 0) return "";
+
+      let headers, rows;
+
+      if (type === "revenue") {
+         headers = [
+            "Period",
+            "Month",
+            "Year", 
+            "Total Payments",
+            "Total Withdrawals",
+            "Net Revenue",
+            "Payment Count",
+            "Withdrawal Count"
+         ];
+
+         rows = data.map(item => [
+            `${item.month} ${item.year}`,
+            item.month,
+            item.year,
+            item.payments || 0,
+            item.withdrawals || 0,
+            item.revenue || 0,
+            item.paymentCount || 0,
+            item.withdrawalCount || 0
+         ]);
+      } else if (type === "payments") {
+         headers = [
+            "Payment ID",
+            "Client Name",
+            "Amount",
+            "Status",
+            "Payment Method",
+            "Created Date",
+            "Transaction ID"
+         ];
+
+         rows = paymentsHistory.map(payment => [
+            payment._id || "",
+            payment.clientId?.name || payment.clientId?.fullName || "",
+            payment.totalAmount || 0,
+            payment.status || "",
+            payment.paymentMethod || "",
+            new Date(payment.createdAt).toLocaleDateString(),
+            payment.transactionId || ""
+         ]);
+      } else if (type === "withdrawals") {
+         headers = [
+            "Withdrawal ID",
+            "User Name",
+            "Amount",
+            "Status",
+            "Method",
+            "Requested Date",
+            "Processing Fee",
+            "Net Amount"
+         ];
+
+         rows = withdrawalsHistory.map(withdrawal => [
+            withdrawal._id || "",
+            withdrawal.userId?.name || withdrawal.userId?.fullName || "",
+            withdrawal.amount || 0,
+            withdrawal.status || "",
+            withdrawal.withdrawalMethod || "",
+            new Date(withdrawal.requestedAt || withdrawal.createdAt).toLocaleDateString(),
+            withdrawal.processingFee || 0,
+            withdrawal.netAmount || (withdrawal.amount - (withdrawal.processingFee || 0))
+         ]);
+      }
+
+      // Escape CSV values
+      const escapeCSV = (value) => {
+         if (value === null || value === undefined) return "";
+         const stringValue = String(value);
+         if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+         }
+         return stringValue;
+      };
+
+      return [
+         headers.join(","),
+         ...rows.map(row => row.map(escapeCSV).join(","))
+      ].join("\n");
+   };
+
+   const downloadCSV = (csvContent, filename) => {
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      if (link.download !== undefined) {
+         const url = URL.createObjectURL(blob);
+         link.setAttribute("href", url);
+         link.setAttribute("download", filename);
+         link.style.visibility = "hidden";
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+      }
+   };
+
+   const exportRevenueData = async () => {
+      try {
+         setExportLoading(true);
+         const csvContent = convertToCSV(monthlyData, "revenue");
+         const timestamp = new Date().toISOString().split("T")[0];
+         const periodText = selectedPeriod === "custom" 
+            ? `_${customDateRange.startDate}_to_${customDateRange.endDate}`
+            : `_${selectedPeriod}`;
+         
+         downloadCSV(csvContent, `revenue_report${periodText}_${timestamp}.csv`);
+         toast.success("Revenue data exported successfully");
+      } catch (error) {
+         console.error("Error exporting revenue data:", error);
+         toast.error("Failed to export revenue data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
 
    // Fetch payments history
    const fetchPaymentsHistory = useCallback(async () => {
@@ -208,6 +349,13 @@ const AdminRevenue = () => {
       fetchWithdrawalsHistory,
       fetchPlatformSettings,
    ]);
+
+   // Refetch data when period changes
+   useEffect(() => {
+      if (selectedPeriod !== "custom") {
+         fetchRevenueStats();
+      }
+   }, [selectedPeriod, fetchRevenueStats]);
 
    // Refresh data
    const handleRefresh = useCallback(async () => {
@@ -278,21 +426,11 @@ const AdminRevenue = () => {
 
    const metrics = calculateMetrics();
 
-   // Prepare chart data
-   const prepareMonthlyData = () => {
+   // Prepare chart data with filtering
+   const monthlyData = useMemo(() => {
       const monthNames = [
-         "Jan",
-         "Feb",
-         "Mar",
-         "Apr",
-         "May",
-         "Jun",
-         "Jul",
-         "Aug",
-         "Sep",
-         "Oct",
-         "Nov",
-         "Dec",
+         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
       ];
 
       const combinedData = {};
@@ -321,7 +459,7 @@ const AdminRevenue = () => {
          };
       });
 
-      return Object.values(combinedData)
+      let filteredData = Object.values(combinedData)
          .map((item) => ({
             ...item,
             revenue: (item.payments || 0) - (item.withdrawals || 0),
@@ -332,9 +470,11 @@ const AdminRevenue = () => {
             if (a.year !== b.year) return a.year - b.year;
             return monthNames.indexOf(a.month) - monthNames.indexOf(b.month);
          });
-   };
 
-   const monthlyData = prepareMonthlyData();
+      // Frontend filtering is not needed since backend handles it
+      // But we can add additional client-side filtering if needed
+      return filteredData;
+   }, [revenueData]);
 
    // Prepare withdrawal status pie chart data
    const withdrawalStatusData = revenueData.withdrawalStatusCounts.map(
@@ -395,7 +535,15 @@ const AdminRevenue = () => {
                <div className="flex gap-3">
                   <Select
                      value={selectedPeriod}
-                     onValueChange={setSelectedPeriod}
+                     onValueChange={(value) => {
+                        setSelectedPeriod(value);
+                        if (value === "custom") {
+                           setShowCustomDatePicker(true);
+                        } else {
+                           setShowCustomDatePicker(false);
+                           setCustomDateRange({ startDate: "", endDate: "" });
+                        }
+                     }}
                   >
                      <SelectTrigger className="w-40">
                         <SelectValue />
@@ -405,6 +553,12 @@ const AdminRevenue = () => {
                         <SelectItem value="3months">Last 3 Months</SelectItem>
                         <SelectItem value="6months">Last 6 Months</SelectItem>
                         <SelectItem value="1year">Last Year</SelectItem>
+                        <SelectItem value="custom">
+                           <div className="flex items-center gap-2">
+                              <CalendarDays className="h-4 w-4" />
+                              Custom Range
+                           </div>
+                        </SelectItem>
                      </SelectContent>
                   </Select>
                   <Button
@@ -420,12 +574,99 @@ const AdminRevenue = () => {
                      />
                      Refresh
                   </Button>
-                  {/* <Button className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button> */}
+                  <Button 
+                     onClick={exportRevenueData}
+                     disabled={exportLoading}
+                     className="gap-2 bg-[#004aad] hover:bg-[#003a8c]"
+                  >
+                     <Download className={`h-4 w-4 ${exportLoading ? "animate-spin" : ""}`} />
+                     {exportLoading ? "Exporting..." : "Export CSV"}
+                  </Button>
                </div>
             </div>
+
+            {/* Custom Date Range Picker */}
+            {showCustomDatePicker && (
+               <Card className="p-4 mb-6 bg-blue-50 border-blue-200">
+                  <div className="flex flex-col gap-4">
+                     <div className="flex items-center gap-2">
+                        <CalendarDays className="h-5 w-5 text-[#004aad]" />
+                        <Label className="text-sm font-semibold text-[#004aad]">
+                           Select Custom Date Range
+                        </Label>
+                     </div>
+                     <div className="flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="flex-1 min-w-[200px]">
+                           <Label htmlFor="startDate" className="text-sm text-gray-600">
+                              Start Date
+                           </Label>
+                           <Input
+                              id="startDate"
+                              type="date"
+                              value={customDateRange.startDate}
+                              onChange={(e) => setCustomDateRange(prev => ({
+                                 ...prev,
+                                 startDate: e.target.value
+                              }))}
+                              max={new Date().toISOString().split('T')[0]}
+                              className="mt-1"
+                           />
+                        </div>
+                        <div className="flex-1 min-w-[200px]">
+                           <Label htmlFor="endDate" className="text-sm text-gray-600">
+                              End Date
+                           </Label>
+                           <Input
+                              id="endDate"
+                              type="date"
+                              value={customDateRange.endDate}
+                              onChange={(e) => setCustomDateRange(prev => ({
+                                 ...prev,
+                                 endDate: e.target.value
+                              }))}
+                              min={customDateRange.startDate}
+                              max={new Date().toISOString().split('T')[0]}
+                              className="mt-1"
+                           />
+                        </div>
+                        <div className="flex gap-2">
+                           <Button
+                              onClick={() => {
+                                 setSelectedPeriod("custom");
+                                 setShowCustomDatePicker(false);
+                                 fetchRevenueStats();
+                              }}
+                              className="bg-[#004aad] hover:bg-[#003a8c] text-white px-6"
+                              disabled={!customDateRange.startDate || !customDateRange.endDate}
+                           >
+                              <Calendar className="h-4 w-4 mr-2" />
+                              Apply
+                           </Button>
+                           <Button
+                              onClick={() => {
+                                 setCustomDateRange({ startDate: "", endDate: "" });
+                                 setSelectedPeriod("6months");
+                                 setShowCustomDatePicker(false);
+                                 fetchRevenueStats();
+                              }}
+                              variant="outline"
+                              className="border-gray-300 text-gray-600 hover:bg-gray-50 px-6"
+                           >
+                              Clear
+                           </Button>
+                        </div>
+                     </div>
+                     {selectedPeriod === "custom" && customDateRange.startDate && customDateRange.endDate && (
+                        <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
+                           <p className="text-sm text-gray-600">
+                              <span className="font-medium">Selected Range:</span>{" "}
+                              {new Date(customDateRange.startDate).toLocaleDateString()} to {new Date(customDateRange.endDate).toLocaleDateString()}
+                           </p>
+                        </div>
+                     )}
+                  </div>
+               </Card>
+            )}
 
             {/* Key Metrics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

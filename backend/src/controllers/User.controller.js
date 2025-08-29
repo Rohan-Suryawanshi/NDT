@@ -21,14 +21,15 @@ const registerUser = AsyncHandler(async (req, res) => {
   const { name, email, password, role, acceptedTerms,location,currency } = req.body;
   const avatarPath =  req.file?.path;
 
-  if (!name || !email || !password || !role || !avatarPath || !acceptedTerms||!location||!currency) {
-    throw new ApiError(400, "All fields and avatar are required");
+  if (!name || !email || !password || !role || !acceptedTerms||!location||!currency) {
+    throw new ApiError(400, "All fields are required");
   }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new ApiError(409, "Email already exists");
 
   const avatar = await uploadToCloudinary(avatarPath);
+  console.log(avatar);
   if (!avatar?.url) throw new ApiError(500, "Failed to upload avatar");
 
   const user = await User.create({

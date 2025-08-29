@@ -682,7 +682,7 @@ export const updateWithdrawalStatus = AsyncHandler(async (req, res) => {
 // @route   GET /api/v1/payments/admin/withdrawals
 // @access  Private (Admin only)
 export const getAllWithdrawals = AsyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status, search, dateRange } = req.query;
+  const { page = 1, limit = 10, status, search, dateRange,startDate, endDate } = req.query;
 
   if (req.user.role !== 'admin' && req.user.role !== 'finance') {
     throw new ApiError(403, 'Only admins can view all withdrawals');
@@ -707,32 +707,47 @@ export const getAllWithdrawals = AsyncHandler(async (req, res) => {
     ];
   }
 
-  if (dateRange && dateRange !== 'all') {
+  if (dateRange && dateRange !== "all") {
     const now = new Date();
-    let startDate;
-    
+    let start;
     switch (dateRange) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case "today":
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        query.requestedAt = { $gte: start };
         break;
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case "week":
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        query.requestedAt = { $gte: start };
         break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      case "month":
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        query.requestedAt = { $gte: start };
         break;
-      case 'quarter':
+      case "quarter":
         const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-        startDate = new Date(now.getFullYear(), quarterStart, 1);
+        start = new Date(now.getFullYear(), quarterStart, 1);
+        query.requestedAt = { $gte: start };
+        break;
+      case "custom":
+        // Custom date range
+        if (startDate && endDate) {
+          query.requestedAt = {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          };
+        }
         break;
       default:
-        startDate = null;
+        break;
     }
-    
-    if (startDate) {
-      query.requestedAt = { $gte: startDate };
-    }
+  } else if (dateRange === "custom" && startDate && endDate) {
+    // If only custom is selected
+    query.requestedAt = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate),
+    };
   }
+
 
   // Get withdrawals with user details
   const withdrawals = await Withdrawal.find(query)
@@ -862,19 +877,63 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     throw new ApiError(403, 'Only admins can view payment statistics');
   }
 
-  // Get withdrawal statistics
+  const { dateRange, startDate, endDate } = req.query;
+
+  // Build date filter based on parameters
+  let dateFilter = {};
+  const now = new Date();
+
+  if (dateRange === "custom" && startDate && endDate) {
+    dateFilter = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate)
+    };
+  } else if (dateRange && dateRange !== "all") {
+    let monthsBack;
+    switch (dateRange) {
+      case "1month":
+        monthsBack = 1;
+        break;
+      case "3months":
+        monthsBack = 3;
+        break;
+      case "6months":
+        monthsBack = 6;
+        break;
+      case "1year":
+        monthsBack = 12;
+        break;
+      default:
+        monthsBack = 6;
+    }
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - monthsBack);
+    dateFilter = { $gte: cutoffDate };
+  } else {
+    // Default to last 6 months for monthly trends
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    dateFilter = { $gte: sixMonthsAgo };
+  }
+
+  // Get withdrawal statistics with date filter
+  const withdrawalMatchQuery = dateFilter ? { requestedAt: dateFilter } : {};
   const totalWithdrawals = await Withdrawal.aggregate([
+    { $match: withdrawalMatchQuery },
     { $group: { _id: null, total: { $sum: '$amount' } } }
   ]);
 
   const pendingWithdrawals = await Withdrawal.countDocuments({ status: 'pending' });
   
   const withdrawalStatusCounts = await Withdrawal.aggregate([
+    { $match: withdrawalMatchQuery },
     { $group: { _id: '$status', count: { $sum: 1 } } }
   ]);
 
-  // Get payment statistics grouped by currency
+  // Get payment statistics with date filter
+  const paymentMatchQuery = dateFilter ? { createdAt: dateFilter } : {};
   const totalPaymentsByCurrency = await Payment.aggregate([
+    { $match: paymentMatchQuery },
     {
       $group: {
         _id: "$currency",
@@ -909,20 +968,18 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
     return acc + (curr.totalInUSD || 0);
   }, 0);
 
-  // Other stats
+  // Other stats with date filter
   const totalPayments = await Payment.aggregate([
+    { $match: paymentMatchQuery },
     { $group: { _id: null, total: { $sum: '$totalAmount' } } }
   ]);
 
   const totalUsers = await User.countDocuments();
   const activeUsers = await User.countDocuments();
 
-  // Monthly trends (last 6 months)
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
+  // Monthly trends with date filter
   const monthlyWithdrawals = await Withdrawal.aggregate([
-    { $match: { requestedAt: { $gte: sixMonthsAgo } } },
+    { $match: { requestedAt: dateFilter } },
     {
       $group: {
         _id: {
@@ -938,7 +995,7 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
   ]);
 
   const monthlyPayments = await Payment.aggregate([
-    { $match: { createdAt: { $gte: sixMonthsAgo } } },
+    { $match: { createdAt: dateFilter } },
     {
       $group: {
         _id: {
@@ -969,6 +1026,12 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
       monthlyTrends: {
         withdrawals: monthlyWithdrawals,
         payments: monthlyPayments
+      },
+      appliedFilter: {
+        dateRange,
+        startDate,
+        endDate,
+        dateFilter: dateFilter
       }
     }, 'Payment statistics retrieved successfully')
   );

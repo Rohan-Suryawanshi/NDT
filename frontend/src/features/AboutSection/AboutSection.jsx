@@ -40,6 +40,7 @@ const AboutSection = () => {
                      communication, job tracking, and report submission into one
                      secure and user-friendly portal.
                   </p>
+                  <p className="text-lg mb-8 leading-relaxed text-gray-700">NDT Connect delivers transparency, speed, and trust across the entire NDT workflow — enabling companies to manage efficiently, inspectors to work seamlessly, and clients to gain real-time visibility and confidence in every inspection. Sign up for Free Today!</p>
                   <Button asChild>
                      <a href="#features" className="text-white">
                         Explore Features
