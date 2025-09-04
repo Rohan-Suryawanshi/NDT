@@ -3,6 +3,7 @@ import {
   upsertInspectorProfile,
   getInspectorProfile,
   getAllInspectors,
+  updateInspectorLocation,
   updateAvailability,
   updateRates,
   addCertification,
@@ -27,6 +28,7 @@ router.delete("/profile", verifyJWT, deleteInspectorProfile);
 // Update specific fields
 router.patch("/availability", verifyJWT, updateAvailability);
 router.patch("/rates", verifyJWT, updateRates);
+router.patch("/location", verifyJWT, updateInspectorLocation);
 router.patch("/notifications", verifyJWT, updateNotificationPreferences);
 router.patch("/resume", verifyJWT, upload.single("resume"), updateResume);
 

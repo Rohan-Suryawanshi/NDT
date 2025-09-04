@@ -37,6 +37,7 @@ import AdminJobManagement from "./pages/AdminJobManagement";
 import GetRecommendations from "./pages/GetRecommendations";
 import ProtectedRoute from "./ProtectedRoute";
 import AvailableRegions from "./pages/AvailableRegions";
+import FindInspector from "./pages/FindInspector";
 export default function App() {
    return (
          <Router>
@@ -175,7 +176,8 @@ export default function App() {
                   path="/find-inspectors"
                   element={
                      <ProtectedRoute allowedRoles={["client", "admin"]}>
-                        <ClientProviderSelection />
+                        {/* <ClientProviderSelection /> */}
+                        <FindInspector/>
                      </ProtectedRoute>
                   }
                />

@@ -1037,6 +1037,117 @@ export const getPaymentStats = AsyncHandler(async (req, res) => {
   );
 });
 
+// ✅ Create Payment Intent for Inspector Contact Access
+export const createInspectorContactPaymentIntent = AsyncHandler(async (req, res) => {
+  const { inspectorId, inspectorName, amount, currency = "USD", description } = req.body;
+  const userId = req.user._id;
+
+  if (!inspectorId || !amount) {
+    throw new ApiError(400, "Inspector ID and amount are required");
+  }
+
+  // Import InspectorProfile here to avoid circular dependency
+  const { InspectorProfile } = await import("../models/InspectorProfile.model.js");
+  
+  // Verify inspector exists
+  const inspector = await InspectorProfile.findOne({ userId: inspectorId });
+  if (!inspector) {
+    throw new ApiError(404, "Inspector not found");
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount), // amount in cents
+      currency: currency.toLowerCase(),
+      description: description || `Inspector contact access for ${inspectorName}`,
+      metadata: {
+        type: 'inspector_contact_access',
+        inspectorId: inspectorId,
+        buyerId: userId.toString(),
+        inspectorName: inspectorName || inspector.fullName,
+      },
+    });
+
+    res.status(200).json(
+      new ApiResponse(200, {
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      }, "Payment intent created successfully")
+    );
+  } catch (error) {
+    console.error("Stripe payment intent error:", error);
+    throw new ApiError(500, "Failed to create payment intent");
+  }
+});
+
+// ✅ Confirm Inspector Contact Payment and Record Transaction
+export const confirmInspectorContactPayment = AsyncHandler(async (req, res) => {
+  const { inspectorId, paymentIntentId, status } = req.body;
+  const userId = req.user._id;
+
+  if (!inspectorId || !paymentIntentId || !status) {
+    throw new ApiError(400, "Inspector ID, payment intent ID, and status are required");
+  }
+
+  if (status !== "succeeded") {
+    throw new ApiError(400, "Payment was not successful");
+  }
+
+  // Import models here to avoid circular dependency
+  const { InspectorProfile } = await import("../models/InspectorProfile.model.js");
+  const { ContactAccess } = await import("../models/ContactAccess.model.js");
+
+  // Verify inspector exists and get contact details
+  const inspector = await InspectorProfile.findOne({ userId: inspectorId });
+  if (!inspector) {
+    throw new ApiError(404, "Inspector not found");
+  }
+
+  try {
+    // Verify payment with Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== "succeeded") {
+      throw new ApiError(400, "Payment verification failed");
+    }
+
+    // Record the contact access purchase
+    const contactAccess = new ContactAccess({
+      userId: userId,
+      inspectorId: inspectorId,
+      inspectorEmail: inspector.email,
+      inspectorPhone: inspector.contactNumber,
+      contactName: inspector.fullName,
+      contactType: 'inspector',
+      amountPaid: paymentIntent.amount / 100, // Convert from cents
+      currency: paymentIntent.currency.toUpperCase(),
+      transactionId: paymentIntentId,
+      paymentStatus: 'succeeded',
+      accessDate: new Date(),
+      emailSent: false,
+    });
+
+    await contactAccess.save();
+
+    // Return contact details
+    const contactDetails = {
+      email: inspector.email,
+      contactNumber: inspector.contactNumber,
+      fullName: inspector.fullName,
+      associationType: inspector.associationType,
+      companyName: inspector.companyName,
+      accessPurchaseId: contactAccess._id,
+    };
+
+    res.status(200).json(
+      new ApiResponse(200, { contactDetails }, "Payment confirmed and contact access granted")
+    );
+  } catch (error) {
+    console.error("Payment confirmation error:", error);
+    throw new ApiError(500, "Failed to confirm payment");
+  }
+});
+
 
 export { 
   Payment, 

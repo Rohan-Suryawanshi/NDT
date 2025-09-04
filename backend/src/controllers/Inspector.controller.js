@@ -28,6 +28,8 @@ const upsertInspectorProfile = AsyncHandler(async (req, res) => {
     certificateExpiryAlerts,
     matchingJobEmailAlerts,
     certifications,
+    latitude,
+    longitude,
   } = req.body;
 
   // Validation
@@ -91,6 +93,8 @@ const upsertInspectorProfile = AsyncHandler(async (req, res) => {
     }),
     ...(parsedCertifications && { certifications: parsedCertifications }),
     ...(resumeData && { resume: resumeData }),
+    ...(latitude !== undefined && { latitude: Number(latitude) }),
+    ...(longitude !== undefined && { longitude: Number(longitude) }),
   };
 
   const profile = await InspectorProfile.findOneAndUpdate(
@@ -142,6 +146,44 @@ const getInspectorById = AsyncHandler(async (req, res) => {
     .status(200)
     .json(
       new ApiResponse(200, profile, "Inspector profile fetched successfully")
+    );
+});
+
+// ✅ UPDATE Inspector Location
+const updateInspectorLocation = AsyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { latitude, longitude } = req.body;
+
+  // Validation
+  if (latitude === undefined || longitude === undefined) {
+    throw new ApiError(400, "Both latitude and longitude are required");
+  }
+
+  if (latitude < -90 || latitude > 90) {
+    throw new ApiError(400, "Latitude must be between -90 and 90");
+  }
+
+  if (longitude < -180 || longitude > 180) {
+    throw new ApiError(400, "Longitude must be between -180 and 180");
+  }
+
+  const profile = await InspectorProfile.findOneAndUpdate(
+    { userId },
+    { 
+      latitude: Number(latitude), 
+      longitude: Number(longitude) 
+    },
+    { new: true, upsert: true }
+  ).populate("userId", "name email avatar isVerified");
+
+  if (!profile) {
+    throw new ApiError(404, "Inspector profile not found");
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, profile, "Inspector location updated successfully")
     );
 });
 
@@ -858,6 +900,7 @@ export {
   getInspectorProfile,
   getInspectorById,
   getAllInspectors,
+  updateInspectorLocation,
   updateAvailability,
   updateRates,
   addCertification,

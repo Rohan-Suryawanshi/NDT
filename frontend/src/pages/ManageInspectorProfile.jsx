@@ -42,6 +42,43 @@ import {
 import NavbarSection from "@/features/NavbarSection/NavbarSection";
 import { useNavigate } from "react-router-dom";
 
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+
+// Default marker fix for missing icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+   iconRetinaUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+   iconUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+   shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+function LocationMarker({ profile, updateLocation }) {
+   useMapEvents({
+      click(e) {
+         updateLocation(e.latlng.lat, e.latlng.lng);
+      },
+   });
+
+   return (
+      profile.latitude && profile.longitude ? (
+         <Marker
+            position={[profile.latitude, profile.longitude]}
+            draggable={true}
+            eventHandlers={{
+               dragend: (e) => {
+                  const { lat, lng } = e.target.getLatLng();
+                  updateLocation(lat, lng);
+               },
+            }}
+         />
+      ) : null
+   );
+}
+
 // Create axios instance with default config
 const api = axios.create({
    baseURL: BACKEND_URL,
@@ -82,6 +119,7 @@ const ProfileInfoTab = ({
    setIsEditing,
    handleSave,
    handleResumeUpload,
+   updateLocation,
 }) => {
    if (!profile) return <div>Loading profile...</div>;
 
@@ -227,6 +265,152 @@ const ProfileInfoTab = ({
                      </button>
                   </div>
                )}
+            </div>
+
+            {/* Location Section */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                     <MapPin className="w-5 h-5" />
+                     Location Information
+                  </h3>
+               </div>
+
+               <div className="space-y-4">
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Current Location
+                     </label>
+                     {isEditing ? (
+                        <div className="space-y-4">
+                           <div className="text-sm text-gray-600 mb-2">
+                              Click on the map to set your location or drag the marker
+                           </div>
+                           <div className="h-64 rounded-lg overflow-hidden border">
+                              <MapContainer
+                                 center={[
+                                    profile.latitude || 37.0902,
+                                    profile.longitude || -95.7129,
+                                 ]}
+                                 zoom={13}
+                                 scrollWheelZoom={false}
+                                 style={{ height: "100%", width: "100%" }}
+                              >
+                                 <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                     noWrap={true}
+                                 />
+                                 <LocationMarker profile={profile} updateLocation={updateLocation} />
+                              </MapContainer>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Latitude
+                                 </label>
+                                 <input
+                                    type="number"
+                                    step="any"
+                                    value={profile.latitude || ""}
+                                    onChange={(e) => {
+                                       const lat = parseFloat(e.target.value) || null;
+                                       if (lat && profile.longitude) {
+                                          updateLocation(lat, profile.longitude);
+                                       } else {
+                                          setProfile((prev) => ({
+                                             ...prev,
+                                             latitude: lat,
+                                          }));
+                                       }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                    placeholder="e.g., 37.0902"
+                                 />
+                              </div>
+                              <div>
+                                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Longitude
+                                 </label>
+                                 <input
+                                    type="number"
+                                    step="any"
+                                    value={profile.longitude || ""}
+                                    onChange={(e) => {
+                                       const lng = parseFloat(e.target.value) || null;
+                                       if (lng && profile.latitude) {
+                                          updateLocation(profile.latitude, lng);
+                                       } else {
+                                          setProfile((prev) => ({
+                                             ...prev,
+                                             longitude: lng,
+                                          }));
+                                       }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                    placeholder="e.g., -95.7129"
+                                 />
+                              </div>
+                           </div>
+                           <button
+                              onClick={() => {
+                                 if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                       (position) => {
+                                          updateLocation(position.coords.latitude, position.coords.longitude);
+                                          toast.success("Location updated successfully!");
+                                       },
+                                       () => {
+                                          toast.error("Unable to get your location. Please set it manually.");
+                                       }
+                                    );
+                                 } else {
+                                    toast.error("Geolocation is not supported by this browser.");
+                                 }
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                           >
+                              <MapPin className="w-4 h-4" />
+                              Use Current Location
+                           </button>
+                        </div>
+                     ) : (
+                        <div className="space-y-3">
+                           {profile.latitude && profile.longitude ? (
+                              <>
+                                 <div className="h-48 rounded-lg overflow-hidden border">
+                                    <MapContainer
+                                       center={[profile.latitude, profile.longitude]}
+                                       zoom={13}
+                                       scrollWheelZoom={false}
+                                       style={{ height: "100%", width: "100%" }}
+                                    >
+                                       <TileLayer
+                                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                           noWrap={true}
+                                       />
+                                       <Marker position={[profile.latitude, profile.longitude]} />
+                                    </MapContainer>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                                       <span className="font-medium">Lat:</span> {profile.latitude?.toFixed(6)}
+                                    </div>
+                                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                                       <span className="font-medium">Lng:</span> {profile.longitude?.toFixed(6)}
+                                    </div>
+                                 </div>
+                              </>
+                           ) : (
+                              <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-500">
+                                 Location not set. Click edit to add your location.
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+               </div>
             </div>
          </div>
 
@@ -1298,6 +1482,29 @@ const ManageInspectorProfile = () => {
          toast.error(error.response?.data?.message || "Failed to update");
       }
    };
+
+   const updateLocation = async (lat, lng) => {
+      setProfile(prev => ({
+         ...prev,
+         latitude: lat,
+         longitude: lng
+      }));
+
+      try {
+         const response = await api.patch('/api/v1/inspectors/location', {
+            latitude: lat,
+            longitude: lng
+         });
+
+         if (response.data.success) {
+            setProfile(prev => ({ ...prev, ...response.data.inspector }));
+            toast.success('Location updated successfully');
+         }
+      } catch (error) {
+         console.error('Error updating location:', error);
+         toast.error('Failed to update location. Please try again.');
+      }
+   };
    const addCertification = async () => {
       if (newCert.certificationBody && newCert.level) {
          try {
@@ -1632,6 +1839,7 @@ const ManageInspectorProfile = () => {
                         setIsEditing={setIsEditing}
                         handleSave={handleSave}
                         handleResumeUpload={handleResumeUpload}
+                        updateLocation={updateLocation}
                      />
                   )}{" "}
                   {activeTab === "certifications" && (

@@ -8,15 +8,66 @@ import { toast } from "react-hot-toast";
 import { BACKEND_URL } from "@/constant/Global";
 import { Location } from "@/constant/Location";
 import { Upload, Save } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+
+// Default marker fix for missing icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+   iconRetinaUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+   iconUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+   shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+function LocationMarker({ form, setForm }) {
+   useMapEvents({
+      click(e) {
+         setForm((prev) => ({
+            ...prev,
+            companyLat: e.latlng.lat,
+            companyLng: e.latlng.lng,
+         }));
+      },
+   });
+
+   return (
+      <Marker
+         position={[form.companyLat, form.companyLng]}
+         draggable={true}
+         eventHandlers={{
+            dragend: (e) => {
+               const { lat, lng } = e.target.getLatLng();
+               setForm((prev) => ({
+                  ...prev,
+                  companyLat: lat,
+                  companyLng: lng,
+               }));
+            },
+         }}
+      />
+   );
+}
+
 export default function ServiceProviderProfileManage() {
-   const navigate=useNavigate();
+   const navigate = useNavigate();
    const [form, setForm] = useState({
       contactNumber: "",
       companyName: "",
       companyLocation: "",
+      companyLat: 37.0902,
+      companyLng: -95.7129,
       companyDescription: "",
       companySpecialization: "",
    });
@@ -43,6 +94,8 @@ export default function ServiceProviderProfileManage() {
             companyName: data.companyName || "",
             companyLocation: data.companyLocation || "",
             companyDescription: data.companyDescription || "",
+            companyLat: data.companyLat || 37.0902, // ← add this
+            companyLng: data.companyLng || -95.7129, // ← add this
             companySpecialization: (data.companySpecialization || []).join(
                ", "
             ),
@@ -84,10 +137,9 @@ export default function ServiceProviderProfileManage() {
             }
          );
          toast.success("Profile saved successfully");
-         if(localStorage.getItem("firstLogin"))
-         {
-            navigate('/skill-matrix');
-            localStorage.removeItem('firstLogin');
+         if (localStorage.getItem("firstLogin")) {
+            navigate("/skill-matrix");
+            localStorage.removeItem("firstLogin");
          }
          fetchProfile();
       } catch (err) {
@@ -149,6 +201,7 @@ export default function ServiceProviderProfileManage() {
                      </SelectContent>
                   </Select>
                </div>
+
                <div>
                   <Label className="mb-2">Specialization</Label>
                   <Input
@@ -173,6 +226,21 @@ export default function ServiceProviderProfileManage() {
                   required
                />
             </div>
+               <div>
+                  <Label className="mb-2 block">Set Location on Map</Label>
+                  <MapContainer
+                     center={[form.companyLat, form.companyLng]}
+                     zoom={5}
+                     style={{ height: "300px", width: "100%" }}
+                  >
+                     <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        noWrap={true}
+                     />
+                     <LocationMarker form={form} setForm={setForm} />
+                  </MapContainer>
+               </div>
 
             {/* Uploads */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

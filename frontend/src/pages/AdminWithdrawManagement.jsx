@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
    BarChart,
    Bar,
@@ -33,6 +33,8 @@ import {
    Download,
    RefreshCw,
    CalendarDays,
+   Phone,
+   Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -99,6 +101,11 @@ const AdminWithdrawManagement = () => {
    const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
    const [adminNote, setAdminNote] = useState("");
    const [isModalOpen, setIsModalOpen] = useState(false);
+
+   // Contact access tracking states
+   const [contactAccess, setContactAccess] = useState([]);
+   const [contactAccessStats, setContactAccessStats] = useState({});
+   const [contactAccessLoading, setContactAccessLoading] = useState(false);
 
    // Filter states
    const [statusFilter, setStatusFilter] = useState("all");
@@ -1646,6 +1653,18 @@ const AdminWithdrawManagement = () => {
                      Payment History
                   </TabsTrigger>
                   <TabsTrigger
+                     value="contact-access"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                     Provider Contact
+                  </TabsTrigger>
+                  {/* <TabsTrigger
+                     value="inspector-contact"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                     Inspector Contact
+                  </TabsTrigger> */}
+                  <TabsTrigger
                      value="analytics"
                      className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
@@ -1693,6 +1712,12 @@ const AdminWithdrawManagement = () => {
                      </div>
                   </div>
                   <PaymentHistoryView />
+               </TabsContent>
+               <TabsContent value="contact-access">
+                  <ContactAccessTrackingView />
+               </TabsContent>
+               <TabsContent value="inspector-contact">
+                  <InspectorContactAccessTrackingView />
                </TabsContent>
                <TabsContent value="analytics">
                   <div className="flex justify-between items-center mb-4">
@@ -2029,6 +2054,647 @@ const PaymentHistoryView = () => {
                >
                   Next
                </Button>
+            </div>
+         </div>
+      </Card>
+   );
+};
+
+// Contact Access Tracking View Component
+const ContactAccessTrackingView = () => {
+   const [contactAccess, setContactAccess] = useState([]);
+   const [loadingContactAccess, setLoadingContactAccess] = useState(false);
+   const [contactAccessPage, setContactAccessPage] = useState(1);
+   const [contactAccessTotalPages, setContactAccessTotalPages] = useState(1);
+   const [contactAccessStats, setContactAccessStats] = useState({});
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Fetch contact access data
+   const fetchContactAccess = useCallback(async () => {
+      try {
+         setLoadingContactAccess(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: contactAccessPage, limit: 10 }
+            }
+         );
+
+         setContactAccess(response.data.data.contactAccess || []);
+         setContactAccessTotalPages(response.data.data.totalPages || 1);
+         setContactAccessStats(response.data.data.stats || {});
+      } catch (error) {
+         console.error("Failed to fetch contact access data:", error);
+         toast.error("Failed to load contact access data");
+      } finally {
+         setLoadingContactAccess(false);
+      }
+   }, [contactAccessPage]);
+
+   // Export contact access data
+   const exportContactAccess = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allContactAccess = response.data.data.contactAccess || [];
+         
+         if (allContactAccess.length === 0) {
+            toast.error("No contact access data to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "User Name", "User Email", "Provider Name", "Provider Email", 
+            "Provider Phone", "Amount Paid", "Currency", "Transaction ID", 
+            "Payment Status", "Access Date", "Email Sent"
+         ];
+
+         const rows = allContactAccess.map(access => [
+            access._id || "",
+            access.userId?.fullName || access.userId?.name || "",
+            access.userId?.email || "",
+            access.providerId?.companyName || "",
+            access.providerEmail || "",
+            access.providerPhone || "",
+            access.amountPaid || 0,
+            access.currency || "USD",
+            access.transactionId || "",
+            access.paymentStatus || "",
+            access.accessDate ? formatDate(access.accessDate) : "",
+            access.emailSent ? "Yes" : "No"
+         ]);
+
+         const csvContent = [headers, ...rows]
+            .map(row => row.map(field => `"${field}"`).join(","))
+            .join("\n");
+
+         // Create and download file
+         const blob = new Blob([csvContent], { type: "text/csv" });
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement("a");
+         a.href = url;
+         a.download = `contact-access-${new Date().toISOString().split('T')[0]}.csv`;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         window.URL.revokeObjectURL(url);
+
+         toast.success("Contact access data exported successfully");
+      } catch (error) {
+         console.error("Failed to export contact access data:", error);
+         toast.error("Failed to export contact access data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchContactAccess();
+   }, [contactAccessPage]);
+
+   return (
+      <Card className="shadow-lg border-0">
+         <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+               <div>
+                  <h3 className="text-lg font-semibold">Contact Access Tracking</h3>
+                  <p className="text-gray-600 text-sm">Monitor premium contact information purchases</p>
+               </div>
+               <Button
+                  onClick={exportContactAccess}
+                  disabled={exportLoading}
+                  className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Total Purchases</p>
+                        <p className="text-2xl font-bold text-[#004aad]">
+                           {contactAccessStats.totalPurchases || 0}
+                        </p>
+                     </div>
+                     <CreditCard className="h-8 w-8 text-[#004aad]" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Revenue Generated</p>
+                        <p className="text-2xl font-bold text-green-600">
+                           {formatCurrency(contactAccessStats.totalRevenue || 0)}
+                        </p>
+                     </div>
+                     <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Unique Users</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                           {contactAccessStats.uniqueUsers || 0}
+                        </p>
+                     </div>
+                     <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                           {contactAccessStats.successRate || 0}%
+                        </p>
+                     </div>
+                     <TrendingUp className="h-8 w-8 text-purple-600" />
+                  </div>
+               </Card>
+            </div>
+
+            {/* Contact Access Table */}
+            <div className="overflow-x-auto">
+               <table className="w-full border-collapse">
+                  <thead>
+                     <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
+                        {/* <th className="text-left py-3 px-4 font-medium text-gray-600">Provider</th> */}
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Contact Info</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Payment</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loadingContactAccess ? (
+                        <tr>
+                           <td colSpan="6" className="py-8 text-center">
+                              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                           </td>
+                        </tr>
+                     ) : contactAccess.length === 0 ? (
+                        <tr>
+                           <td colSpan="6" className="py-8 text-center text-gray-500">
+                              No contact access data found
+                           </td>
+                        </tr>
+                     ) : (
+                        contactAccess.map((access) => (
+                           <tr key={access._id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.userId?.fullName || access.userId?.name || "Unknown User"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.userId?.email || "No email"}
+                                    </p>
+                                 </div>
+                              </td>
+                              {/* <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.providerId?.companyName || "Unknown Provider"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       ID: {access.providerId?._id?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td> */}
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Phone className="h-3 w-3" />
+                                       {access.providerPhone || access.inspectorPhone|| "N/A"}
+                                    </p>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Mail className="h-3 w-3" />
+                                       {access.providerEmail || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {formatCurrency(access.amountPaid || 0)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.transactionId?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <Badge
+                                    className={`${getStatusColor(
+                                       access.paymentStatus
+                                    )} flex items-center gap-1`}
+                                 >
+                                    {access.paymentStatus === "succeeded" && (
+                                       <CheckCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "failed" && (
+                                       <XCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "pending" && (
+                                       <Clock className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus}
+                                 </Badge>
+                                 { 
+                                    <div className="text-xs text-green-600 mt-1">
+                                       Email sent ✓
+                                    </div>
+                                 }
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.accessDate ? formatDate(access.accessDate) : "N/A"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                       {access.accessDate ? new Date(access.accessDate).toLocaleTimeString() : ""}
+                                    </p>
+                                 </div>
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-6">
+               <p className="text-sm text-gray-600">
+                  Page {contactAccessPage} of {contactAccessTotalPages}
+               </p>
+               <div className="flex gap-2">
+                  <Button
+                     onClick={() => setContactAccessPage(prev => Math.max(prev - 1, 1))}
+                     disabled={contactAccessPage === 1}
+                     variant="outline"
+                  >
+                     Previous
+                  </Button>
+                  <Button
+                     onClick={() => setContactAccessPage(prev => Math.min(prev + 1, contactAccessTotalPages))}
+                     disabled={contactAccessPage === contactAccessTotalPages}
+                     variant="outline"
+                  >
+                     Next
+                  </Button>
+               </div>
+            </div>
+         </div>
+      </Card>
+   );
+};
+
+// Inspector Contact Access Tracking View Component
+const InspectorContactAccessTrackingView = () => {
+   const [inspectorContactAccess, setInspectorContactAccess] = useState([]);
+   const [loadingInspectorContactAccess, setLoadingInspectorContactAccess] = useState(false);
+   const [inspectorContactAccessPage, setInspectorContactAccessPage] = useState(1);
+   const [inspectorContactAccessTotalPages, setInspectorContactAccessTotalPages] = useState(1);
+   const [inspectorContactAccessStats, setInspectorContactAccessStats] = useState({});
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Fetch inspector contact access data
+   const fetchInspectorContactAccess = useCallback(async () => {
+      try {
+         setLoadingInspectorContactAccess(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/inspector-contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: inspectorContactAccessPage, limit: 10 }
+            }
+         );
+
+         setInspectorContactAccess(response.data.data.contactAccess || []);
+         setInspectorContactAccessTotalPages(response.data.data.totalPages || 1);
+         setInspectorContactAccessStats(response.data.data.stats || {});
+      } catch (error) {
+         console.error("Failed to fetch inspector contact access data:", error);
+         toast.error("Failed to load inspector contact access data");
+      } finally {
+         setLoadingInspectorContactAccess(false);
+      }
+   }, [inspectorContactAccessPage]);
+
+   // Export inspector contact access data
+   const exportInspectorContactAccess = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/inspector-contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allInspectorContactAccess = response.data.data.contactAccess || [];
+         
+         if (allInspectorContactAccess.length === 0) {
+            toast.error("No inspector contact access data to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "User Name", "User Email", "Inspector Name", "Inspector Email", 
+            "Inspector Phone", "Association Type", "Company Name", "Amount Paid", 
+            "Currency", "Transaction ID", "Payment Status", "Access Date", "Email Sent"
+         ];
+
+         const rows = allInspectorContactAccess.map(access => [
+            access._id || "",
+            access.userId?.fullName || access.userId?.name || "",
+            access.userId?.email || "",
+            access.inspectorId?.fullName || "",
+            access.inspectorEmail || "",
+            access.inspectorPhone || "",
+            access.inspectorId?.associationType || "",
+            access.inspectorId?.companyName || "",
+            access.amountPaid || 0,
+            access.currency || "USD",
+            access.transactionId || "",
+            access.paymentStatus || "",
+            access.accessDate ? formatDate(access.accessDate) : "",
+            access.emailSent ? "Yes" : "No"
+         ]);
+
+         const csvContent = [headers, ...rows]
+            .map(row => row.map(field => `"${field}"`).join(","))
+            .join("\n");
+
+         // Create and download file
+         const blob = new Blob([csvContent], { type: "text/csv" });
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement("a");
+         a.href = url;
+         a.download = `inspector-contact-access-${new Date().toISOString().split('T')[0]}.csv`;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         window.URL.revokeObjectURL(url);
+
+         toast.success("Inspector contact access data exported successfully");
+      } catch (error) {
+         console.error("Failed to export inspector contact access data:", error);
+         toast.error("Failed to export inspector contact access data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchInspectorContactAccess();
+   }, [fetchInspectorContactAccess]);
+
+   return (
+      <Card className="shadow-lg border-0">
+         <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+               <div>
+                  <h3 className="text-lg font-semibold">Inspector Contact Access Tracking</h3>
+                  <p className="text-gray-600 text-sm">Monitor premium inspector contact information purchases</p>
+               </div>
+               <Button
+                  onClick={exportInspectorContactAccess}
+                  disabled={exportLoading}
+                  className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Total Purchases</p>
+                        <p className="text-2xl font-bold text-[#004aad]">
+                           {inspectorContactAccessStats.totalPurchases || 0}
+                        </p>
+                     </div>
+                     <CreditCard className="h-8 w-8 text-[#004aad]" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Revenue Generated</p>
+                        <p className="text-2xl font-bold text-green-600">
+                           {formatCurrency(inspectorContactAccessStats.totalRevenue || 0)}
+                        </p>
+                     </div>
+                     <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Unique Users</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                           {inspectorContactAccessStats.uniqueUsers || 0}
+                        </p>
+                     </div>
+                     <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                           {inspectorContactAccessStats.successRate || 0}%
+                        </p>
+                     </div>
+                     <TrendingUp className="h-8 w-8 text-purple-600" />
+                  </div>
+               </Card>
+            </div>
+
+            {/* Inspector Contact Access Table */}
+            <div className="overflow-x-auto">
+               <table className="w-full border-collapse">
+                  <thead>
+                     <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Inspector</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Contact Info</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Association</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Payment</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loadingInspectorContactAccess ? (
+                        <tr>
+                           <td colSpan="7" className="py-8 text-center">
+                              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                           </td>
+                        </tr>
+                     ) : inspectorContactAccess.length === 0 ? (
+                        <tr>
+                           <td colSpan="7" className="py-8 text-center text-gray-500">
+                              No inspector contact access data found
+                           </td>
+                        </tr>
+                     ) : (
+                        inspectorContactAccess.map((access) => (
+                           <tr key={access._id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.userId?.fullName || access.userId?.name || "Unknown User"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.userId?.email || "No email"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.inspectorId?.fullName || "Unknown Inspector"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       ID: {access.inspectorId?._id?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Phone className="h-3 w-3" />
+                                       {access.inspectorPhone || "N/A"}
+                                    </p>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Mail className="h-3 w-3" />
+                                       {access.inspectorEmail || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.inspectorId?.associationType || "N/A"}
+                                    </p>
+                                    {access.inspectorId?.companyName && (
+                                       <p className="text-xs text-gray-500">
+                                          {access.inspectorId.companyName}
+                                       </p>
+                                    )}
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {formatCurrency(access.amountPaid || 0)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.transactionId?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <Badge
+                                    className={`${getStatusColor(
+                                       access.paymentStatus
+                                    )} flex items-center gap-1`}
+                                 >
+                                    {access.paymentStatus === "succeeded" && (
+                                       <CheckCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "failed" && (
+                                       <XCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "pending" && (
+                                       <Clock className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus}
+                                 </Badge>
+                                 {access.emailSent && (
+                                    <div className="text-xs text-green-600 mt-1">
+                                       Email sent ✓
+                                    </div>
+                                 )}
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.accessDate ? formatDate(access.accessDate) : "N/A"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                       {access.accessDate ? new Date(access.accessDate).toLocaleTimeString() : ""}
+                                    </p>
+                                 </div>
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-6">
+               <p className="text-sm text-gray-600">
+                  Page {inspectorContactAccessPage} of {inspectorContactAccessTotalPages}
+               </p>
+               <div className="flex gap-2">
+                  <Button
+                     onClick={() => setInspectorContactAccessPage(prev => Math.max(prev - 1, 1))}
+                     disabled={inspectorContactAccessPage === 1}
+                     variant="outline"
+                  >
+                     Previous
+                  </Button>
+                  <Button
+                     onClick={() => setInspectorContactAccessPage(prev => Math.min(prev + 1, inspectorContactAccessTotalPages))}
+                     disabled={inspectorContactAccessPage === inspectorContactAccessTotalPages}
+                     variant="outline"
+                  >
+                     Next
+                  </Button>
+               </div>
             </div>
          </div>
       </Card>

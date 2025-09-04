@@ -30,9 +30,10 @@ import geminiRoutes from "./routes/gemini.routes.js";
 import jobRequestRoutes from "./routes/jobRequest.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import adminSettingsRoutes from "./routes/adminSettings.routes.js";
+import contactAccessRoutes from "./routes/contactAccess.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 import "./cronJobs/certificateExpiryAlert.js";
 import "./cronJobs/skillMatrixExpiryAlert.js";
-import { sendContactMessage } from './controllers/ContactUs.controller.js';
 
 //http://localhost:8000/api/v1/users/register
 app.use('/api/v1/users', userRoutes);
@@ -48,7 +49,8 @@ app.use("/api/v1/gemini", geminiRoutes);
 app.use("/api/v1/job-requests", jobRequestRoutes);
 app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/admin/settings", adminSettingsRoutes);
-app.use("/api/v1/contact/send",sendContactMessage);
+app.use("/api/v1/contact/", contactRoutes);
+app.use("/api/v1/", contactAccessRoutes);
 
 
 

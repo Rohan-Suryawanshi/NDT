@@ -12,8 +12,11 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
     companyName,
     companyLocation,
     companyDescription,
+    companyLat,
+    companyLng,
     companySpecialization,
   } = req.body;
+  console.log(req.body);
 
   if (
     !contactNumber ||
@@ -24,6 +27,23 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "All required fields must be filled");
   }
+  const lat = parseFloat(companyLat);
+  const lng = parseFloat(companyLng);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    throw new ApiError(
+      400,
+      "Invalid coordinates: Latitude and Longitude must be numbers"
+    );
+  }
+
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    throw new ApiError(
+      400,
+      "Invalid coordinates: Out of valid geographical range"
+    );
+  }
+
 
   const logoFile = req.files?.companyLogo?.[0];
   const proceduresFile = req.files?.proceduresFile?.[0];
@@ -52,7 +72,9 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
       companyName,
       companyLocation,
       companyDescription,
-      companySpecialization:companySpecialization?.split(','),
+      companyLat: lat,
+      companyLng: lng,
+      companySpecialization: companySpecialization?.split(","),
       ...(companyLogoUrl && { companyLogoUrl }),
       ...(proceduresUrl && { proceduresUrl }),
     },
@@ -63,6 +85,93 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, profile, "Profile saved successfully"));
 });
+
+const PHONE_EMAIL_API_KEY = process.env.PHONE_EMAIL_API_KEY;
+
+// 🔹 Verify OTP & then upsert profile
+export const verifyOtpAndUpsertProfile = async (req, res, next) => {
+  const userId = req.user._id; // Assuming auth middleware adds user
+  const {
+    phone,
+    otp,
+    contactNumber,
+    companyName,
+    companyLocation,
+    companyDescription,
+    companySpecialization,
+  } = req.body;
+
+  if (
+    !phone ||
+    !otp ||
+    !contactNumber ||
+    !companyName ||
+    !companyLocation ||
+    !companyDescription ||
+    !companySpecialization
+  ) {
+    return next(new ApiError(400, "All required fields must be filled"));
+  }
+
+  try {
+    // 🔹 Verify OTP with phone.email API
+    const response = await axios.post(
+      "https://api.phone.email/v1/otp/verify",
+      { number: phone, otp },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${PHONE_EMAIL_API_KEY}`,
+        },
+      }
+    );
+
+    if (response.data.status !== "success") {
+      return next(new ApiError(400, "Invalid OTP"));
+    }
+
+    // 🔹 If OTP matches, handle file uploads
+    const logoFile = req.files?.companyLogo?.[0];
+    const proceduresFile = req.files?.proceduresFile?.[0];
+
+    let companyLogoUrl;
+    let proceduresUrl;
+
+    if (logoFile) {
+      const logoResult = await uploadToCloudinary(logoFile.path);
+      if (!logoResult.url) throw new ApiError(500, "Failed to upload company logo");
+      companyLogoUrl = logoResult.url;
+    }
+
+    if (proceduresFile) {
+      const proceduresResult = await uploadToCloudinary(proceduresFile.path);
+      if (!proceduresResult.url) throw new ApiError(500, "Failed to upload procedures file");
+      proceduresUrl = proceduresResult.url;
+    }
+
+    // 🔹 Save or update profile
+    const profile = await ServiceProviderProfile.findOneAndUpdate(
+      { userId },
+      {
+        contactNumber,
+        companyName,
+        companyLocation,
+        companyDescription,
+        companySpecialization: companySpecialization?.split(","),
+        ...(companyLogoUrl && { companyLogoUrl }),
+        ...(proceduresUrl && { proceduresUrl }),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, profile, "✅ Phone verified & profile saved"));
+  } catch (error) {
+    console.error("OTP Verify + Profile Error:", error.response?.data || error.message);
+    return next(new ApiError(500, "Failed to verify OTP or save profile"));
+  }
+};
 
 export const getMyProfile = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -139,6 +248,8 @@ export const getAllProfiles = AsyncHandler(async (req, res) => {
         companySpecialization: 1,
         companyLocation: 1,
         companyLogoUrl: 1,
+        companyLat: 1,
+        companyLng: 1,
         createdAt: 1,
         updatedAt: 1,
         rating:1,

@@ -12,7 +12,9 @@ import {
   getInspectorBalance,
   getInspectorEarnings,
   getAllWithdrawals,
-  getPaymentStats
+  getPaymentStats,
+  createInspectorContactPaymentIntent,
+  confirmInspectorContactPayment,
 } from '../controllers/Payment.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { isAdmin } from '../middlewares/isAdmin.js';
@@ -29,6 +31,10 @@ router.route('/admin/stats').get(isAdmin, getPaymentStats);
 router.route('/create-payment-intent').post(createPaymentIntent);
 router.route('/confirm-payment').post(confirmPayment);
 router.route('/history').get(getPaymentHistory);
+
+// Inspector contact access payment routes
+router.route('/create-inspector-contact-payment-intent').post(createInspectorContactPaymentIntent);
+router.route('/confirm-inspector-contact-payment').post(confirmInspectorContactPayment);
 
 // Provider withdrawal routes
 router.route('/provider-balance').get(getProviderBalance);
