@@ -2,7 +2,6 @@ import cron from "node-cron";
 import { SkillMatrix } from "../models/SkillMatrix.model.js";
 import { sendEmail } from "../utils/SendMail.js";
 
-
 // Run every day at 9 AM
 cron.schedule("0 9 * * *", async () => {
   console.log("🔔 Checking SkillMatrix for expiring certifications...");
@@ -24,20 +23,47 @@ cron.schedule("0 9 * * *", async () => {
       },
     }).populate("userId", "email name");
 
+    // console.log(technicians)
+
+    // Group certificates by email
+    const groupedByEmail = {};
 
     for (const tech of technicians) {
-      const expiringCerts = tech.certificates.filter(
-        (cert) =>
-          cert.certificationExpiryDate >= today &&
-          cert.certificationExpiryDate <= sevenDaysLater
-      );
+      const email = tech.userId.email;
+      const name = tech.userId.name;
 
-      if (expiringCerts.length > 0) {
-        await sendEmail({
-          to: tech.userId.email,
-          // to:"a90685766@gmail.com",
-          subject: "⚠️ SkillMatrix Certification Expiry Alert",
-          html: `
+
+      const expiringCerts = tech.certificates
+        .filter(
+          (cert) =>
+            cert.certificationExpiryDate >= today &&
+            cert.certificationExpiryDate <= sevenDaysLater
+        )
+        .map((cert) => ({
+          ...(cert.toObject?.() ?? cert), // convert to plain object if it's a Mongoose doc
+          technicianName: tech.technician?.name || tech.userId.name, // Add technician's name
+        }));
+
+
+      if (!groupedByEmail[email]) {
+        groupedByEmail[email] = {
+          name,
+          certs: [],
+        };
+      }
+
+      groupedByEmail[email].certs.push(...expiringCerts);
+    }
+    console.log(groupedByEmail)
+
+    // Send one email per technician
+    for (const [email, { name,techName, certs }] of Object.entries(groupedByEmail)) {
+      if (certs.length === 0) continue;
+
+      await sendEmail({
+        to: email,
+        subject: "⚠️ SkillMatrix Certification Expiry Alert",
+        html: `
   <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
     <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
       
@@ -48,7 +74,7 @@ cron.schedule("0 9 * * *", async () => {
 
       <!-- Body -->
       <div style="padding: 20px; color: #333; line-height: 1.6;">
-        <p>Hi <strong>${tech.technician.name}</strong>,</p>
+        <p>Hi <strong>${name}</strong>,</p>
         <p>
           The following certifications will <strong style="color: #dc2626;">expire within 7 days</strong>.  
           Please renew them on time to remain active in the system.
@@ -57,16 +83,18 @@ cron.schedule("0 9 * * *", async () => {
         <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
           <thead>
             <tr style="background: #f3f4f6; text-align: left;">
+              <th style="padding: 10px; border: 1px solid #e5e7eb;">Name</th>
               <th style="padding: 10px; border: 1px solid #e5e7eb;">Method</th>
               <th style="padding: 10px; border: 1px solid #e5e7eb;">Level</th>
               <th style="padding: 10px; border: 1px solid #e5e7eb;">Expiry Date</th>
             </tr>
           </thead>
           <tbody>
-            ${expiringCerts
+            ${certs
               .map(
                 (c) => `
               <tr>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${c.technicianName}</td>
                 <td style="padding: 10px; border: 1px solid #e5e7eb;">${c.method}</td>
                 <td style="padding: 10px; border: 1px solid #e5e7eb;">${c.level}</td>
                 <td style="padding: 10px; border: 1px solid #e5e7eb; color: #dc2626;">
@@ -90,13 +118,10 @@ cron.schedule("0 9 * * *", async () => {
       </div>
     </div>
   </div>
-          `,
-        });
+        `,
+      });
 
-        console.log(
-          `✅ Sent SkillMatrix expiry alert to ${tech.userId.email} for ${expiringCerts.length} certs`
-        );
-      }
+      console.log(`✅ Sent expiry alert to ${email} for ${certs.length} certs`);
     }
   } catch (err) {
     console.error("❌ Error in SkillMatrix expiry cron:", err.message);
