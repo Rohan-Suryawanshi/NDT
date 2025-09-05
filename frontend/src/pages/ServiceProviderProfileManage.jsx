@@ -74,6 +74,13 @@ export default function ServiceProviderProfileManage() {
 
    const [companyLogo, setCompanyLogo] = useState(null);
    const [proceduresFile, setProceduresFile] = useState(null);
+   
+   // OTP verification states
+   const [isOtpSent, setIsOtpSent] = useState(false);
+   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+   const [otp, setOtp] = useState("");
+   const [isVerifying, setIsVerifying] = useState(false);
+   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
    const fetchProfile = async () => {
       try {
@@ -100,6 +107,11 @@ export default function ServiceProviderProfileManage() {
                ", "
             ),
          });
+         
+         // If profile exists, consider phone already verified
+         if (data.contactNumber) {
+            setIsPhoneVerified(true);
+         }
       } catch {
          toast.error("Please Create the Profile");
       }
@@ -111,10 +123,81 @@ export default function ServiceProviderProfileManage() {
 
    const handleChange = (key, value) => {
       setForm((prev) => ({ ...prev, [key]: value }));
+      
+      // Reset phone verification if contact number changes
+      if (key === "contactNumber") {
+         setIsPhoneVerified(false);
+         setIsOtpSent(false);
+         setOtp("");
+      }
+   };
+
+   // Send OTP function
+   const handleSendOtp = async () => {
+      if (!form.contactNumber) {
+         toast.error("Please enter contact number first");
+         return;
+      }
+
+      setIsSendingOtp(true);
+      try {
+         await axios.post(
+            `${BACKEND_URL}/api/v1/service-provider/send-otp`,
+            { contactNumber: form.contactNumber },
+            {
+               headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+               },
+            }
+         );
+         setIsOtpSent(true);
+         toast.success("OTP sent successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Failed to send OTP");
+      } finally {
+         setIsSendingOtp(false);
+      }
+   };
+
+   // Verify OTP function
+   const handleVerifyOtp = async () => {
+      if (!otp) {
+         toast.error("Please enter the OTP");
+         return;
+      }
+
+      setIsVerifying(true);
+      try {
+         await axios.post(
+            `${BACKEND_URL}/api/v1/service-provider/verify-otp`,
+            { 
+               contactNumber: form.contactNumber,
+               otp: otp 
+            },
+            {
+               headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+               },
+            }
+         );
+         setIsPhoneVerified(true);
+         setIsOtpSent(false);
+         setOtp("");
+         toast.success("Phone number verified successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Invalid OTP");
+      } finally {
+         setIsVerifying(false);
+      }
    };
 
    const handleSubmit = async (e) => {
       e.preventDefault();
+
+      if (!isPhoneVerified) {
+         toast.error("Please verify your phone number before saving");
+         return;
+      }
 
       const formData = new FormData();
       for (const key in form) {
@@ -159,15 +242,64 @@ export default function ServiceProviderProfileManage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div>
                   <Label className="mb-2">Contact Number</Label>
-                  <Input
-                     type="text"
-                     placeholder="Enter contact number"
-                     value={form.contactNumber}
-                     onChange={(e) =>
-                        handleChange("contactNumber", e.target.value)
-                     }
-                     required
-                  />
+                  <div className="space-y-2">
+                     <div className="flex gap-2">
+                        <Input
+                           type="text"
+                           placeholder="Enter contact number (e.g., +1234567890)"
+                           value={form.contactNumber}
+                           onChange={(e) =>
+                              handleChange("contactNumber", e.target.value)
+                           }
+                           required
+                           className={`${isPhoneVerified ? 'border-green-500' : ''}`}
+                        />
+                        {!isPhoneVerified && (
+                           <Button
+                              type="button"
+                              onClick={handleSendOtp}
+                              disabled={isSendingOtp || !form.contactNumber}
+                              className="whitespace-nowrap"
+                           >
+                              {isSendingOtp ? "Sending..." : "Send OTP"}
+                           </Button>
+                        )}
+                     </div>
+                     
+                     {isPhoneVerified && (
+                        <div className="text-green-600 text-sm flex items-center">
+                           ✓ Phone number verified
+                        </div>
+                     )}
+                     
+                     {isOtpSent && !isPhoneVerified && (
+                        <div className="flex gap-2">
+                           <Input
+                              type="text"
+                              placeholder="Enter 6-digit OTP"
+                              value={otp}
+                              onChange={(e) => setOtp(e.target.value)}
+                              maxLength={6}
+                              className="w-40"
+                           />
+                           <Button
+                              type="button"
+                              onClick={handleVerifyOtp}
+                              disabled={isVerifying || !otp}
+                           >
+                              {isVerifying ? "Verifying..." : "Verify"}
+                           </Button>
+                           <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleSendOtp}
+                              disabled={isSendingOtp}
+                           >
+                              Resend
+                           </Button>
+                        </div>
+                     )}
+                  </div>
                </div>
                <div>
                   <Label className="mb-2">Company Name</Label>
@@ -288,9 +420,18 @@ export default function ServiceProviderProfileManage() {
                </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
-               <Button type="submit" className="gap-2">
+               <Button 
+                  type="submit" 
+                  className="gap-2"
+                  disabled={!isPhoneVerified}
+               >
                   <Save size={16} /> Save Profile
                </Button>
+               {!isPhoneVerified && (
+                  <div className="text-sm text-gray-500 flex items-center">
+                     Please verify your phone number to save profile
+                  </div>
+               )}
             </div>
          </form>
       </div>

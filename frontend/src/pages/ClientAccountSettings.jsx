@@ -7,6 +7,7 @@ import { BACKEND_URL } from "@/constant/Global";
 import { Location } from "@/constant/Location";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function ClientAccountSettings() {
    const [form, setForm] = useState({
@@ -18,7 +19,14 @@ export default function ClientAccountSettings() {
 
    const [loading, setLoading] = useState(false);
    const [isExistingProfile, setIsExistingProfile] = useState(false);
-   const navigate=useNavigate();
+   const navigate = useNavigate();
+   
+   // OTP verification states
+   const [isOtpSent, setIsOtpSent] = useState(false);
+   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+   const [otp, setOtp] = useState("");
+   const [isVerifying, setIsVerifying] = useState(false);
+   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
    useEffect(() => {
       const fetchProfile = async () => {
@@ -43,6 +51,11 @@ export default function ClientAccountSettings() {
                   contactNumber: data?.data?.contactNumber || "",
                });
                setIsExistingProfile(true);
+               
+               // If profile exists, consider phone already verified
+               if (data?.data?.contactNumber) {
+                  setIsPhoneVerified(true);
+               }
             } else if (res.status !== 404) {
                throw new Error("Failed to fetch profile");
             }
@@ -58,6 +71,72 @@ export default function ClientAccountSettings() {
    const handleChange = (e) => {
       const { name, value } = e.target;
       setForm((prev) => ({ ...prev, [name]: value }));
+      
+      // Reset phone verification if contact number changes
+      if (name === "contactNumber") {
+         setIsPhoneVerified(false);
+         setIsOtpSent(false);
+         setOtp("");
+      }
+   };
+
+   // Send OTP function
+   const handleSendOtp = async () => {
+      if (!form.contactNumber) {
+         toast.error("Please enter contact number first");
+         return;
+      }
+
+      setIsSendingOtp(true);
+      try {
+         await axios.post(
+            `${BACKEND_URL}/api/v1/client-routes/send-otp`,
+            { contactNumber: form.contactNumber },
+            {
+               headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+               },
+            }
+         );
+         setIsOtpSent(true);
+         toast.success("OTP sent successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Failed to send OTP");
+      } finally {
+         setIsSendingOtp(false);
+      }
+   };
+
+   // Verify OTP function
+   const handleVerifyOtp = async () => {
+      if (!otp) {
+         toast.error("Please enter the OTP");
+         return;
+      }
+
+      setIsVerifying(true);
+      try {
+         await axios.post(
+            `${BACKEND_URL}/api/v1/client-routes/verify-otp`,
+            { 
+               contactNumber: form.contactNumber,
+               otp: otp 
+            },
+            {
+               headers: {
+                  Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+               },
+            }
+         );
+         setIsPhoneVerified(true);
+         setIsOtpSent(false);
+         setOtp("");
+         toast.success("Phone number verified successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Invalid OTP");
+      } finally {
+         setIsVerifying(false);
+      }
    };
 
    const handlePrimaryLocationChange = (value) => {
@@ -66,6 +145,12 @@ export default function ClientAccountSettings() {
 
    const handleSubmit = async (e) => {
       e.preventDefault();
+      
+      if (!isPhoneVerified) {
+         toast.error("Please verify your phone number before saving");
+         return;
+      }
+      
       setLoading(true);
 
       try {
@@ -173,19 +258,68 @@ export default function ClientAccountSettings() {
                         <label className="text-sm font-medium text-gray-700">
                            Contact Number
                         </label>
-                        <Input
-                           name="contactNumber"
-                           value={form.contactNumber}
-                           onChange={handleChange}
-                           placeholder="Enter your contact number"
-                           required
-                        />
+                        <div className="space-y-2">
+                           <div className="flex gap-2">
+                              <Input
+                                 name="contactNumber"
+                                 value={form.contactNumber}
+                                 onChange={handleChange}
+                                 placeholder="Enter contact number (e.g., +1234567890)"
+                                 required
+                                 className={`${isPhoneVerified ? 'border-green-500' : ''}`}
+                              />
+                              {!isPhoneVerified && (
+                                 <Button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp || !form.contactNumber}
+                                    className="whitespace-nowrap"
+                                 >
+                                    {isSendingOtp ? "Sending..." : "Send OTP"}
+                                 </Button>
+                              )}
+                           </div>
+                           
+                           {isPhoneVerified && (
+                              <div className="text-green-600 text-sm flex items-center">
+                                 ✓ Phone number verified
+                              </div>
+                           )}
+                           
+                           {isOtpSent && !isPhoneVerified && (
+                              <div className="flex gap-2">
+                                 <Input
+                                    type="text"
+                                    placeholder="Enter 6-digit OTP"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    maxLength={6}
+                                    className="w-40"
+                                 />
+                                 <Button
+                                    type="button"
+                                    onClick={handleVerifyOtp}
+                                    disabled={isVerifying || !otp}
+                                 >
+                                    {isVerifying ? "Verifying..." : "Verify"}
+                                 </Button>
+                                 <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp}
+                                 >
+                                    Resend
+                                 </Button>
+                              </div>
+                           )}
+                        </div>
                      </div>
 
                      <Button
                         type="submit"
                         className="w-full"
-                        disabled={loading}
+                        disabled={loading || !isPhoneVerified}
                      >
                         {loading
                            ? isExistingProfile
@@ -195,6 +329,12 @@ export default function ClientAccountSettings() {
                            ? "Update Profile"
                            : "Create Profile"}
                      </Button>
+                     
+                     {!isPhoneVerified && (
+                        <div className="text-sm text-gray-500 text-center">
+                           Please verify your phone number to save profile
+                        </div>
+                     )}
                   </form>
                </CardContent>
             </Card>

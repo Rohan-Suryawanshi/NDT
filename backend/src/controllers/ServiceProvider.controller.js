@@ -4,6 +4,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { AsyncHandler } from "../utils/AsyncHandler.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
 import mongoose from "mongoose";
+import axios from "axios";
+import qs from "qs";
 
 export const upsertProfile = AsyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -27,6 +29,16 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
   ) {
     throw new ApiError(400, "All required fields must be filled");
   }
+
+  // Check if phone number is verified
+  const verificationKey = `${userId}-${contactNumber}`;
+  const verificationData = verifiedPhones.get(verificationKey);
+  
+  if (!verificationData || Date.now() > verificationData.expiresAt) {
+    verifiedPhones.delete(verificationKey);
+    throw new ApiError(400, "Phone number must be verified before saving profile");
+  }
+  
   const lat = parseFloat(companyLat);
   const lng = parseFloat(companyLng);
 
@@ -81,6 +93,9 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
+  // Clean up verification data after successful profile save
+  verifiedPhones.delete(`${userId}-${contactNumber}`);
+
   res
     .status(200)
     .json(new ApiResponse(200, profile, "Profile saved successfully"));
@@ -88,90 +103,110 @@ export const upsertProfile = AsyncHandler(async (req, res) => {
 
 const PHONE_EMAIL_API_KEY = process.env.PHONE_EMAIL_API_KEY;
 
-// 🔹 Verify OTP & then upsert profile
-export const verifyOtpAndUpsertProfile = async (req, res, next) => {
-  const userId = req.user._id; // Assuming auth middleware adds user
-  const {
-    phone,
-    otp,
-    contactNumber,
-    companyName,
-    companyLocation,
-    companyDescription,
-    companySpecialization,
-  } = req.body;
+// Twilio Configuration
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
-  if (
-    !phone ||
-    !otp ||
-    !contactNumber ||
-    !companyName ||
-    !companyLocation ||
-    !companyDescription ||
-    !companySpecialization
-  ) {
-    return next(new ApiError(400, "All required fields must be filled"));
+// Temporary storage for OTPs (in production, use Redis or database with expiry)
+const otpStore = new Map();
+const verifiedPhones = new Map(); // Store verified phone numbers temporarily
+
+// Generate random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send OTP via Twilio
+export const sendOTP = AsyncHandler(async (req, res) => {
+  const { contactNumber } = req.body;
+  
+  if (!contactNumber) {
+    throw new ApiError(400, "Contact number is required");
   }
+
+  // Validate phone number format (basic validation)
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  if (!phoneRegex.test(contactNumber)) {
+    throw new ApiError(400, "Invalid phone number format");
+  }
+
+  const otp = generateOTP();
+  
+  // Store OTP with 5-minute expiry
+  otpStore.set(contactNumber, {
+    otp,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
+  });
 
   try {
-    // 🔹 Verify OTP with phone.email API
-    const response = await axios.post(
-      "https://api.phone.email/v1/otp/verify",
-      { number: phone, otp },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${PHONE_EMAIL_API_KEY}`,
-        },
-      }
-    );
+    const data = qs.stringify({
+      'From': TWILIO_PHONE_NUMBER,
+      'To': contactNumber,
+      'Body': `Your Verification Code is ${otp}. This code will expire in 5 minutes.`
+    });
 
-    if (response.data.status !== "success") {
-      return next(new ApiError(400, "Invalid OTP"));
-    }
-
-    // 🔹 If OTP matches, handle file uploads
-    const logoFile = req.files?.companyLogo?.[0];
-    const proceduresFile = req.files?.proceduresFile?.[0];
-
-    let companyLogoUrl;
-    let proceduresUrl;
-
-    if (logoFile) {
-      const logoResult = await uploadToCloudinary(logoFile.path);
-      if (!logoResult.url) throw new ApiError(500, "Failed to upload company logo");
-      companyLogoUrl = logoResult.url;
-    }
-
-    if (proceduresFile) {
-      const proceduresResult = await uploadToCloudinary(proceduresFile.path);
-      if (!proceduresResult.url) throw new ApiError(500, "Failed to upload procedures file");
-      proceduresUrl = proceduresResult.url;
-    }
-
-    // 🔹 Save or update profile
-    const profile = await ServiceProviderProfile.findOneAndUpdate(
-      { userId },
-      {
-        contactNumber,
-        companyName,
-        companyLocation,
-        companyDescription,
-        companySpecialization: companySpecialization?.split(","),
-        ...(companyLogoUrl && { companyLogoUrl }),
-        ...(proceduresUrl && { proceduresUrl }),
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded', 
+        'Authorization': `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+      data: data
+    };
 
-    return res
-      .status(200)
-      .json(new ApiResponse(200, profile, "✅ Phone verified & profile saved"));
+    const response = await axios.request(config);
+    
+    res.status(200).json(
+      new ApiResponse(200, { messageSid: response.data.sid }, "OTP sent successfully")
+    );
   } catch (error) {
-    console.error("OTP Verify + Profile Error:", error.response?.data || error.message);
-    return next(new ApiError(500, "Failed to verify OTP or save profile"));
+    console.error("Twilio SMS Error:", error.response?.data || error.message);
+    throw new ApiError(500, "Failed to send OTP");
   }
-};
+});
+
+// Verify OTP
+export const verifyOTP = AsyncHandler(async (req, res) => {
+  const { contactNumber, otp } = req.body;
+  
+  if (!contactNumber || !otp) {
+    throw new ApiError(400, "Contact number and OTP are required");
+  }
+
+  const storedOtpData = otpStore.get(contactNumber);
+  
+  if (!storedOtpData) {
+    throw new ApiError(400, "OTP not found or expired");
+  }
+
+  if (Date.now() > storedOtpData.expiresAt) {
+    otpStore.delete(contactNumber);
+    throw new ApiError(400, "OTP has expired");
+  }
+
+  if (storedOtpData.otp !== otp) {
+    throw new ApiError(400, "Invalid OTP");
+  }
+
+  // OTP verified successfully, remove from store
+  otpStore.delete(contactNumber);
+  
+  // Mark phone as verified for the user
+  verifiedPhones.set(`${req.user._id}-${contactNumber}`, {
+    verified: true,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes to complete profile
+  });
+  
+  res.status(200).json(
+    new ApiResponse(200, { verified: true }, "OTP verified successfully")
+  );
+});
+
 
 export const getMyProfile = AsyncHandler(async (req, res) => {
   const userId = req.user._id;

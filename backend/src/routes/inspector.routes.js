@@ -13,12 +13,18 @@ import {
   getInspectorsWithExpiringCertificates,
   verifyInspector,
   deleteInspectorProfile,
+  sendInspectorOTP,
+  verifyInspectorOTP,
 } from "../controllers/Inspector.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { isAdmin } from "../middlewares/isAdmin.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
+
+// OTP routes
+router.post("/send-otp", verifyJWT, sendInspectorOTP);
+router.post("/verify-otp", verifyJWT, verifyInspectorOTP);
 
 // Profile routes
 router.post("/profile", verifyJWT, upload.single("resume"), upsertInspectorProfile);

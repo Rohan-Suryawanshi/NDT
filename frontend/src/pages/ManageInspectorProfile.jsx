@@ -120,6 +120,16 @@ const ProfileInfoTab = ({
    handleSave,
    handleResumeUpload,
    updateLocation,
+   isOtpSent,
+   isPhoneVerified,
+   otp,
+   setOtp,
+   isVerifying,
+   isSendingOtp,
+   handleSendOtp,
+   handleVerifyOtp,
+   setIsPhoneVerified,
+   setIsOtpSent,
 }) => {
    if (!profile) return <div>Loading profile...</div>;
 
@@ -171,18 +181,71 @@ const ProfileInfoTab = ({
                         Contact Number
                      </label>
                      {isEditing ? (
-                        <input
-                           type="tel"
-                           value={profile.contactNumber || ""}
-                           onChange={(e) => {
-                             
-                              setProfile((prev) => ({
-                                 ...prev,
-                                 contactNumber: e.target.value,
-                              }));
-                           }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
-                        />
+                        <div className="space-y-2">
+                           <div className="flex gap-2">
+                              <input
+                                 type="tel"
+                                 value={profile.contactNumber || ""}
+                                 onChange={(e) => {
+                                    setProfile((prev) => ({
+                                       ...prev,
+                                       contactNumber: e.target.value,
+                                    }));
+                                    // Reset phone verification if contact number changes
+                                    setIsPhoneVerified(false);
+                                    setIsOtpSent(false);
+                                    setOtp("");
+                                 }}
+                                 placeholder="Enter contact number (e.g., +1234567890)"
+                                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent ${isPhoneVerified ? 'border-green-500' : ''}`}
+                              />
+                              {!isPhoneVerified && (
+                                 <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp || !profile.contactNumber}
+                                    className="whitespace-nowrap px-4 py-2 bg-[#004aad] text-white rounded-lg hover:bg-[#003a8a] disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    {isSendingOtp ? "Sending..." : "Send OTP"}
+                                 </button>
+                              )}
+                           </div>
+                           
+                           {isPhoneVerified && (
+                              <div className="text-green-600 text-sm flex items-center">
+                                 ✓ Phone number verified
+                              </div>
+                           )}
+                           
+                           {isOtpSent && !isPhoneVerified && (
+                              <div className="flex gap-2">
+                                 <input
+                                    type="text"
+                                    placeholder="Enter 6-digit OTP"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    maxLength={6}
+                                    className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                 />
+                                 <button
+                                    type="button"
+                                    onClick={handleVerifyOtp}
+                                    disabled={isVerifying || !otp}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    {isVerifying ? "Verifying..." : "Verify"}
+                                 </button>
+                                 <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    Resend
+                                 </button>
+                              </div>
+                           )}
+                        </div>
                      ) : (
                         <div className="px-3 py-2 bg-gray-50 rounded-lg flex items-center gap-2">
                            <Phone className="w-4 h-4 text-gray-400" />
@@ -249,20 +312,29 @@ const ProfileInfoTab = ({
                </div>
 
                {isEditing && (
-                  <div className="flex gap-3 mt-6 pt-6 border-t">
-                     <button
-                        onClick={handleSave}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
-                     >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                     </button>
-                     <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                     >
-                        Cancel
-                     </button>
+                  <div className="flex flex-col gap-3 mt-6 pt-6 border-t">
+                     <div className="flex gap-3">
+                        <button
+                           onClick={handleSave}
+                           disabled={!isPhoneVerified}
+                           className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                           <Save className="w-4 h-4" />
+                           Save Changes
+                        </button>
+                        <button
+                           onClick={() => setIsEditing(false)}
+                           className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                           Cancel
+                        </button>
+                     </div>
+                     
+                     {!isPhoneVerified && (
+                        <div className="text-sm text-gray-500">
+                           Please verify your phone number to save profile
+                        </div>
+                     )}
                   </div>
                )}
             </div>
@@ -1321,7 +1393,14 @@ const ManageInspectorProfile = () => {
       level: "",
       expiryDate: "",
       image: null,
-   }); // Debug profile changes
+   }); 
+   
+   // OTP verification states
+   const [isOtpSent, setIsOtpSent] = useState(false);
+   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+   const [otp, setOtp] = useState("");
+   const [isVerifying, setIsVerifying] = useState(false);
+   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
    // Fetch balance and earnings data
    const fetchBalance = useCallback(async () => {
@@ -1357,6 +1436,11 @@ const ManageInspectorProfile = () => {
 
          const response = await api.get("/api/v1/inspectors/profile");
          setProfile(response.data.data);
+         
+         // If profile exists with contact number, consider phone already verified
+         if (response.data.data && response.data.data.contactNumber) {
+            setIsPhoneVerified(true);
+         }
       } catch (error) {
          console.error("Error fetching profile:", error);
          console.error("Error response:", error.response);
@@ -1401,9 +1485,16 @@ const ManageInspectorProfile = () => {
       } else {
          console.log("No user found, skipping data fetch");
       }
-   }, [user, fetchProfile, fetchBalance]); // Save profile changes
+   }, [user, fetchProfile, fetchBalance]); 
+   
+   // Save profile changes
    const handleSave = async () => {
       try {
+         if (!isPhoneVerified) {
+            toast.error("Please verify your phone number before saving");
+            return;
+         }
+         
          setLoading(true);
          const formData = new FormData();
 
@@ -1480,6 +1571,51 @@ const ManageInspectorProfile = () => {
       } catch (error) {
          console.error("Error updating field:", error);
          toast.error(error.response?.data?.message || "Failed to update");
+      }
+   };
+
+   // Send OTP function
+   const handleSendOtp = async () => {
+      if (!profile?.contactNumber) {
+         toast.error("Please enter contact number first");
+         return;
+      }
+
+      setIsSendingOtp(true);
+      try {
+         await api.post("/api/v1/inspectors/send-otp", { 
+            contactNumber: profile.contactNumber 
+         });
+         setIsOtpSent(true);
+         toast.success("OTP sent successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Failed to send OTP");
+      } finally {
+         setIsSendingOtp(false);
+      }
+   };
+
+   // Verify OTP function
+   const handleVerifyOtp = async () => {
+      if (!otp) {
+         toast.error("Please enter the OTP");
+         return;
+      }
+
+      setIsVerifying(true);
+      try {
+         await api.post("/api/v1/inspectors/verify-otp", { 
+            contactNumber: profile.contactNumber,
+            otp: otp 
+         });
+         setIsPhoneVerified(true);
+         setIsOtpSent(false);
+         setOtp("");
+         toast.success("Phone number verified successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Invalid OTP");
+      } finally {
+         setIsVerifying(false);
       }
    };
 
@@ -1840,6 +1976,16 @@ const ManageInspectorProfile = () => {
                         handleSave={handleSave}
                         handleResumeUpload={handleResumeUpload}
                         updateLocation={updateLocation}
+                        isOtpSent={isOtpSent}
+                        isPhoneVerified={isPhoneVerified}
+                        otp={otp}
+                        setOtp={setOtp}
+                        isVerifying={isVerifying}
+                        isSendingOtp={isSendingOtp}
+                        handleSendOtp={handleSendOtp}
+                        handleVerifyOtp={handleVerifyOtp}
+                        setIsPhoneVerified={setIsPhoneVerified}
+                        setIsOtpSent={setIsOtpSent}
                      />
                   )}{" "}
                   {activeTab === "certifications" && (

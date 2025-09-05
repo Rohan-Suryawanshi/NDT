@@ -4,11 +4,17 @@ import {
   getClientProfile,
   getAllClientProfiles,
   deleteClientProfile,
+  sendClientOTP,
+  verifyClientOTP,
 } from "../controllers/ClientProfile.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { isAdmin } from "../middlewares/isAdmin.js";
 
 const router = Router();
+
+// OTP routes
+router.post("/send-otp", verifyJWT, sendClientOTP);
+router.post("/verify-otp", verifyJWT, verifyClientOTP);
 
 // User routes
 router.post("/profile", verifyJWT, upsertClientProfile);

@@ -5,7 +5,8 @@ import {
   deleteMyProfile,
   getAllProfiles,
   getProfileByUserId,
-  verifyOtpAndUpsertProfile,
+  sendOTP,
+  verifyOTP,
 } from "../controllers/ServiceProvider.controller.js";
  // assuming multer setup
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -18,6 +19,10 @@ const uploadFields = upload.fields([
   { name: "companyLogo", maxCount: 1 },
   { name: "proceduresFile", maxCount: 1 },
 ]);
+
+// OTP routes
+router.post("/send-otp", verifyJWT, sendOTP);
+router.post("/verify-otp", verifyJWT, verifyOTP);
 
 router.post("/profile", verifyJWT,uploadFields, upsertProfile);
 // router.post("/profile", verifyJWT,uploadFields, verifyOtpAndUpsertProfile);
