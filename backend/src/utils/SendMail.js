@@ -1,23 +1,3 @@
-// // utils/sendEmail.js
-// import nodemailer from "nodemailer";
-
-// export const sendEmail = async ({ to, subject, html }) => {
-//   const transporter = nodemailer.createTransport({
-//     service: "gmail", // or use Mailgun/SMTP
-//     auth: {
-//       user: process.env.EMAIL_USER,
-//       pass: process.env.EMAIL_PASS,
-//     },
-//   });
-
-//   await transporter.sendMail({
-//     from: process.env.EMAIL_USER,
-//     to,
-//     subject,
-//     html,
-//   });
-// };
-// utils/sendEmail.js
 import { Client } from "@microsoft/microsoft-graph-client";
 import { ClientSecretCredential } from "@azure/identity";
 import "isomorphic-fetch"; // required by microsoft-graph-client
