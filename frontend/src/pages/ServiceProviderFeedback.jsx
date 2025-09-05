@@ -379,11 +379,11 @@ const ServiceProviderFeedback = () => {
                   {/* Main Content Tabs */}
                   <Tabs defaultValue="feedback" className="space-y-6">
                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="feedback">
+                        <TabsTrigger value="feedback" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                            Client Feedback
                         </TabsTrigger>
-                        <TabsTrigger value="jobs">Completed Jobs</TabsTrigger>
-                        <TabsTrigger value="analytics">
+                        <TabsTrigger value="jobs" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Completed Jobs</TabsTrigger>
+                        <TabsTrigger value="analytics" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                            Performance Analytics
                         </TabsTrigger>
                      </TabsList>

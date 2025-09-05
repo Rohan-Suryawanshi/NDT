@@ -39,6 +39,45 @@ import {
    SelectValue,
    SelectItem,
 } from "@/components/ui/select";
+import NavbarSection from "@/features/NavbarSection/NavbarSection";
+import { useNavigate } from "react-router-dom";
+
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+
+// Default marker fix for missing icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+   iconRetinaUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+   iconUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+   shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+function LocationMarker({ profile, updateLocation }) {
+   useMapEvents({
+      click(e) {
+         updateLocation(e.latlng.lat, e.latlng.lng);
+      },
+   });
+
+   return (
+      profile.latitude && profile.longitude ? (
+         <Marker
+            position={[profile.latitude, profile.longitude]}
+            draggable={true}
+            eventHandlers={{
+               dragend: (e) => {
+                  const { lat, lng } = e.target.getLatLng();
+                  updateLocation(lat, lng);
+               },
+            }}
+         />
+      ) : null
+   );
+}
 
 // Create axios instance with default config
 const api = axios.create({
@@ -80,6 +119,17 @@ const ProfileInfoTab = ({
    setIsEditing,
    handleSave,
    handleResumeUpload,
+   updateLocation,
+   isOtpSent,
+   isPhoneVerified,
+   otp,
+   setOtp,
+   isVerifying,
+   isSendingOtp,
+   handleSendOtp,
+   handleVerifyOtp,
+   setIsPhoneVerified,
+   setIsOtpSent,
 }) => {
    if (!profile) return <div>Loading profile...</div>;
 
@@ -131,18 +181,71 @@ const ProfileInfoTab = ({
                         Contact Number
                      </label>
                      {isEditing ? (
-                        <input
-                           type="tel"
-                           value={profile.contactNumber || ""}
-                           onChange={(e) => {
-                             
-                              setProfile((prev) => ({
-                                 ...prev,
-                                 contactNumber: e.target.value,
-                              }));
-                           }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
-                        />
+                        <div className="space-y-2">
+                           <div className="flex gap-2">
+                              <input
+                                 type="tel"
+                                 value={profile.contactNumber || ""}
+                                 onChange={(e) => {
+                                    setProfile((prev) => ({
+                                       ...prev,
+                                       contactNumber: e.target.value,
+                                    }));
+                                    // Reset phone verification if contact number changes
+                                    setIsPhoneVerified(false);
+                                    setIsOtpSent(false);
+                                    setOtp("");
+                                 }}
+                                 placeholder="Enter contact number (e.g., +1234567890)"
+                                 className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent ${isPhoneVerified ? 'border-green-500' : ''}`}
+                              />
+                              {!isPhoneVerified && (
+                                 <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp || !profile.contactNumber}
+                                    className="whitespace-nowrap px-4 py-2 bg-[#004aad] text-white rounded-lg hover:bg-[#003a8a] disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    {isSendingOtp ? "Sending..." : "Send OTP"}
+                                 </button>
+                              )}
+                           </div>
+                           
+                           {isPhoneVerified && (
+                              <div className="text-green-600 text-sm flex items-center">
+                                 ✓ Phone number verified
+                              </div>
+                           )}
+                           
+                           {isOtpSent && !isPhoneVerified && (
+                              <div className="flex gap-2">
+                                 <input
+                                    type="text"
+                                    placeholder="Enter 6-digit OTP"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    maxLength={6}
+                                    className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                 />
+                                 <button
+                                    type="button"
+                                    onClick={handleVerifyOtp}
+                                    disabled={isVerifying || !otp}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    {isVerifying ? "Verifying..." : "Verify"}
+                                 </button>
+                                 <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={isSendingOtp}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                 >
+                                    Resend
+                                 </button>
+                              </div>
+                           )}
+                        </div>
                      ) : (
                         <div className="px-3 py-2 bg-gray-50 rounded-lg flex items-center gap-2">
                            <Phone className="w-4 h-4 text-gray-400" />
@@ -209,22 +312,177 @@ const ProfileInfoTab = ({
                </div>
 
                {isEditing && (
-                  <div className="flex gap-3 mt-6 pt-6 border-t">
-                     <button
-                        onClick={handleSave}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg  transition-colors"
-                     >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                     </button>
-                     <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                     >
-                        Cancel
-                     </button>
+                  <div className="flex flex-col gap-3 mt-6 pt-6 border-t">
+                     <div className="flex gap-3">
+                        <button
+                           onClick={handleSave}
+                           disabled={!isPhoneVerified}
+                           className="flex items-center gap-2 px-4 py-2 bg-[#004aad] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                           <Save className="w-4 h-4" />
+                           Save Changes
+                        </button>
+                        <button
+                           onClick={() => setIsEditing(false)}
+                           className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                           Cancel
+                        </button>
+                     </div>
+                     
+                     {!isPhoneVerified && (
+                        <div className="text-sm text-gray-500">
+                           Please verify your phone number to save profile
+                        </div>
+                     )}
                   </div>
                )}
+            </div>
+
+            {/* Location Section */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border">
+               <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                     <MapPin className="w-5 h-5" />
+                     Location Information
+                  </h3>
+               </div>
+
+               <div className="space-y-4">
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Current Location
+                     </label>
+                     {isEditing ? (
+                        <div className="space-y-4">
+                           <div className="text-sm text-gray-600 mb-2">
+                              Click on the map to set your location or drag the marker
+                           </div>
+                           <div className="h-64 rounded-lg overflow-hidden border">
+                              <MapContainer
+                                 center={[
+                                    profile.latitude || 37.0902,
+                                    profile.longitude || -95.7129,
+                                 ]}
+                                 zoom={13}
+                                 scrollWheelZoom={false}
+                                 style={{ height: "100%", width: "100%" }}
+                              >
+                                 <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                     noWrap={true}
+                                 />
+                                 <LocationMarker profile={profile} updateLocation={updateLocation} />
+                              </MapContainer>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Latitude
+                                 </label>
+                                 <input
+                                    type="number"
+                                    step="any"
+                                    value={profile.latitude || ""}
+                                    onChange={(e) => {
+                                       const lat = parseFloat(e.target.value) || null;
+                                       if (lat && profile.longitude) {
+                                          updateLocation(lat, profile.longitude);
+                                       } else {
+                                          setProfile((prev) => ({
+                                             ...prev,
+                                             latitude: lat,
+                                          }));
+                                       }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                    placeholder="e.g., 37.0902"
+                                 />
+                              </div>
+                              <div>
+                                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Longitude
+                                 </label>
+                                 <input
+                                    type="number"
+                                    step="any"
+                                    value={profile.longitude || ""}
+                                    onChange={(e) => {
+                                       const lng = parseFloat(e.target.value) || null;
+                                       if (lng && profile.latitude) {
+                                          updateLocation(profile.latitude, lng);
+                                       } else {
+                                          setProfile((prev) => ({
+                                             ...prev,
+                                             longitude: lng,
+                                          }));
+                                       }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                    placeholder="e.g., -95.7129"
+                                 />
+                              </div>
+                           </div>
+                           <button
+                              onClick={() => {
+                                 if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                       (position) => {
+                                          updateLocation(position.coords.latitude, position.coords.longitude);
+                                          toast.success("Location updated successfully!");
+                                       },
+                                       () => {
+                                          toast.error("Unable to get your location. Please set it manually.");
+                                       }
+                                    );
+                                 } else {
+                                    toast.error("Geolocation is not supported by this browser.");
+                                 }
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                           >
+                              <MapPin className="w-4 h-4" />
+                              Use Current Location
+                           </button>
+                        </div>
+                     ) : (
+                        <div className="space-y-3">
+                           {profile.latitude && profile.longitude ? (
+                              <>
+                                 <div className="h-48 rounded-lg overflow-hidden border">
+                                    <MapContainer
+                                       center={[profile.latitude, profile.longitude]}
+                                       zoom={13}
+                                       scrollWheelZoom={false}
+                                       style={{ height: "100%", width: "100%" }}
+                                    >
+                                       <TileLayer
+                                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                           noWrap={true}
+                                       />
+                                       <Marker position={[profile.latitude, profile.longitude]} />
+                                    </MapContainer>
+                                 </div>
+                                 <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                                       <span className="font-medium">Lat:</span> {profile.latitude?.toFixed(6)}
+                                    </div>
+                                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                                       <span className="font-medium">Lng:</span> {profile.longitude?.toFixed(6)}
+                                    </div>
+                                 </div>
+                              </>
+                           ) : (
+                              <div className="px-3 py-2 bg-gray-50 rounded-lg text-gray-500">
+                                 Location not set. Click edit to add your location.
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+               </div>
             </div>
          </div>
 
@@ -803,7 +1061,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                   </div>
                </div>
 
-               <div>
+               {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                      Currency
                   </label>
@@ -829,7 +1087,7 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                         </SelectContent>
                      </Select>
                   </div>
-               </div>
+               </div> */}
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                      Monthly Rate 
@@ -1135,7 +1393,14 @@ const ManageInspectorProfile = () => {
       level: "",
       expiryDate: "",
       image: null,
-   }); // Debug profile changes
+   }); 
+   
+   // OTP verification states
+   const [isOtpSent, setIsOtpSent] = useState(false);
+   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+   const [otp, setOtp] = useState("");
+   const [isVerifying, setIsVerifying] = useState(false);
+   const [isSendingOtp, setIsSendingOtp] = useState(false);
 
    // Fetch balance and earnings data
    const fetchBalance = useCallback(async () => {
@@ -1171,6 +1436,11 @@ const ManageInspectorProfile = () => {
 
          const response = await api.get("/api/v1/inspectors/profile");
          setProfile(response.data.data);
+         
+         // If profile exists with contact number, consider phone already verified
+         if (response.data.data && response.data.data.contactNumber) {
+            setIsPhoneVerified(true);
+         }
       } catch (error) {
          console.error("Error fetching profile:", error);
          console.error("Error response:", error.response);
@@ -1182,7 +1452,7 @@ const ManageInspectorProfile = () => {
                contactNumber: "",
                associationType: "Freelancer",
                companyName: "",
-               hourlyRate: 0,
+               hourlyRate: "",
                monthlyRate: 0,
                marginRate: 0,
                currency: "",
@@ -1207,6 +1477,7 @@ const ManageInspectorProfile = () => {
          setLoading(false);
       }
    }, [user?.name]); 
+   const navigate=useNavigate();
 
    useEffect(() => {
       if (user) {
@@ -1214,9 +1485,16 @@ const ManageInspectorProfile = () => {
       } else {
          console.log("No user found, skipping data fetch");
       }
-   }, [user, fetchProfile, fetchBalance]); // Save profile changes
+   }, [user, fetchProfile, fetchBalance]); 
+   
+   // Save profile changes
    const handleSave = async () => {
       try {
+         if (!isPhoneVerified) {
+            toast.error("Please verify your phone number before saving");
+            return;
+         }
+         
          setLoading(true);
          const formData = new FormData();
 
@@ -1248,6 +1526,8 @@ const ManageInspectorProfile = () => {
          setProfile(response.data.data);
          setIsEditing(false);
          toast.success("Profile saved successfully");
+         navigate('/dashboard-inspector');
+         
       } catch (error) {
          console.error("Error saving profile:", error);
          toast.error(error.response?.data?.message || "Failed to save profile");
@@ -1271,7 +1551,7 @@ const ManageInspectorProfile = () => {
                body = {
                   hourlyRate: profile.hourlyRate,
                   monthlyRate: profile.monthlyRate,
-                  currency: profile.currency,
+                  currency: JSON.parse(localStorage.getItem('user')).currency,
                };
                break;
             case "notifications":
@@ -1291,6 +1571,74 @@ const ManageInspectorProfile = () => {
       } catch (error) {
          console.error("Error updating field:", error);
          toast.error(error.response?.data?.message || "Failed to update");
+      }
+   };
+
+   // Send OTP function
+   const handleSendOtp = async () => {
+      if (!profile?.contactNumber) {
+         toast.error("Please enter contact number first");
+         return;
+      }
+
+      setIsSendingOtp(true);
+      try {
+         await api.post("/api/v1/inspectors/send-otp", { 
+            contactNumber: profile.contactNumber 
+         });
+         setIsOtpSent(true);
+         toast.success("OTP sent successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Failed to send OTP");
+      } finally {
+         setIsSendingOtp(false);
+      }
+   };
+
+   // Verify OTP function
+   const handleVerifyOtp = async () => {
+      if (!otp) {
+         toast.error("Please enter the OTP");
+         return;
+      }
+
+      setIsVerifying(true);
+      try {
+         await api.post("/api/v1/inspectors/verify-otp", { 
+            contactNumber: profile.contactNumber,
+            otp: otp 
+         });
+         setIsPhoneVerified(true);
+         setIsOtpSent(false);
+         setOtp("");
+         toast.success("Phone number verified successfully!");
+      } catch (err) {
+         toast.error(err?.response?.data?.message || "Invalid OTP");
+      } finally {
+         setIsVerifying(false);
+      }
+   };
+
+   const updateLocation = async (lat, lng) => {
+      setProfile(prev => ({
+         ...prev,
+         latitude: lat,
+         longitude: lng
+      }));
+
+      try {
+         const response = await api.patch('/api/v1/inspectors/location', {
+            latitude: lat,
+            longitude: lng
+         });
+
+         if (response.data.success) {
+            setProfile(prev => ({ ...prev, ...response.data.inspector }));
+            toast.success('Location updated successfully');
+         }
+      } catch (error) {
+         console.error('Error updating location:', error);
+         toast.error('Failed to update location. Please try again.');
       }
    };
    const addCertification = async () => {
@@ -1627,6 +1975,17 @@ const ManageInspectorProfile = () => {
                         setIsEditing={setIsEditing}
                         handleSave={handleSave}
                         handleResumeUpload={handleResumeUpload}
+                        updateLocation={updateLocation}
+                        isOtpSent={isOtpSent}
+                        isPhoneVerified={isPhoneVerified}
+                        otp={otp}
+                        setOtp={setOtp}
+                        isVerifying={isVerifying}
+                        isSendingOtp={isSendingOtp}
+                        handleSendOtp={handleSendOtp}
+                        handleVerifyOtp={handleVerifyOtp}
+                        setIsPhoneVerified={setIsPhoneVerified}
+                        setIsOtpSent={setIsOtpSent}
                      />
                   )}{" "}
                   {activeTab === "certifications" && (

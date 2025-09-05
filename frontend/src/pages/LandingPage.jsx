@@ -17,11 +17,13 @@ const LandingPage = () => {
       <>
          <NavbarSection />
          <HeroSection />
-         <FeaturesSection />
-         <HowItWorksSection />
+         <div className="sm:hidden">
          <Suspense fallback={<Loader />}>
             <AboutSection />
          </Suspense>
+         </div>
+         <FeaturesSection />
+         <HowItWorksSection />
          <ContactSection />
          <FooterSection />
       </>

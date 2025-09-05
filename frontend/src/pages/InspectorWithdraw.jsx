@@ -522,10 +522,10 @@ const InspectorWithdraw = () => {
           {/* Main Content Tabs */}
           <Tabs defaultValue="withdrawals" className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings History</TabsTrigger>
+              <TabsTrigger value="withdrawals" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Withdrawals</TabsTrigger>
+              <TabsTrigger value="earnings" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Earnings History</TabsTrigger>
               {/* <TabsTrigger value="inspections">Completed Inspections</TabsTrigger> */}
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Analytics</TabsTrigger>
             </TabsList>
 
             {/* Withdrawals Tab */}

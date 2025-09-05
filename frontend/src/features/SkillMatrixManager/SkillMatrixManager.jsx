@@ -457,17 +457,22 @@ export default function SkillMatrixManager() {
                      {/* Upload File */}
                      <div className="md:col-span-2">
                         <Label className="mb-2">Upload Certificate</Label>
+                        <Button
+                           type="button"
+                           className="w-full"
+                           onClick={() => document.getElementById(`file-input-${formKey}-${idx}`).click()}
+                        >
+                           {cert.file ? cert.file.name : "Choose File"}
+                        </Button>
                         <Input
+                           id={`file-input-${formKey}-${idx}`}
                            key={`${formKey}-${idx}`}
                            type="file"
                            accept="image/*,application/pdf"
-                           onChange={(e) =>
-                              handleChange(idx, "file", e.target.files[0])
-                           }
+                           style={{ display: "none" }}
+                           onChange={(e) => handleChange(idx, "file", e.target.files[0])}
                         />
                      </div>
-
-                     {/* Remove Button */}
                      {form.certificates.length > 1 && (
                         <div className="flex items-end">
                            <Button

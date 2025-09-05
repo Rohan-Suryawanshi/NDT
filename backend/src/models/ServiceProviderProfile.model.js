@@ -18,6 +18,18 @@ const serviceProviderProfileSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     totalRatings: { type: Number, default: 0 },
     ratingSum: { type: Number, default: 0 },
+    companyLat: {
+      type: Number,
+      required: false,
+      min: -90,
+      max: 90,
+    },
+    companyLng: {
+      type: Number,
+      required: false,
+      min: -180,
+      max: 180,
+    },
   },
   { timestamps: true }
 );

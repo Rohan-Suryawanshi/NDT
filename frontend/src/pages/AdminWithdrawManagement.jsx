@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
    BarChart,
    Bar,
@@ -32,6 +32,9 @@ import {
    Filter,
    Download,
    RefreshCw,
+   CalendarDays,
+   Phone,
+   Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -99,14 +102,280 @@ const AdminWithdrawManagement = () => {
    const [adminNote, setAdminNote] = useState("");
    const [isModalOpen, setIsModalOpen] = useState(false);
 
+   // Contact access tracking states
+   const [contactAccess, setContactAccess] = useState([]);
+   const [contactAccessStats, setContactAccessStats] = useState({});
+   const [contactAccessLoading, setContactAccessLoading] = useState(false);
+
    // Filter states
    const [statusFilter, setStatusFilter] = useState("all");
    const [searchTerm, setSearchTerm] = useState("");
    const [dateRange, setDateRange] = useState("all");
    const [currentPage, setCurrentPage] = useState(1);
    const [totalPages, setTotalPages] = useState(1);
+   const [exportLoading, setExportLoading] = useState(false);
+   // Custom date range states
+   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+   const [customDateRange, setCustomDateRange] = useState({ startDate: "", endDate: "" });
    // Chart colors
    const COLORS = ["#004aad", "#e0eaff", "#c1d6ff", "#ff6b6b", "#ffd93d"];
+
+   // CSV Export Functions
+   const convertToCSV = (data, type) => {
+      if (!data || data.length === 0) return "";
+
+      let headers, rows;
+
+      if (type === "withdrawals") {
+         headers = [
+            "ID",
+            "User Name",
+            "User Email",
+            "Amount",
+            "Currency",
+            "Processing Fee",
+            "Net Amount",
+            "Method",
+            "Status",
+            "Bank Name",
+            "Account Number",
+            "Account Holder",
+            "PayPal Email",
+            "Crypto Currency",
+            "Wallet Address",
+            "Requested Date",
+            "Processed Date",
+            "Completed Date",
+            "Transaction ID",
+            "Admin Notes"
+         ];
+
+         rows = data.map(withdrawal => [
+            withdrawal._id || "",
+            withdrawal.userId?.name || withdrawal.userId?.fullName || "",
+            withdrawal.userId?.email || "",
+            withdrawal.amount || 0,
+            withdrawal.currency || "USD",
+            withdrawal.processingFee || 0,
+            withdrawal.netAmount || (withdrawal.amount - (withdrawal.processingFee || 0)),
+            withdrawal.withdrawalMethod?.replace("_", " ") || "Bank Transfer",
+            withdrawal.status || "pending",
+            withdrawal.bankDetails?.bankName || "",
+            withdrawal.bankDetails?.accountNumber || "",
+            withdrawal.bankDetails?.accountHolderName || "",
+            withdrawal.paypalDetails?.email || "",
+            withdrawal.cryptoDetails?.currency || "",
+            withdrawal.cryptoDetails?.walletAddress || "",
+            formatDate(withdrawal.requestedAt || withdrawal.createdAt),
+            withdrawal.processedAt ? formatDate(withdrawal.processedAt) : "",
+            withdrawal.completedAt ? formatDate(withdrawal.completedAt) : "",
+            withdrawal.transactionId || "",
+            withdrawal.adminNotes?.map(note => `${note.note} (${formatDate(note.addedAt)})`).join("; ") || ""
+         ]);
+      } else if (type === "payments") {
+         headers = [
+            "ID",
+            "Client Name",
+            "Client Email",
+            "Job Title",
+            "Job ID",
+            "Base Amount",
+            "Platform Fee",
+            "Processing Fee",
+            "Total Amount",
+            "Status",
+            "Payment Method",
+            "Transaction ID",
+            "Created Date",
+            "Updated Date"
+         ];
+
+         rows = data.map(payment => [
+            payment._id || "",
+            payment.clientId?.fullName || payment.clientId?.name || "",
+            payment.clientId?.email || "",
+            payment.jobId?.title || "",
+            payment.jobId?._id || "",
+            payment.baseAmount || 0,
+            payment.platformFee || 0,
+            payment.processingFee || 0,
+            payment.totalAmount || 0,
+            payment.status || "pending",
+            payment.paymentMethod || "",
+            payment.transactionId || "",
+            formatDate(payment.createdAt),
+            formatDate(payment.updatedAt)
+         ]);
+      }
+
+      // Escape CSV values and wrap in quotes if they contain commas or quotes
+      const escapeCSV = (value) => {
+         if (value === null || value === undefined) return "";
+         const stringValue = String(value);
+         if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+         }
+         return stringValue;
+      };
+
+      const csvContent = [
+         headers.join(","),
+         ...rows.map(row => row.map(escapeCSV).join(","))
+      ].join("\n");
+
+      return csvContent;
+   };
+
+   const downloadCSV = (csvContent, filename) => {
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      if (link.download !== undefined) {
+         const url = URL.createObjectURL(blob);
+         link.setAttribute("href", url);
+         link.setAttribute("download", filename);
+         link.style.visibility = "hidden";
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+      }
+   };
+
+   // Export All Withdrawals
+   const exportAllWithdrawals = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         let dateParams = {};
+         if (dateRange === "custom" && customDateRange.startDate && customDateRange.endDate) {
+            dateParams = {
+               startDate: customDateRange.startDate,
+               endDate: customDateRange.endDate,
+            };
+         }
+         // Fetch all withdrawals without pagination
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/admin/withdrawals`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: {
+                  page: 1,
+                  limit: 10000, // Large number to get all records
+                  status: statusFilter !== "all" ? statusFilter : undefined,
+                  search: searchTerm || undefined,
+                  dateRange: dateRange !== "all" ? dateRange : undefined,
+                  ...dateParams,
+               },
+            }
+         );
+
+         const allWithdrawals = response.data.data.withdrawals || [];
+         
+         if (allWithdrawals.length === 0) {
+            toast.error("No withdrawals to export");
+            return;
+         }
+
+         const csvContent = convertToCSV(allWithdrawals, "withdrawals");
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(csvContent, `withdrawals_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allWithdrawals.length} withdrawals to CSV`);
+      } catch (error) {
+         console.error("Error exporting withdrawals:", error);
+         toast.error("Failed to export withdrawals");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   // Export All Payments
+   const exportAllPayments = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         // Fetch all payments without pagination
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/history`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: {
+                  page: 1,
+                  limit: 10000, // Large number to get all records
+               },
+            }
+         );
+
+         const allPayments = response.data.data.payments || [];
+         
+         if (allPayments.length === 0) {
+            toast.error("No payments to export");
+            return;
+         }
+
+         const csvContent = convertToCSV(allPayments, "payments");
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(csvContent, `payments_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting payments:", error);
+         toast.error("Failed to export payments");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   // Export Combined Data
+   const exportCombinedData = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         // Fetch both withdrawals and payments
+         const [withdrawalsResponse, paymentsResponse] = await Promise.all([
+            axios.get(`${BACKEND_URL}/api/v1/payments/admin/withdrawals`, {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }),
+            axios.get(`${BACKEND_URL}/api/v1/payments/history`, {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            })
+         ]);
+
+         const allWithdrawals = withdrawalsResponse.data.data.withdrawals || [];
+         const allPayments = paymentsResponse.data.data.payments || [];
+
+         if (allWithdrawals.length === 0 && allPayments.length === 0) {
+            toast.error("No data to export");
+            return;
+         }
+
+         // Create combined CSV with separate sheets effect
+         const withdrawalsCSV = convertToCSV(allWithdrawals, "withdrawals");
+         const paymentsCSV = convertToCSV(allPayments, "payments");
+         
+         const combinedCSV = [
+            "=== WITHDRAWALS ===",
+            withdrawalsCSV,
+            "",
+            "=== PAYMENTS ===", 
+            paymentsCSV
+         ].join("\n");
+
+         const timestamp = new Date().toISOString().split("T")[0];
+         downloadCSV(combinedCSV, `financial_report_${timestamp}.csv`);
+         
+         toast.success(`Exported ${allWithdrawals.length} withdrawals and ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting combined data:", error);
+         toast.error("Failed to export data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
 
    // Generate chart data from real stats
    const getChartData = () => {
@@ -193,6 +462,13 @@ const AdminWithdrawManagement = () => {
       try {
          setLoading(true);
          const token = localStorage.getItem("accessToken");
+         let dateParams = {};
+         if (dateRange === "custom" && customDateRange.startDate && customDateRange.endDate) {
+            dateParams = {
+               startDate: customDateRange.startDate,
+               endDate: customDateRange.endDate,
+            };
+         }
          const response = await axios.get(
             `${BACKEND_URL}/api/v1/payments/admin/withdrawals`,
             {
@@ -203,6 +479,7 @@ const AdminWithdrawManagement = () => {
                   status: statusFilter !== "all" ? statusFilter : undefined,
                   search: searchTerm || undefined,
                   dateRange: dateRange !== "all" ? dateRange : undefined,
+                  ...dateParams,
                },
             }
          );
@@ -224,7 +501,7 @@ const AdminWithdrawManagement = () => {
       } finally {
          setLoading(false);
       }
-   }, [currentPage, statusFilter, searchTerm, dateRange]);
+   }, [currentPage, statusFilter, searchTerm, dateRange, customDateRange]);
 
    const fetchPaymentStats = async () => {
       try {
@@ -590,7 +867,18 @@ const AdminWithdrawManagement = () => {
 
             {/* Date Range Filter */}
             <div className="w-full sm:w-[200px]">
-               <Select value={dateRange} onValueChange={setDateRange}>
+               <Select 
+                  value={dateRange} 
+                  onValueChange={(value) => {
+                     setDateRange(value);
+                     if (value === "custom") {
+                        setShowCustomDatePicker(true);
+                     } else {
+                        setShowCustomDatePicker(false);
+                        setCustomDateRange({ startDate: "", endDate: "" });
+                     }
+                  }}
+               >
                   <SelectTrigger className="w-full">
                      <SelectValue placeholder="All Time" />
                   </SelectTrigger>
@@ -624,6 +912,11 @@ const AdminWithdrawManagement = () => {
                            Quarter
                         </div>
                      </SelectItem>
+                     <SelectItem value="custom">
+                        <div className="flex items-center gap-2">
+                           <CalendarDays className="h-4 w-4 text-blue-500" /> Custom Range
+                        </div>
+                     </SelectItem>
                   </SelectContent>
                </Select>
             </div>
@@ -645,6 +938,90 @@ const AdminWithdrawManagement = () => {
                </Button>
             </div>
          </div>
+         {/* Custom Date Picker */}
+         {showCustomDatePicker && (
+            <Card className="p-4 mb-6 bg-blue-50 border-blue-200">
+               <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                     <CalendarDays className="h-5 w-5 text-[#004aad]" />
+                     <Label className="text-sm font-semibold text-[#004aad]">
+                        Select Custom Date Range
+                     </Label>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4 items-end">
+                     <div className="flex-1 min-w-[200px]">
+                        <Label htmlFor="startDate" className="text-sm text-gray-600">
+                           Start Date
+                        </Label>
+                        <Input
+                           id="startDate"
+                           type="date"
+                           value={customDateRange.startDate}
+                           onChange={(e) => setCustomDateRange(prev => ({
+                              ...prev,
+                              startDate: e.target.value
+                           }))}
+                           max={new Date().toISOString().split('T')[0]}
+                           className="mt-1"
+                        />
+                     </div>
+                     <div className="flex-1 min-w-[200px]">
+                        <Label htmlFor="endDate" className="text-sm text-gray-600">
+                           End Date
+                        </Label>
+                        <Input
+                           id="endDate"
+                           type="date"
+                           value={customDateRange.endDate}
+                           onChange={(e) => setCustomDateRange(prev => ({
+                              ...prev,
+                              endDate: e.target.value
+                           }))}
+                           min={customDateRange.startDate}
+                           max={new Date().toISOString().split('T')[0]}
+                           className="mt-1"
+                        />
+                     </div>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={() => {
+                              setDateRange("custom");
+                              setShowCustomDatePicker(false);
+                              setCurrentPage(1);
+                              fetchWithdrawals();
+                           }}
+                           className="bg-[#004aad] hover:bg-[#003a8c] text-white px-6"
+                           disabled={!customDateRange.startDate || !customDateRange.endDate}
+                        >
+                           <Calendar className="h-4 w-4 mr-2" />
+                           Apply
+                        </Button>
+                        <Button
+                           onClick={() => {
+                              setCustomDateRange({ startDate: "", endDate: "" });
+                              setDateRange("all");
+                              setShowCustomDatePicker(false);
+                              setCurrentPage(1);
+                              fetchWithdrawals();
+                           }}
+                           variant="outline"
+                           className="border-gray-300 text-gray-600 hover:bg-gray-50 px-6"
+                        >
+                           Clear
+                        </Button>
+                     </div>
+                  </div>
+                  {dateRange === "custom" && customDateRange.startDate && customDateRange.endDate && (
+                     <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-600">
+                           <span className="font-medium">Selected Range:</span>{" "}
+                           {formatDate(customDateRange.startDate)} to {formatDate(customDateRange.endDate)}
+                        </p>
+                     </div>
+                  )}
+               </div>
+            </Card>
+         )}
          {/* Table */}
          <div className="overflow-x-auto">
             <table className="w-full table-auto">
@@ -1218,15 +1595,45 @@ const AdminWithdrawManagement = () => {
                      />
                   </div>
 
-                  {/* Export Button (optional) */}
-                  {/* <Button
-      variant="outline"
-      onClick={() => window.print()}
-      className="w-full sm:w-auto px-6 py-2 border-[#004aad] text-[#004aad] hover:bg-blue-50 hover:border-[#004aad]"
-    >
-      <Download className="h-4 w-4 mr-2" />
-      Export
-    </Button> */}
+                  {/* Export Dropdown */}
+                  <div className="flex gap-2">
+                     <Select onValueChange={(value) => {
+                        if (value === "withdrawals") exportAllWithdrawals();
+                        else if (value === "payments") exportAllPayments();
+                        else if (value === "combined") exportCombinedData();
+                     }}>
+                        <SelectTrigger className="w-[140px]">
+                           <SelectValue placeholder="Export CSV" />
+                        </SelectTrigger>
+                        <SelectContent>
+                           <SelectItem value="withdrawals">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Withdrawals
+                              </div>
+                           </SelectItem>
+                           <SelectItem value="payments">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Payments
+                              </div>
+                           </SelectItem>
+                           <SelectItem value="combined">
+                              <div className="flex items-center gap-2">
+                                 <Download className="h-4 w-4" />
+                                 Combined Report
+                              </div>
+                           </SelectItem>
+                        </SelectContent>
+                     </Select>
+
+                     {exportLoading && (
+                        <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600">
+                           <RefreshCw className="h-4 w-4 animate-spin" />
+                           Exporting...
+                        </div>
+                     )}
+                  </div>
                </div>
             </div>
             {/* Stats Cards */}
@@ -1246,6 +1653,18 @@ const AdminWithdrawManagement = () => {
                      Payment History
                   </TabsTrigger>
                   <TabsTrigger
+                     value="contact-access"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                     Provider Contact
+                  </TabsTrigger>
+                  {/* <TabsTrigger
+                     value="inspector-contact"
+                     className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                     Inspector Contact
+                  </TabsTrigger> */}
+                  <TabsTrigger
                      value="analytics"
                      className="px-6 py-3 text-sm font-semibold data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm"
                   >
@@ -1253,12 +1672,71 @@ const AdminWithdrawManagement = () => {
                   </TabsTrigger>
                </TabsList>
                <TabsContent value="withdrawals">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Withdrawal Requests</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportAllWithdrawals}
+                           disabled={exportLoading}
+                           variant="outline"
+                           className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Withdrawals CSV
+                        </Button>
+                     </div>
+                  </div>
                   {isGraphicalView ? <ChartsView /> : <TableView />}
                </TabsContent>{" "}
                <TabsContent value="payments">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Payment History</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportAllPayments}
+                           disabled={exportLoading}
+                           variant="outline"
+                           className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Payments CSV
+                        </Button>
+                     </div>
+                  </div>
                   <PaymentHistoryView />
                </TabsContent>
+               <TabsContent value="contact-access">
+                  <ContactAccessTrackingView />
+               </TabsContent>
+               <TabsContent value="inspector-contact">
+                  <InspectorContactAccessTrackingView />
+               </TabsContent>
                <TabsContent value="analytics">
+                  <div className="flex justify-between items-center mb-4">
+                     <h2 className="text-xl font-semibold">Financial Analytics</h2>
+                     <div className="flex gap-2">
+                        <Button
+                           onClick={exportCombinedData}
+                           disabled={exportLoading}
+                           className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+                        >
+                           {exportLoading ? (
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                           ) : (
+                              <Download className="h-4 w-4 mr-2" />
+                           )}
+                           Export Full Report
+                        </Button>
+                     </div>
+                  </div>
                   <ChartsView />
                </TabsContent>
             </Tabs>{" "}
@@ -1273,6 +1751,87 @@ const PaymentHistoryView = () => {
    const [loadingPayments, setLoadingPayments] = useState(false);
    const [paymentPage, setPaymentPage] = useState(1);
    const [paymentTotalPages, setPaymentTotalPages] = useState(1);
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Export function for payments in this component
+   const exportPayments = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/payments/history`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allPayments = response.data.data.payments || [];
+         
+         if (allPayments.length === 0) {
+            toast.error("No payments to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "Client Name", "Client Email", "Job Title", "Job ID",
+            "Base Amount", "Platform Fee", "Processing Fee", "Total Amount",
+            "Status", "Payment Method", "Transaction ID", "Created Date", "Updated Date"
+         ];
+
+         const rows = allPayments.map(payment => [
+            payment._id || "",
+            payment.clientId?.fullName || payment.clientId?.name || "",
+            payment.clientId?.email || "",
+            payment.jobId?.title || "",
+            payment.jobId?._id || "",
+            payment.baseAmount || 0,
+            payment.platformFee || 0,
+            payment.processingFee || 0,
+            payment.totalAmount || 0,
+            payment.status || "pending",
+            payment.paymentMethod || "",
+            payment.transactionId || "",
+            formatDate(payment.createdAt),
+            formatDate(payment.updatedAt)
+         ]);
+
+         const escapeCSV = (value) => {
+            if (value === null || value === undefined) return "";
+            const stringValue = String(value);
+            if (stringValue.includes(",") || stringValue.includes('"')) {
+               return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+         };
+
+         const csvContent = [
+            headers.join(","),
+            ...rows.map(row => row.map(escapeCSV).join(","))
+         ].join("\n");
+
+         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+         const link = document.createElement("a");
+         const url = URL.createObjectURL(blob);
+         const timestamp = new Date().toISOString().split("T")[0];
+         
+         link.setAttribute("href", url);
+         link.setAttribute("download", `payments_${timestamp}.csv`);
+         link.style.visibility = "hidden";
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         
+         toast.success(`Exported ${allPayments.length} payments to CSV`);
+      } catch (error) {
+         console.error("Error exporting payments:", error);
+         toast.error("Failed to export payments");
+      } finally {
+         setExportLoading(false);
+      }
+   };
 
    const fetchPayments = React.useCallback(async () => {
       try {
@@ -1307,14 +1866,29 @@ const PaymentHistoryView = () => {
       <Card className="p-6">
          <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold">Payment History</h3>
-            <Button onClick={fetchPayments} disabled={loadingPayments}>
-               <RefreshCw
-                  className={`h-4 w-4 mr-2 ${
-                     loadingPayments ? "animate-spin" : ""
-                  }`}
-               />
-               Refresh
-            </Button>
+            <div className="flex gap-2">
+               <Button 
+                  onClick={exportPayments} 
+                  disabled={exportLoading}
+                  variant="outline"
+                  className="border-[#004aad] text-[#004aad] hover:bg-blue-50"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+               <Button onClick={fetchPayments} disabled={loadingPayments}>
+                  <RefreshCw
+                     className={`h-4 w-4 mr-2 ${
+                        loadingPayments ? "animate-spin" : ""
+                     }`}
+                  />
+                  Refresh
+               </Button>
+            </div>
          </div>
 
          <div className="overflow-x-auto">
@@ -1480,6 +2054,647 @@ const PaymentHistoryView = () => {
                >
                   Next
                </Button>
+            </div>
+         </div>
+      </Card>
+   );
+};
+
+// Contact Access Tracking View Component
+const ContactAccessTrackingView = () => {
+   const [contactAccess, setContactAccess] = useState([]);
+   const [loadingContactAccess, setLoadingContactAccess] = useState(false);
+   const [contactAccessPage, setContactAccessPage] = useState(1);
+   const [contactAccessTotalPages, setContactAccessTotalPages] = useState(1);
+   const [contactAccessStats, setContactAccessStats] = useState({});
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Fetch contact access data
+   const fetchContactAccess = useCallback(async () => {
+      try {
+         setLoadingContactAccess(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: contactAccessPage, limit: 10 }
+            }
+         );
+
+         setContactAccess(response.data.data.contactAccess || []);
+         setContactAccessTotalPages(response.data.data.totalPages || 1);
+         setContactAccessStats(response.data.data.stats || {});
+      } catch (error) {
+         console.error("Failed to fetch contact access data:", error);
+         toast.error("Failed to load contact access data");
+      } finally {
+         setLoadingContactAccess(false);
+      }
+   }, [contactAccessPage]);
+
+   // Export contact access data
+   const exportContactAccess = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allContactAccess = response.data.data.contactAccess || [];
+         
+         if (allContactAccess.length === 0) {
+            toast.error("No contact access data to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "User Name", "User Email", "Provider Name", "Provider Email", 
+            "Provider Phone", "Amount Paid", "Currency", "Transaction ID", 
+            "Payment Status", "Access Date", "Email Sent"
+         ];
+
+         const rows = allContactAccess.map(access => [
+            access._id || "",
+            access.userId?.fullName || access.userId?.name || "",
+            access.userId?.email || "",
+            access.providerId?.companyName || "",
+            access.providerEmail || "",
+            access.providerPhone || "",
+            access.amountPaid || 0,
+            access.currency || "USD",
+            access.transactionId || "",
+            access.paymentStatus || "",
+            access.accessDate ? formatDate(access.accessDate) : "",
+            access.emailSent ? "Yes" : "No"
+         ]);
+
+         const csvContent = [headers, ...rows]
+            .map(row => row.map(field => `"${field}"`).join(","))
+            .join("\n");
+
+         // Create and download file
+         const blob = new Blob([csvContent], { type: "text/csv" });
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement("a");
+         a.href = url;
+         a.download = `contact-access-${new Date().toISOString().split('T')[0]}.csv`;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         window.URL.revokeObjectURL(url);
+
+         toast.success("Contact access data exported successfully");
+      } catch (error) {
+         console.error("Failed to export contact access data:", error);
+         toast.error("Failed to export contact access data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchContactAccess();
+   }, [contactAccessPage]);
+
+   return (
+      <Card className="shadow-lg border-0">
+         <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+               <div>
+                  <h3 className="text-lg font-semibold">Contact Access Tracking</h3>
+                  <p className="text-gray-600 text-sm">Monitor premium contact information purchases</p>
+               </div>
+               <Button
+                  onClick={exportContactAccess}
+                  disabled={exportLoading}
+                  className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Total Purchases</p>
+                        <p className="text-2xl font-bold text-[#004aad]">
+                           {contactAccessStats.totalPurchases || 0}
+                        </p>
+                     </div>
+                     <CreditCard className="h-8 w-8 text-[#004aad]" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Revenue Generated</p>
+                        <p className="text-2xl font-bold text-green-600">
+                           {formatCurrency(contactAccessStats.totalRevenue || 0)}
+                        </p>
+                     </div>
+                     <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Unique Users</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                           {contactAccessStats.uniqueUsers || 0}
+                        </p>
+                     </div>
+                     <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                           {contactAccessStats.successRate || 0}%
+                        </p>
+                     </div>
+                     <TrendingUp className="h-8 w-8 text-purple-600" />
+                  </div>
+               </Card>
+            </div>
+
+            {/* Contact Access Table */}
+            <div className="overflow-x-auto">
+               <table className="w-full border-collapse">
+                  <thead>
+                     <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
+                        {/* <th className="text-left py-3 px-4 font-medium text-gray-600">Provider</th> */}
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Contact Info</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Payment</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loadingContactAccess ? (
+                        <tr>
+                           <td colSpan="6" className="py-8 text-center">
+                              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                           </td>
+                        </tr>
+                     ) : contactAccess.length === 0 ? (
+                        <tr>
+                           <td colSpan="6" className="py-8 text-center text-gray-500">
+                              No contact access data found
+                           </td>
+                        </tr>
+                     ) : (
+                        contactAccess.map((access) => (
+                           <tr key={access._id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.userId?.fullName || access.userId?.name || "Unknown User"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.userId?.email || "No email"}
+                                    </p>
+                                 </div>
+                              </td>
+                              {/* <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.providerId?.companyName || "Unknown Provider"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       ID: {access.providerId?._id?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td> */}
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Phone className="h-3 w-3" />
+                                       {access.providerPhone || access.inspectorPhone|| "N/A"}
+                                    </p>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Mail className="h-3 w-3" />
+                                       {access.providerEmail || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {formatCurrency(access.amountPaid || 0)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.transactionId?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <Badge
+                                    className={`${getStatusColor(
+                                       access.paymentStatus
+                                    )} flex items-center gap-1`}
+                                 >
+                                    {access.paymentStatus === "succeeded" && (
+                                       <CheckCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "failed" && (
+                                       <XCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "pending" && (
+                                       <Clock className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus}
+                                 </Badge>
+                                 { 
+                                    <div className="text-xs text-green-600 mt-1">
+                                       Email sent ✓
+                                    </div>
+                                 }
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.accessDate ? formatDate(access.accessDate) : "N/A"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                       {access.accessDate ? new Date(access.accessDate).toLocaleTimeString() : ""}
+                                    </p>
+                                 </div>
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-6">
+               <p className="text-sm text-gray-600">
+                  Page {contactAccessPage} of {contactAccessTotalPages}
+               </p>
+               <div className="flex gap-2">
+                  <Button
+                     onClick={() => setContactAccessPage(prev => Math.max(prev - 1, 1))}
+                     disabled={contactAccessPage === 1}
+                     variant="outline"
+                  >
+                     Previous
+                  </Button>
+                  <Button
+                     onClick={() => setContactAccessPage(prev => Math.min(prev + 1, contactAccessTotalPages))}
+                     disabled={contactAccessPage === contactAccessTotalPages}
+                     variant="outline"
+                  >
+                     Next
+                  </Button>
+               </div>
+            </div>
+         </div>
+      </Card>
+   );
+};
+
+// Inspector Contact Access Tracking View Component
+const InspectorContactAccessTrackingView = () => {
+   const [inspectorContactAccess, setInspectorContactAccess] = useState([]);
+   const [loadingInspectorContactAccess, setLoadingInspectorContactAccess] = useState(false);
+   const [inspectorContactAccessPage, setInspectorContactAccessPage] = useState(1);
+   const [inspectorContactAccessTotalPages, setInspectorContactAccessTotalPages] = useState(1);
+   const [inspectorContactAccessStats, setInspectorContactAccessStats] = useState({});
+   const [exportLoading, setExportLoading] = useState(false);
+
+   // Fetch inspector contact access data
+   const fetchInspectorContactAccess = useCallback(async () => {
+      try {
+         setLoadingInspectorContactAccess(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/inspector-contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: inspectorContactAccessPage, limit: 10 }
+            }
+         );
+
+         setInspectorContactAccess(response.data.data.contactAccess || []);
+         setInspectorContactAccessTotalPages(response.data.data.totalPages || 1);
+         setInspectorContactAccessStats(response.data.data.stats || {});
+      } catch (error) {
+         console.error("Failed to fetch inspector contact access data:", error);
+         toast.error("Failed to load inspector contact access data");
+      } finally {
+         setLoadingInspectorContactAccess(false);
+      }
+   }, [inspectorContactAccessPage]);
+
+   // Export inspector contact access data
+   const exportInspectorContactAccess = async () => {
+      try {
+         setExportLoading(true);
+         const token = localStorage.getItem("accessToken");
+         
+         const response = await axios.get(
+            `${BACKEND_URL}/api/v1/admin/inspector-contact-access`,
+            {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page: 1, limit: 10000 }
+            }
+         );
+
+         const allInspectorContactAccess = response.data.data.contactAccess || [];
+         
+         if (allInspectorContactAccess.length === 0) {
+            toast.error("No inspector contact access data to export");
+            return;
+         }
+
+         // Create CSV content
+         const headers = [
+            "ID", "User Name", "User Email", "Inspector Name", "Inspector Email", 
+            "Inspector Phone", "Association Type", "Company Name", "Amount Paid", 
+            "Currency", "Transaction ID", "Payment Status", "Access Date", "Email Sent"
+         ];
+
+         const rows = allInspectorContactAccess.map(access => [
+            access._id || "",
+            access.userId?.fullName || access.userId?.name || "",
+            access.userId?.email || "",
+            access.inspectorId?.fullName || "",
+            access.inspectorEmail || "",
+            access.inspectorPhone || "",
+            access.inspectorId?.associationType || "",
+            access.inspectorId?.companyName || "",
+            access.amountPaid || 0,
+            access.currency || "USD",
+            access.transactionId || "",
+            access.paymentStatus || "",
+            access.accessDate ? formatDate(access.accessDate) : "",
+            access.emailSent ? "Yes" : "No"
+         ]);
+
+         const csvContent = [headers, ...rows]
+            .map(row => row.map(field => `"${field}"`).join(","))
+            .join("\n");
+
+         // Create and download file
+         const blob = new Blob([csvContent], { type: "text/csv" });
+         const url = window.URL.createObjectURL(blob);
+         const a = document.createElement("a");
+         a.href = url;
+         a.download = `inspector-contact-access-${new Date().toISOString().split('T')[0]}.csv`;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         window.URL.revokeObjectURL(url);
+
+         toast.success("Inspector contact access data exported successfully");
+      } catch (error) {
+         console.error("Failed to export inspector contact access data:", error);
+         toast.error("Failed to export inspector contact access data");
+      } finally {
+         setExportLoading(false);
+      }
+   };
+
+   useEffect(() => {
+      fetchInspectorContactAccess();
+   }, [fetchInspectorContactAccess]);
+
+   return (
+      <Card className="shadow-lg border-0">
+         <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+               <div>
+                  <h3 className="text-lg font-semibold">Inspector Contact Access Tracking</h3>
+                  <p className="text-gray-600 text-sm">Monitor premium inspector contact information purchases</p>
+               </div>
+               <Button
+                  onClick={exportInspectorContactAccess}
+                  disabled={exportLoading}
+                  className="bg-[#004aad] hover:bg-[#003a8c] text-white"
+               >
+                  {exportLoading ? (
+                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                     <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Export CSV
+               </Button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Total Purchases</p>
+                        <p className="text-2xl font-bold text-[#004aad]">
+                           {inspectorContactAccessStats.totalPurchases || 0}
+                        </p>
+                     </div>
+                     <CreditCard className="h-8 w-8 text-[#004aad]" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Revenue Generated</p>
+                        <p className="text-2xl font-bold text-green-600">
+                           {formatCurrency(inspectorContactAccessStats.totalRevenue || 0)}
+                        </p>
+                     </div>
+                     <DollarSign className="h-8 w-8 text-green-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Unique Users</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                           {inspectorContactAccessStats.uniqueUsers || 0}
+                        </p>
+                     </div>
+                     <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+               </Card>
+               <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                     <div>
+                        <p className="text-sm text-gray-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                           {inspectorContactAccessStats.successRate || 0}%
+                        </p>
+                     </div>
+                     <TrendingUp className="h-8 w-8 text-purple-600" />
+                  </div>
+               </Card>
+            </div>
+
+            {/* Inspector Contact Access Table */}
+            <div className="overflow-x-auto">
+               <table className="w-full border-collapse">
+                  <thead>
+                     <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Inspector</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Contact Info</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Association</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Payment</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {loadingInspectorContactAccess ? (
+                        <tr>
+                           <td colSpan="7" className="py-8 text-center">
+                              <RefreshCw className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+                           </td>
+                        </tr>
+                     ) : inspectorContactAccess.length === 0 ? (
+                        <tr>
+                           <td colSpan="7" className="py-8 text-center text-gray-500">
+                              No inspector contact access data found
+                           </td>
+                        </tr>
+                     ) : (
+                        inspectorContactAccess.map((access) => (
+                           <tr key={access._id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.userId?.fullName || access.userId?.name || "Unknown User"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.userId?.email || "No email"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {access.inspectorId?.fullName || "Unknown Inspector"}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       ID: {access.inspectorId?._id?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Phone className="h-3 w-3" />
+                                       {access.inspectorPhone || "N/A"}
+                                    </p>
+                                    <p className="text-sm flex items-center gap-1">
+                                       <Mail className="h-3 w-3" />
+                                       {access.inspectorEmail || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.inspectorId?.associationType || "N/A"}
+                                    </p>
+                                    {access.inspectorId?.companyName && (
+                                       <p className="text-xs text-gray-500">
+                                          {access.inspectorId.companyName}
+                                       </p>
+                                    )}
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="font-medium">
+                                       {formatCurrency(access.amountPaid || 0)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                       {access.transactionId?.slice(-8) || "N/A"}
+                                    </p>
+                                 </div>
+                              </td>
+                              <td className="py-3 px-4">
+                                 <Badge
+                                    className={`${getStatusColor(
+                                       access.paymentStatus
+                                    )} flex items-center gap-1`}
+                                 >
+                                    {access.paymentStatus === "succeeded" && (
+                                       <CheckCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "failed" && (
+                                       <XCircle className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus === "pending" && (
+                                       <Clock className="h-3 w-3" />
+                                    )}
+                                    {access.paymentStatus}
+                                 </Badge>
+                                 {access.emailSent && (
+                                    <div className="text-xs text-green-600 mt-1">
+                                       Email sent ✓
+                                    </div>
+                                 )}
+                              </td>
+                              <td className="py-3 px-4">
+                                 <div>
+                                    <p className="text-sm">
+                                       {access.accessDate ? formatDate(access.accessDate) : "N/A"}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                       {access.accessDate ? new Date(access.accessDate).toLocaleTimeString() : ""}
+                                    </p>
+                                 </div>
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-6">
+               <p className="text-sm text-gray-600">
+                  Page {inspectorContactAccessPage} of {inspectorContactAccessTotalPages}
+               </p>
+               <div className="flex gap-2">
+                  <Button
+                     onClick={() => setInspectorContactAccessPage(prev => Math.max(prev - 1, 1))}
+                     disabled={inspectorContactAccessPage === 1}
+                     variant="outline"
+                  >
+                     Previous
+                  </Button>
+                  <Button
+                     onClick={() => setInspectorContactAccessPage(prev => Math.min(prev + 1, inspectorContactAccessTotalPages))}
+                     disabled={inspectorContactAccessPage === inspectorContactAccessTotalPages}
+                     variant="outline"
+                  >
+                     Next
+                  </Button>
+               </div>
             </div>
          </div>
       </Card>

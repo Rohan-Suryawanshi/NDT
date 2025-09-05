@@ -1110,21 +1110,21 @@ const AdminJobManagement = () => {
                      <div className="space-y-6">
                         <Tabs defaultValue="overview" className="w-full">
                            <TabsList className="grid w-full grid-cols-5">
-                              <TabsTrigger value="overview">
+                              <TabsTrigger value="overview" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white">
                                  Overview
                               </TabsTrigger>
-                              <TabsTrigger value="quotations">
+                              <TabsTrigger value="quotations" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white">
                                  Quotations (
                                  {selectedJob.quotationHistory?.length || 0})
                               </TabsTrigger>
-                              <TabsTrigger value="notes">
+                              <TabsTrigger value="notes" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white">
                                  Notes ({selectedJob.internalNotes?.length || 0}
                                  )
                               </TabsTrigger>
-                              <TabsTrigger value="attachments">
+                              <TabsTrigger value="attachments" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white">
                                  Files ({selectedJob.attachments?.length || 0})
                               </TabsTrigger>
-                              <TabsTrigger value="timeline">
+                              <TabsTrigger value="timeline" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white">
                                  Timeline
                               </TabsTrigger>
                            </TabsList>

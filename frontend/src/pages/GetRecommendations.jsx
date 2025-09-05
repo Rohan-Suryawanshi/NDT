@@ -109,43 +109,6 @@ const GetRecommendations = () => {
    ];
    const [submitting, setSubmitting] = useState(false);
 
-  // Open modal for selected provider
-const fetchProvider = async (provider) => {
-  try {
-    const accessToken = localStorage.getItem("accessToken");
-
-    const response = await axios.get(
-      `${BACKEND_URL}/api/v1/inspectors/all`,
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        timeout: 10000,
-      }
-    );
-
-    if (response.data.success) {
-      const profiles = response.data.data.profiles || [];
-
-      // Filter correctly
-      const filtered = profiles.filter(
-        (p) => p._id === provider._id
-      );
-
-
-      setSelectedProvider(filtered);
-    }
-  } catch (error) {
-    console.error("Error fetching services:", error);
-    toast.error("Failed to load services");
-  }
-};
-
-
-   const handleRequestService = (provider) => {
-      fetchProvider(provider);
-
-      // setSelectedProvider(provider);
-      setShowRequestModal(true);
-   };
 
    // Reset job request form
    const resetJobRequestForm = () => {
@@ -279,7 +242,7 @@ const fetchProvider = async (provider) => {
       location: "",
       specialization: "",
       minRating: [0],
-      maxBudget: [10000],
+      maxBudget: [0],
       urgency: "any", // low, medium, high, urgent, any
       verified: "all", // all, verified, unverified
       availability: "all", // all, available, busy
@@ -287,11 +250,11 @@ const fetchProvider = async (provider) => {
 
    // Recommendation Criteria
    const [recommendationCriteria, setRecommendationCriteria] = useState({
-      prioritizeRating: true,
+      prioritizeRating: false,
       prioritizePrice: false,
-      prioritizeLocation: true,
-      prioritizeExperience: true,
-      prioritizeCertifications: true,
+      prioritizeLocation: false,
+      prioritizeExperience: false,
+      prioritizeCertifications: false,
    });
 
    // Fetch Data
@@ -509,18 +472,46 @@ const fetchProvider = async (provider) => {
       setShowDetailsModal(true);
    };
 
+   const toggleService = (serviceId) => {
+      setJobRequest(prev => ({
+         ...prev,
+         requiredServices: prev.requiredServices.includes(serviceId)
+            ? prev.requiredServices.filter(id => id !== serviceId)
+            : [...prev.requiredServices, serviceId]
+      }));
+   };
+
+   const toggleComplianceStandard = (standard) => {
+      setJobRequest(prev => ({
+         ...prev,
+         complianceRequirements: prev.complianceRequirements.includes(standard)
+            ? prev.complianceRequirements.filter(s => s !== standard)
+            : [...prev.complianceRequirements, standard]
+      }));
+   };
+
    const clearFilters = () => {
       setFilters({
          selectedService: "all",
          location: "",
          specialization: "",
          minRating: [0],
-         maxBudget: [10000],
+         maxBudget: [0],
          urgency: "any",
          verified: "all",
          availability: "all",
       });
-      toast.success("Filters cleared");
+      
+      // Also reset recommendation criteria
+      setRecommendationCriteria({
+         prioritizeRating: false,
+         prioritizePrice: false,
+         prioritizeLocation: false,
+         prioritizeExperience: false,
+         prioritizeCertifications: false,
+      });
+      
+      toast.success("All filters and criteria cleared");
    };
 
    return (
@@ -591,7 +582,7 @@ const fetchProvider = async (provider) => {
                                  }))
                               }
                            >
-                              <SelectTrigger>
+                              <SelectTrigger className="w-full">
                                  <SelectValue placeholder="Select service" />
                               </SelectTrigger>
                               <SelectContent>
@@ -688,7 +679,7 @@ const fetchProvider = async (provider) => {
                                  }))
                               }
                            >
-                              <SelectTrigger>
+                              <SelectTrigger className="w-full">
                                  <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -713,30 +704,29 @@ const fetchProvider = async (provider) => {
                            <div className="space-y-2 mt-2">
                               {Object.entries(recommendationCriteria).map(
                                  ([key, value]) => (
-                                    <label
+                                    <div
                                        key={key}
                                        className="flex items-center space-x-2"
                                     >
                                        <Checkbox
-                                          type="checkbox"
+                                          id={key}
                                           checked={value}
-                                          onChange={(e) =>
+                                          onCheckedChange={(checked) =>
                                              setRecommendationCriteria(
                                                 (prev) => ({
                                                    ...prev,
-                                                   [key]: e.target.checked,
+                                                   [key]: checked === true,
                                                 })
                                              )
                                           }
-                                          className="rounded border-gray-300"
                                        />
-                                       <span className="text-sm capitalize">
+                                       <Label htmlFor={key} className="text-sm cursor-pointer">
                                           {key
                                              .replace("prioritize", "")
                                              .replace(/([A-Z])/g, " $1")
                                              .trim()}
-                                       </span>
-                                    </label>
+                                       </Label>
+                                    </div>
                                  )
                               )}
                            </div>

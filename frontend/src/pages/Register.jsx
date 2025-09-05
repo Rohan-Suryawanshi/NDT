@@ -15,7 +15,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
-   const navigate=useNavigate();
+   const navigate = useNavigate();
    const [form, setForm] = useState({
       name: "",
       email: "",
@@ -56,7 +56,6 @@ export default function Register() {
          !form.email ||
          !form.password ||
          !form.role ||
-         !form.avatar ||
          !form.location ||
          !form.currency
       ) {
@@ -80,6 +79,14 @@ export default function Register() {
 
          if (form.avatar) {
             formData.append("avatar", form.avatar);
+         } else {
+            // ✅ append default image if user didn't select one
+            const response = await fetch("/office-man.png");
+            const blob = await response.blob();
+            formData.append(
+               "avatar",
+               new File([blob], "office-man.png", { type: blob.type })
+            );
          }
          const res = await fetch(`${BACKEND_URL}/api/v1/users/register`, {
             method: "POST",
@@ -88,10 +95,10 @@ export default function Register() {
 
          const data = await res.json();
          if (data.success) {
-            toast.success(data.message||"Please Verify Your Email");
-              navigate("/login");
+            toast.success(data.message || "Please Verify Your Email");
+            navigate("/login");
          } else {
-            toast.error(data.message||"Unable To Login");
+            toast.error(data.message || "Unable To Login");
          }
       } catch (err) {
          console.error("Registration failed:", err);
@@ -180,8 +187,8 @@ export default function Register() {
                      if (selected) {
                         setForm((prev) => ({
                            ...prev,
-                              location: selected.country,
-                              currency: selected.currencyCode,
+                           location: selected.country,
+                           currency: selected.currencyCode,
                         }));
                      }
                   }}

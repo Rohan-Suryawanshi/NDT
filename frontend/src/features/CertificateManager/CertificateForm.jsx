@@ -73,6 +73,10 @@ export default function CertificateForm({ initialData, onSuccess }) {
    // Certificate body options array
   
 
+   const handleFileButtonClick = () => {
+      document.getElementById("certificate-upload-input").click();
+   };
+
    return (
       <form onSubmit={handleSubmit} className="space-y-4">
          <div>
@@ -87,26 +91,25 @@ export default function CertificateForm({ initialData, onSuccess }) {
          </div>
 
          <div>
-  <Label className="mb-2">Certification Body</Label>
-  <Select
-    value={formData.certificationBody}
-    onValueChange={(value) =>
-      handleChange({ target: { name: "certificationBody", value } })
-    }
-  >
-    <SelectTrigger className="w-full">
-      <SelectValue placeholder="Select Certification Body" />
-    </SelectTrigger>
-    <SelectContent>
-      {certificateBodies.map((body) => (
-        <SelectItem key={body} value={body}>
-          {body}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
-
+            <Label className="mb-2">Certification Body</Label>
+            <Select
+               value={formData.certificationBody}
+               onValueChange={(value) =>
+                  handleChange({ target: { name: "certificationBody", value } })
+               }
+            >
+               <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Certification Body" />
+               </SelectTrigger>
+               <SelectContent>
+                  {certificateBodies.map((body) => (
+                     <SelectItem key={body} value={body}>
+                        {body}
+                     </SelectItem>
+                  ))}
+               </SelectContent>
+            </Select>
+         </div>
 
          <div>
             <Label className="mb-2">Category</Label>
@@ -143,12 +146,23 @@ export default function CertificateForm({ initialData, onSuccess }) {
 
          <div>
             <Label className="mb-2">Upload Certificate (optional)</Label>
-            <Input
+            <input
+               id="certificate-upload-input"
                type="file"
                name="certificate"
                accept=".pdf,.jpg,.png"
                onChange={handleChange}
+               style={{ display: "none" }}
             />
+            <Button
+               type="button"
+               onClick={handleFileButtonClick}
+               className="w-full"
+            >
+               {formData.certificate
+                  ? `Selected: ${formData.certificate.name}`
+                  : "Choose File"}
+            </Button>
          </div>
 
          <Button type="submit" className="w-full mt-4">

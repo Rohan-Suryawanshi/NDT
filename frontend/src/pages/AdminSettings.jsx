@@ -288,11 +288,11 @@ const AdminSettings = () => {
         {/* Main Settings Tabs */}
         <Tabs defaultValue="payments" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-white border">
-            <TabsTrigger value="payments" className="flex items-center space-x-2">
+            <TabsTrigger value="payments" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white flex items-center space-x-2">
               <DollarSign className="w-4 h-4" />
               <span>Payments & Fees</span>
             </TabsTrigger>
-            <TabsTrigger value="withdrawals" className="flex items-center space-x-2">
+            <TabsTrigger value="withdrawals" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white flex items-center space-x-2">
               <Settings className="w-4 h-4" />
               <span>Withdrawals</span>
             </TabsTrigger>

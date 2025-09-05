@@ -36,11 +36,14 @@ import AdminRevenue from "./pages/AdminRevenue";
 import AdminJobManagement from "./pages/AdminJobManagement";
 import GetRecommendations from "./pages/GetRecommendations";
 import ProtectedRoute from "./ProtectedRoute";
+import AvailableRegions from "./pages/AvailableRegions";
+import FindInspector from "./pages/FindInspector";
 export default function App() {
    return (
          <Router>
             <Routes>
                <Route path="/" element={<LandingPage />} />
+               <Route path="/available-regions" element={<AvailableRegions/>}/>
                <Route path="/register" element={<Register />} />
                <Route path="/verify-email" element={<VerifyEmail />} />
                <Route path="/login" element={<Login />} />
@@ -173,7 +176,8 @@ export default function App() {
                   path="/find-inspectors"
                   element={
                      <ProtectedRoute allowedRoles={["client", "admin"]}>
-                        <ClientProviderSelection />
+                        {/* <ClientProviderSelection /> */}
+                        <FindInspector/>
                      </ProtectedRoute>
                   }
                />

@@ -71,7 +71,7 @@ const InspectorProfileSchema = new Schema(
     hourlyRate: { type: Number },
     monthlyRate: { type: Number },
     marginRate: { type: Number, default: 0 }, // Admin controlled margin %
-    currency:{type:String},
+    currency: { type: String },
     availability: {
       type: Boolean,
       default: true,
@@ -105,6 +105,21 @@ const InspectorProfileSchema = new Schema(
     totalEarnings: {
       type: Number,
       default: 0,
+    },
+    latitude: {
+      type: Number,
+      required: false,
+      min: -90,
+      max: 90,
+      default: null,
+    },
+
+    longitude: {
+      type: Number,
+      required: false,
+      min: -180,
+      max: 180,
+      default: null,
     },
   },
   { timestamps: true }

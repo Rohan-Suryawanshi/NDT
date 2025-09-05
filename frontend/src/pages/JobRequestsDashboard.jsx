@@ -674,11 +674,12 @@ const JobRequestsDashboard = () => {
                               <SelectValue placeholder="Status" />
                            </SelectTrigger>
                            <SelectContent>
-                              <SelectItem value="all">All Status</SelectItem>
+                              <SelectItem value="all" >All Status</SelectItem>
                               {STATUS_OPTIONS.map((status) => (
                                  <SelectItem
                                     key={status.value}
                                     value={status.value}
+                                    className="data-[state=checked]:bg-[#004aad] data-[state=checked]:text-white focus:bg-[#004aad] focus:text-white"
                                  >
                                     {status.label}
                                  </SelectItem>

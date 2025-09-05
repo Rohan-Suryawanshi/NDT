@@ -795,13 +795,13 @@ const ClientServiceRequest = () => {
                         Refresh
                      </Button>
 
-                     <Button
+                     {/* <Button
                         className="bg-[#004aad]  flex items-center"
                         disabled={actionLoading}
                      >
                         <Plus className="h-4 w-4 mr-2" />
                         New Request
-                     </Button>
+                     </Button> */}
                   </div>
                </div>
             </div>
@@ -1253,20 +1253,20 @@ const ClientServiceRequest = () => {
                {selectedRequest && (
                   <Tabs defaultValue="overview" className="w-full">
                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">Overview</TabsTrigger>
                         {selectedRequest.type === "provider" && (
                            <>
-                              <TabsTrigger value="quotations">
+                              <TabsTrigger value="quotations" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                                  Quotations (
                                  {selectedRequest.quotationHistory?.length || 0}
                                  )
                               </TabsTrigger>
-                              <TabsTrigger value="cost-breakdown">
+                              <TabsTrigger value="cost-breakdown" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                                  Cost Details
                               </TabsTrigger>
                            </>
                         )}
-                        <TabsTrigger value="communication">
+                        <TabsTrigger value="communication" className="data-[state=active]:bg-[#004aad] data-[state=active]:text-white data-[state=active]:shadow-sm">
                            Communication
                         </TabsTrigger>
                      </TabsList>
