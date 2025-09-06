@@ -718,7 +718,7 @@ const JobRequestsDashboard = () => {
                               <SelectValue placeholder="Location" />
                            </SelectTrigger>
                            <SelectContent>
-                              <SelectItem value="all">All Cities</SelectItem>
+                              <SelectItem value="all">Country</SelectItem>
                               {Location.map((location) => (
                                  <SelectItem
                                     key={location.id}

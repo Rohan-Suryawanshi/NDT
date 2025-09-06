@@ -233,7 +233,7 @@ export default function SkillMatrixManager() {
 
    return (
       <>
-      <NavbarSection/>
+         <NavbarSection />
          <div className="p-6 space-y-6">
             <h1 className="text-2xl font-bold">Skill Matrix Manager</h1>
             {/* Filters */}
@@ -441,15 +441,20 @@ export default function SkillMatrixManager() {
 
                      {/* Availability Switch */}
                      <div className="flex items-center space-x-2">
-                        <Label className="mb-2">Available</Label>
+                        <Label className="mb-2">Availability</Label>
                         <Switch
                            checked={cert.isAvailable}
                            onCheckedChange={(checked) =>
                               handleChange(idx, "isAvailable", checked)
                            }
-                        
                         />
-                        <span className="text-sm text-gray-600">
+                        <span
+                           className={`text-sm font-medium ${
+                              cert.isAvailable
+                                 ? "text-green-600"
+                                 : "text-red-600"
+                           }`}
+                        >
                            {cert.isAvailable ? "Available" : "Not Available"}
                         </span>
                      </div>
@@ -460,7 +465,11 @@ export default function SkillMatrixManager() {
                         <Button
                            type="button"
                            className="w-full"
-                           onClick={() => document.getElementById(`file-input-${formKey}-${idx}`).click()}
+                           onClick={() =>
+                              document
+                                 .getElementById(`file-input-${formKey}-${idx}`)
+                                 .click()
+                           }
                         >
                            {cert.file ? cert.file.name : "Choose File"}
                         </Button>
@@ -470,7 +479,9 @@ export default function SkillMatrixManager() {
                            type="file"
                            accept="image/*,application/pdf"
                            style={{ display: "none" }}
-                           onChange={(e) => handleChange(idx, "file", e.target.files[0])}
+                           onChange={(e) =>
+                              handleChange(idx, "file", e.target.files[0])
+                           }
                         />
                      </div>
                      {form.certificates.length > 1 && (
