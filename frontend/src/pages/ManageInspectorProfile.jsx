@@ -259,22 +259,23 @@ const ProfileInfoTab = ({
                         Association Type
                      </label>
                      {isEditing ? (
-                        <select
+                        <Select
                            value={profile.associationType || "Freelancer"}
-                           onChange={(e) => {
-                            
+                           onValueChange={(value) => 
                               setProfile((prev) => ({
                                  ...prev,
-                                 associationType: e.target.value,
-                              }));
-                           }}
-                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#004aad] focus:border-transparent"
+                                 associationType: value,
+                              }))
+                           }
                         >
-                           <option value="Freelancer">Freelancer</option>
-                           <option value="Company Employee">
-                              Company Employee
-                           </option>
-                        </select>
+                           <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select Association Type" />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="Freelancer">Freelancer</SelectItem>
+                              <SelectItem value="Company Employee">Company Employee</SelectItem>
+                           </SelectContent>
+                        </Select>
                      ) : (
                         <div className="px-3 py-2 bg-gray-50 rounded-lg">
                            {profile.associationType}
@@ -1065,28 +1066,26 @@ const RatesTab = ({ profile, setProfile, updateField }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                      Currency
                   </label>
-                  <div className="relative">
-                     <Select
-                        value={profile.currency}
-                        onValueChange={(val) =>
-                           setProfile((prev) => ({
-                              ...prev,
-                              currency: val,
-                           }))
-                        }
-                     >
-                        <SelectTrigger className="w-full">
-                           <SelectValue placeholder="Select Currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {Location.map((loc) => (
-                              <SelectItem key={loc.id} value={loc.currencyCode}>
-                                 {loc.currencyCode}-{loc.country}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
+                  <Select
+                     value={profile.currency || ""}
+                     onValueChange={(value) =>
+                        setProfile((prev) => ({
+                           ...prev,
+                           currency: value,
+                        }))
+                     }
+                  >
+                     <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Currency" />
+                     </SelectTrigger>
+                     <SelectContent>
+                        {Location.map((loc) => (
+                           <SelectItem key={loc.id} value={loc.currencyCode}>
+                              {loc.currencyCode} - {loc.country}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
                </div> */}
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1728,7 +1727,7 @@ const ManageInspectorProfile = () => {
                      <div className="relative">
                         <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold backdrop-blur-sm">
                            <img
-                              src={profile.userId?.avatar}
+                              src={profile.userId?.avatar||JSON.parse(localStorage.getItem("user"))?.avatar}
                               alt={profile.fullName}
                            />
                         </div>
@@ -1917,6 +1916,7 @@ const ManageInspectorProfile = () => {
 
    return (
       <div className="min-h-screen bg-gray-50">
+             <NavbarSection />
          {loading && (
             <div className="flex items-center justify-center h-64">
                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#004aad]"></div>

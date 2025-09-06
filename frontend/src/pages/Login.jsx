@@ -130,7 +130,7 @@ export default function Login() {
             // Check if profile exists for non-admin users
             if (user.role === "admin" || user.role === "finance") {
                // Admin and finance users don't need profile setup
-               navigate(getDashboardPath(user.role));
+               navigate(getDashboardPath(user.role),{replace:true});
             } else {
                // Check profile for client, provider, inspector
                const profileCheck = await checkUserProfile(user.role, token);
@@ -143,7 +143,7 @@ export default function Login() {
                      localStorage.setItem("firstLogin",true);
                   }
                   const profilePath = getProfileSetupPath(user.role);
-                  navigate(profilePath);
+                  navigate(profilePath,{replace:true});
                } else {
                   // Profile exists - redirect to dashboard
                   toast.success("Welcome back!");
