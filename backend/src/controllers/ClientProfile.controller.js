@@ -46,7 +46,7 @@ export const sendClientOTP = AsyncHandler(async (req, res) => {
     const data = qs.stringify({
       'From': TWILIO_PHONE_NUMBER,
       'To': contactNumber,
-      'Body': `Your Verification Code is ${otp}. This code will expire in 5 minutes.`
+      'Body': `Your NDT-connect Verification Code is ${otp}. This code will expire in 5 minutes.`
     });
 
     const config = {
