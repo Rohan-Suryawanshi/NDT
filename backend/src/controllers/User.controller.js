@@ -116,6 +116,40 @@ const verifyEmail = AsyncHandler(async (req, res) => {
   user.isVerified = true;
   await user.save({ validateBeforeSave: false });
 
+   await sendEmail({
+     to: user.email,
+     subject: "Your Email Has Been Verified",
+     html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Email Verified</title>
+      </head>
+      <body style="margin:0; padding:0; background-color:#f7f9fc; font-family:Arial, sans-serif;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+          <tr>
+            <td align="center" style="padding:40px 0;">
+              <table style="max-width:600px; width:100%; background:#ffffff; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" cellpadding="20">
+                <tr>
+                  <td align="left" style="color:#333;">
+                    <h2 style="margin-top:0; color:#004aad;">Dear ${user.name},</h2>
+                    <p style="color:#555; font-size:16px;">Thank you for verifying your email address. Your account has been successfully confirmed and is now fully active.</p>
+                    <p style="color:#555; font-size:16px;">You can now continue using all features of <strong>NDT-Connect</strong> with full access.</p>
+                    <p style="color:#555; font-size:16px;">If you did not perform this action or believe this is an error, please contact our support team immediately at <a href="mailto:info@ndt-connect.com">info@ndt-connect.com</a></p>
+                    <p style="margin-top:30px; font-size:14px; color:#999;">Best regards,<br><strong>NDT-Connect Team</strong></p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `,
+   });
+
+
   res.status(200).json(new ApiResponse(200, {}, "Email verified successfully"));
 });
 

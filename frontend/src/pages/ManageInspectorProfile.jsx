@@ -1862,7 +1862,7 @@ const ManageInspectorProfile = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                      activeTab === tab.id
-                        ? "bg-white text-[#004aad] shadow-sm"
+                        ? "text-white bg-[#004aad] shadow-sm"
                         : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
                   }`}
                >
